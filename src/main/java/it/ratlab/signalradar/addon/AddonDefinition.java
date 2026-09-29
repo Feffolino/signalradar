@@ -14,12 +14,12 @@ import org.jetbrains.annotations.Nullable;
  * @param radiusMin      radius in blocks at {@code minTier}; 0 together with {@code radiusMax} 0 = the radar's tier range
  * @param radiusMax      radius in blocks at tier 4
  * @param refreshSeconds seconds between two detections (results are cached until then)
- * @param color          0xRRGGBB blip colour (fallback for MapColor based ore blips)
+ * @param color          0xRRGGBB blip colour (fallback for ore blips without a material tag)
  * @param energyCost     FE added to every base scan charge while installed
  * @param category       blip category text (drawn by colour; {@code motion} pulses and beeps)
  * @param requiredModId  item is only registered when this mod is loaded (null = always)
  * @param tag            block / entity / structure tag id for the tag based detectors (null = detector default)
- * @param useMapColor    block blips take the block's MapColor instead of {@code color} (ore)
+ * @param useMapColor    block blips take the colour of their {@code c:ores/<material>} tag instead of {@code color} (ore)
  */
 public record AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
                               int color, int energyCost, String category, @Nullable String requiredModId,

@@ -529,7 +529,7 @@ public final class AddonGameTests {
     }
 
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
-    public static void oreDetectorMergesVeinsAndColoursByMapColor(GameTestHelper h) {
+    public static void oreDetectorMergesVeinsAndColoursByMaterial(GameTestHelper h) {
         ServerPlayer p = player(h);
         h.setBlock(new BlockPos(1, 2, 0), Blocks.DIAMOND_ORE);
         h.setBlock(new BlockPos(2, 2, 0), Blocks.DIAMOND_ORE); // same vein: merged
@@ -545,14 +545,26 @@ public final class AddonGameTests {
         h.assertTrue(!hasKey(hits, h.absolutePos(new BlockPos(-3, 2, 0))), "stone reported");
         Hit dia = hits.stream().filter(x -> x.key().equals(key(d1))).findFirst().orElseThrow();
         Hit quartz = hits.stream().filter(x -> x.key().equals(key(q))).findFirst().orElseThrow();
-        int expectedDia = h.getLevel().getBlockState(d1).getMapColor(h.getLevel(), d1).col;
-        int expectedQuartz = h.getLevel().getBlockState(q).getMapColor(h.getLevel(), q).col;
+        int expectedDia = it.ratlab.signalradar.addon.OreColors.builtIn("diamond");
+        int expectedQuartz = it.ratlab.signalradar.addon.OreColors.builtIn("quartz");
         h.assertTrue(dia.color() == expectedDia && dia.color() != 0, "diamond colour " + Integer.toHexString(dia.color()));
         h.assertTrue(quartz.color() == expectedQuartz && quartz.color() != dia.color(), "quartz colour " + Integer.toHexString(quartz.color()));
         h.assertTrue(dia.name().getString().equals(Blocks.DIAMOND_ORE.getName().getString()), "ore name");
         // no budget: nothing searched
         h.assertTrue(Detectors.run(settings(AddonRegistry.ORE), p, h.getLevel(), 16, new BlockLocatorScan.Budget(0), 100).isEmpty(),
                 "ore search ignored the budget");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void oreColorsDifferPerMaterial(GameTestHelper h) {
+        int iron = it.ratlab.signalradar.addon.detect.OreColorResolver.color(Blocks.IRON_ORE);
+        int deepIron = it.ratlab.signalradar.addon.detect.OreColorResolver.color(Blocks.DEEPSLATE_IRON_ORE);
+        int diamond = it.ratlab.signalradar.addon.detect.OreColorResolver.color(Blocks.DIAMOND_ORE);
+        h.assertTrue(iron == 0xD8AF93 && deepIron == iron, "iron " + Integer.toHexString(iron) + " / deepslate " + Integer.toHexString(deepIron));
+        h.assertTrue(diamond == 0x4AEDD9 && diamond != iron, "diamond " + Integer.toHexString(diamond));
+        h.assertTrue(it.ratlab.signalradar.addon.detect.OreColorResolver.color(Blocks.STONE) == 0, "stone has no ore material");
+        h.assertTrue("iron".equals(it.ratlab.signalradar.addon.detect.OreColorResolver.material(Blocks.IRON_ORE).orElse(null)), "material name");
         h.succeed();
     }
 

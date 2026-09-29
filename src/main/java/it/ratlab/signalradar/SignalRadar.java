@@ -37,6 +37,7 @@ public final class SignalRadar {
         modBus.addListener(SignalRadar::addToTabs);
         modBus.addListener(it.ratlab.signalradar.net.RadarNetworking::register);
         NeoForge.EVENT_BUS.addListener(it.ratlab.signalradar.target.TargetManager::onAddReloadListener);
+        NeoForge.EVENT_BUS.addListener(it.ratlab.signalradar.addon.detect.OreColorResolver::onTagsUpdated);
         NeoForge.EVENT_BUS.addListener(it.ratlab.signalradar.command.RadarCommands::register);
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent e) -> it.ratlab.signalradar.scan.ScanHandler.reset());
         it.ratlab.signalradar.scan.ScanHandler.register(NeoForge.EVENT_BUS);

@@ -41,7 +41,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -165,7 +164,7 @@ public final class Detectors {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    /** Tag blocks (ore and custom {@code block_tag} addons): one blip per vein, coloured by MapColor when asked. */
+    /** Tag blocks (ore and custom {@code block_tag} addons): one blip per vein, coloured by ore material when asked. */
     private static List<Hit> blocks(AddonSettings a, ServerPlayer player, ServerLevel level, int radius, BlockLocatorScan.Budget budget) {
         TagKey<Block> tag = TagKey.create(Registries.BLOCK, a.def().tag());
         if (!tagNotEmpty(tag)) {
@@ -187,8 +186,7 @@ public final class Detectors {
             BlockState state = level.getBlockState(p);
             int color = 0;
             if (a.def().useMapColor()) {
-                MapColor mc = state.getMapColor(level, p);
-                color = mc == MapColor.NONE ? 0 : mc.col;
+                color = OreColorResolver.color(state.getBlock());
             }
             hits.add(new Hit(p.getX() + "," + p.getY() + "," + p.getZ(), state.getBlock().getName(),
                     p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, color));

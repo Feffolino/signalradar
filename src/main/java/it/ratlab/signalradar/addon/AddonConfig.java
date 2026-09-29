@@ -3,6 +3,7 @@ package it.ratlab.signalradar.addon;
 
 import it.ratlab.signalradar.SignalRadarConfig;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.ModConfigSpec;
@@ -17,6 +18,7 @@ public final class AddonConfig {
                           ModConfigSpec.ConfigValue<String> color, ModConfigSpec.IntValue energy) {}
 
     private static final Map<ResourceLocation, Values> VALUES = new HashMap<>();
+    private static ModConfigSpec.ConfigValue<List<? extends String>> oreOverrides;
 
     private AddonConfig() {}
 
@@ -34,13 +36,23 @@ public final class AddonConfig {
                     .defineInRange("radiusMax", d.radiusMax(), 0, 100_000);
             ModConfigSpec.IntValue refresh = b.comment("Seconds between two detections (results are cached until then).")
                     .defineInRange("refreshSeconds", d.refreshSeconds(), 1, 3600);
-            ModConfigSpec.ConfigValue<String> color = b.comment("Blip colour #RRGGBB (ore blips use the block's map colour, this is the fallback).")
+            ModConfigSpec.ConfigValue<String> color = b.comment("Blip colour #RRGGBB (ore blips use the ore material colour, this is the fallback).")
                     .define("color", AddonMath.formatColor(d.color()), o -> o instanceof String s && AddonMath.parseColor(s, -1) >= 0);
             ModConfigSpec.IntValue energy = b.comment("FE added to each base scan charge while this addon is installed.")
                     .defineInRange("energyCost", d.energyCost(), 0, 1_000_000);
+            if (d.useMapColor()) {
+                oreOverrides = b.comment("Ore blip colours per material, applied over the built-in table: \"material=#RRGGBB\".",
+                                "The material is the name after c:ores/ in the block's tag (iron, gold, osmium, ...); unknown materials get a stable hash colour.")
+                        .defineListAllowEmpty("colorOverrides", List.of(), () -> "iron=#D8AF93", o -> o instanceof String);
+            }
             b.pop();
             VALUES.put(d.id(), new Values(enabled, minTier, radiusMin, radiusMax, refresh, color, energy));
         }
+    }
+
+    /** {@code addons.ore.colorOverrides} strings; empty before the config is loaded. Same instance until the config changes. */
+    public static List<? extends String> oreColorOverrides() {
+        return oreOverrides == null || !SignalRadarConfig.SPEC.isLoaded() ? List.of() : oreOverrides.get();
     }
 
     public static AddonSettings settings(AddonDefinition def) {
