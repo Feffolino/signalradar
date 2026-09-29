@@ -6,5 +6,14 @@
   "item.signalradar.radar_module_4": "Radar Module IV",
   "tooltip.signalradar.tier": "Tier %s / %s",
   "tooltip.signalradar.energy": "FE %s / %s",
-  "tag.item.signalradar.radar_modules": "Radar Modules"
+  "tag.item.signalradar.radar_modules": "Radar Modules",
+  "command.signalradar.no_radar": "That player is not holding a Signal Radar.",
+  "command.signalradar.settier": "Set %s's radar to tier %s",
+  "command.signalradar.charge": "Charged %s's radar to %s FE",
+  "command.signalradar.targets.entry": "%s [%s] min tier %s -> %s",
+  "command.signalradar.targets.none": "no position (other dimension, pending or nothing found)",
+  "command.signalradar.targets.cached": "cached structure %s: %s",
+  "command.signalradar.targets.miss": "miss",
+  "command.signalradar.targets.summary": "%s targets loaded, %s cached structure searches, %s pending",
+  "command.signalradar.clearcache": "Cleared %s cached structure searches"
 }

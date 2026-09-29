@@ -14,7 +14,9 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import org.slf4j.Logger;
 
 @Mod(SignalRadar.MOD_ID)
@@ -29,6 +31,11 @@ public final class SignalRadar {
         it.ratlab.signalradar.registry.ModRecipes.SERIALIZERS.register(modBus);
         modBus.addListener(SignalRadar::registerCapabilities);
         modBus.addListener(SignalRadar::addToTabs);
+        modBus.addListener(it.ratlab.signalradar.net.RadarNetworking::register);
+        NeoForge.EVENT_BUS.addListener(it.ratlab.signalradar.target.TargetManager::onAddReloadListener);
+        NeoForge.EVENT_BUS.addListener(it.ratlab.signalradar.command.RadarCommands::register);
+        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent e) -> it.ratlab.signalradar.scan.ScanHandler.reset());
+        it.ratlab.signalradar.scan.ScanHandler.register(NeoForge.EVENT_BUS);
 
         if (Boolean.getBoolean("signalradar.gametests")) {
             it.ratlab.signalradar.test.RadarGameTests.register(modBus);

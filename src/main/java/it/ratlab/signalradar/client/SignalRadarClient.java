@@ -14,6 +14,7 @@ public final class SignalRadarClient {
 
     public static void init(IEventBus modBus) {
         modBus.addListener(SignalRadarClient::setup);
+        it.ratlab.signalradar.net.RadarNetworking.clientSnapshot = ClientRadarState::accept;
     }
 
     private static void setup(FMLClientSetupEvent event) {

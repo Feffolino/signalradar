@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: MIT
+package it.ratlab.signalradar.target;
+
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * A narrative target from {@code data/<ns>/signalradar/target/<id>.json}.
+ * {@code requiresStage}, {@code requiresUnlock}, {@code foundRadius} and {@code hideWhenFound} are stored now and
+ * enforced from phase 5.
+ */
+public record TargetDef(
+        ResourceLocation id,
+        Component name,
+        String category,
+        int minTier,
+        int color,
+        int revealDistance,
+        @Nullable String requiresStage,
+        boolean requiresUnlock,
+        int foundRadius,
+        boolean hideWhenFound,
+        Locator locator) {
+    public static final int DEFAULT_REVEAL_DISTANCE = 128;
+    public static final int DEFAULT_FOUND_RADIUS = 24;
+    public static final int DEFAULT_COLOR = 0x7CFC00;
+
+    /** Blip id sent to the client. */
+    public String blipId() {
+        return id.toString();
+    }
+}
