@@ -24,8 +24,8 @@ import net.minecraft.world.item.ItemStack;
 public final class RadarClientSounds {
     /** Only these categories tick when the sweep crosses them (never ore, containers, ...). */
     public static final Set<String> TICKING_CATEGORIES = Set.of("narrative", RadarColors.MOTION_CATEGORY);
-    /** Motion beep interval reaches its slowest at this distance (the motion addon's max radius). */
-    private static final double BEEP_REFERENCE = 48.0;
+    /** Beep reference distance when a snapshot does not say (motion addon radius at tier 4). */
+    private static final double BEEP_REFERENCE_FALLBACK = 48.0;
     private static int beepCooldown;
 
     private RadarClientSounds() {}
@@ -98,10 +98,11 @@ public final class RadarClientSounds {
             beepCooldown = 0;
             return;
         }
+        double reference = snap.motionRadius() > 0 ? snap.motionRadius() : BEEP_REFERENCE_FALLBACK;
         if (--beepCooldown <= 0) {
-            float pitch = (float) (1.6 - 0.7 * Math.min(1.0, nearest / BEEP_REFERENCE));
+            float pitch = (float) (1.6 - 0.7 * Math.min(1.0, nearest / reference));
             play(p, ModSounds.MOTION_BEEP.get(), 0.7f, pitch);
-            beepCooldown = AddonMath.motionBeepTicks(nearest, BEEP_REFERENCE);
+            beepCooldown = AddonMath.motionBeepTicks(nearest, reference);
         }
     }
 

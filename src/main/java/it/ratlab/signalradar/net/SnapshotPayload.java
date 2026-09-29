@@ -32,6 +32,7 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
         buf.writeBoolean(s.noSignal());
         buf.writeBoolean(s.charged());
         buf.writeLong(s.gameTime());
+        buf.writeVarInt(s.motionRadius());
         buf.writeVarInt(s.blips().size());
         for (Blip b : s.blips()) {
             buf.writeUtf(b.id());
@@ -54,6 +55,7 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
         boolean noSignal = buf.readBoolean();
         boolean charged = buf.readBoolean();
         long time = buf.readLong();
+        int motionRadius = buf.readVarInt();
         int n = buf.readVarInt();
         if (n < 0 || n > MAX_BLIPS) {
             throw new io.netty.handler.codec.DecoderException("Radar snapshot with " + n + " blips (max " + MAX_BLIPS + ")");
@@ -70,7 +72,7 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
             int flags = buf.readByte();
             blips.add(new Blip(id, category, color, x, y, z, name, (flags & FLAG_OUT_OF_RANGE) != 0, (flags & FLAG_FOUND) != 0));
         }
-        return new SnapshotPayload(new ScanSnapshot(tier, energy, capacity, range, refresh, noSignal, time, blips, charged));
+        return new SnapshotPayload(new ScanSnapshot(tier, energy, capacity, range, refresh, noSignal, time, blips, charged, motionRadius));
     }
 
     @Override

@@ -65,6 +65,7 @@ public final class BlockLocatorScan {
     /** Block states a search may still test during one player scan (shared by all block targets of that scan). */
     public static final class Budget {
         private int remaining;
+        private boolean exhausted;
 
         public Budget(int checks) {
             this.remaining = Math.max(0, checks);
@@ -78,10 +79,16 @@ public final class BlockLocatorScan {
         public boolean take(int n) {
             if (remaining < n) {
                 remaining = 0;
+                exhausted = true;
                 return false;
             }
             remaining -= n;
             return true;
+        }
+
+        /** A {@link #take} was refused: searches sharing this budget may have stopped early. */
+        public boolean exhausted() {
+            return exhausted;
         }
 
         public int remaining() {

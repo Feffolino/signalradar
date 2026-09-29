@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,17 +30,9 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 /** Server-side glue: scans for players holding a radar, runs the structure queue. */
 public final class ScanHandler {
-    /** Per-player scan schedule. */
-    private static final class State {
-        /** Game time of the next snapshot (base period, or the shortest addon refresh while paid up). */
-        long nextSend;
-        /** Game time of the next base charge. */
-        long nextCharge;
-        /** The current charge period was paid: snapshots in between are free. */
-        boolean paid;
-    }
+    private record Key(int tier, List<ResourceLocation> addons, int stack) {}
 
-    private static final Map<UUID, State> STATES = new HashMap<>();
+    private static final Map<UUID, ScanSchedule> STATES = new HashMap<>();
 
     private ScanHandler() {}
 
@@ -68,8 +61,8 @@ public final class ScanHandler {
             return;
         }
         long now = player.level().getGameTime();
-        State st = STATES.computeIfAbsent(player.getUUID(), k -> new State());
-        if (now < st.nextSend) {
+        ScanSchedule st = STATES.computeIfAbsent(player.getUUID(), k -> new ScanSchedule());
+        if (!st.due(now, new Key(RadarItem.tier(radar), RadarItem.addons(radar), System.identityHashCode(radar)))) {
             return;
         }
         ScanSettings base = ScanSettings.fromConfig();
@@ -78,19 +71,17 @@ public final class ScanHandler {
         for (AddonSettings a : addons) {
             sendSeconds = Math.min(sendSeconds, a.refreshSeconds());
         }
-        boolean pay = now >= st.nextCharge || st.nextCharge - now > base.refreshTicks(); // second: game time went backwards
-        ScanSnapshot snap;
-        if (pay) {
-            snap = sendScan(player, radar, base.withRefreshSeconds(sendSeconds), now, addons, RadarScanner.Charge.PAY);
-            st.nextCharge = now + base.refreshTicks();
-            st.paid = !snap.noSignal();
-        } else if (st.paid) {
-            snap = sendScan(player, radar, base.withRefreshSeconds(sendSeconds), now, addons, RadarScanner.Charge.FREE);
+        long sendTicks = Math.max(1, sendSeconds) * 20L;
+        if (st.shouldPay(now, base.refreshTicks())) {
+            ScanSnapshot snap = sendScan(player, radar, base.withRefreshSeconds(sendSeconds), now, addons, RadarScanner.Charge.PAY);
+            st.afterPaid(now, base.refreshTicks(), sendTicks, snap.noSignal());
+        } else if (st.paid()) {
+            sendScan(player, radar, base.withRefreshSeconds(sendSeconds), now, addons, RadarScanner.Charge.FREE);
+            st.afterFree(now, sendTicks);
         } else {
-            snap = RadarScanner.noSignal(radar, base, now, false);
-            PacketDistributor.sendToPlayer(player, new SnapshotPayload(snap));
+            PacketDistributor.sendToPlayer(player, new SnapshotPayload(RadarScanner.noSignal(radar, base, now, false)));
+            st.afterUnpaid(now, base.refreshTicks());
         }
-        st.nextSend = now + (snap.noSignal() ? base.refreshTicks() : Math.max(1, sendSeconds) * 20L);
     }
 
     /** Runs one charged scan now (base cost + installed addons) and sends the snapshot. */
@@ -107,8 +98,10 @@ public final class ScanHandler {
         String dimension = level.dimension().location().toString();
         Function<AddonSettings, List<Hit>> detect = a -> {
             int radius = a.radius(tier, range);
-            return AddonCache.INSTANCE.get(player.getUUID(), a.def().id(), now, a.refreshSeconds() * 20L, radius, dimension,
-                    () -> Detectors.run(a, player, level, radius, budget, now));
+            boolean usesBudget = a.def().detector() == it.ratlab.signalradar.addon.AddonDefinition.Detector.CONTAINER
+                    || a.def().detector() == it.ratlab.signalradar.addon.AddonDefinition.Detector.BLOCK_TAG;
+            return AddonCache.INSTANCE.get(player.getUUID(), a.def().id(), now, a.refreshSeconds() * 20L, radius, dimension, player.position(),
+                    () -> Detectors.run(a, player, level, radius, budget, now), () -> usesBudget && budget.exhausted());
         };
         ScanSnapshot snapshot = RadarScanner.scan(radar, player.getUUID(), player.position(), now, settings, TargetManager.all(),
                 def -> Locators.locate(player, def, range, level, now, budget), addons, detect, charge);

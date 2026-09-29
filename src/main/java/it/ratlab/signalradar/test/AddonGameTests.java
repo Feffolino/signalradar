@@ -411,6 +411,37 @@ public final class AddonGameTests {
         h.succeed();
     }
 
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void addonCommandRejectsWhileTheMenuIsOpen(GameTestHelper h) throws Exception {
+        ServerPlayer p = player(h);
+        ItemStack radar = radar(1, 10);
+        p.setItemInHand(InteractionHand.MAIN_HAND, radar);
+        var dispatcher = h.getLevel().getServer().getCommands().getDispatcher();
+        var src = p.createCommandSourceStack().withPermission(2);
+        var closed = p.containerMenu;
+        p.containerMenu = AddonMenu.create(1, p.getInventory(), InteractionHand.MAIN_HAND, radar);
+        h.assertTrue(fails(dispatcher, "signalradar addon @s add signalradar:addon_container", src), "command changed addons under an open menu");
+        h.assertTrue(RadarItem.addons(radar).isEmpty(), "addons changed");
+        p.containerMenu = closed;
+        dispatcher.execute("signalradar addon @s add signalradar:addon_container", src);
+        h.assertTrue(RadarItem.addons(radar).equals(ids(AddonRegistry.CONTAINER)), "add after closing: " + RadarItem.addons(radar));
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void snapshotCarriesTheMotionRadius(GameTestHelper h) {
+        UUID id = new UUID(5, 5);
+        ItemStack radar = radar(3, 1000);
+        RadarItem.setAddons(radar, ids(AddonRegistry.MOTION));
+        ScanSnapshot s = RadarScanner.scan(radar, id, Vec3.ZERO, 100, DEFAULTS, List.of(), d -> java.util.Optional.empty(),
+                AddonRules.active(radar), a -> List.of(), RadarScanner.Charge.PAY);
+        h.assertTrue(s.motionRadius() == 36, "motion radius at tier 3 (24..48 from tier 2): " + s.motionRadius());
+        ItemStack plain = radar(3, 1000);
+        h.assertTrue(RadarScanner.scan(plain, id, Vec3.ZERO, 100, DEFAULTS, List.of(), d -> java.util.Optional.empty()).motionRadius() == 0,
+                "motion radius without the addon");
+        h.succeed();
+    }
+
     private static boolean fails(com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack> d, String cmd,
                                  net.minecraft.commands.CommandSourceStack src) {
         try {
@@ -475,28 +506,42 @@ public final class AddonGameTests {
     }
 
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
-    public static void addonCacheHonoursRefreshRadiusAndPlayer(GameTestHelper h) {
+    public static void addonCacheHonoursRefreshRadiusPlayerAndMovement(GameTestHelper h) {
         AddonCache cache = new AddonCache();
         AtomicInteger runs = new AtomicInteger();
         java.util.function.Supplier<List<Hit>> compute = () -> {
             runs.incrementAndGet();
             return List.of();
         };
+        java.util.function.BooleanSupplier complete = () -> false;
+        Vec3 o = Vec3.ZERO;
         UUID a = new UUID(1, 1);
         ResourceLocation addon = AddonRegistry.ORE;
-        cache.get(a, addon, 100, 100, 16, "overworld", compute);
-        cache.get(a, addon, 199, 100, 16, "overworld", compute);
+        cache.get(a, addon, 100, 100, 16, "overworld", o, compute, complete);
+        cache.get(a, addon, 199, 100, 16, "overworld", o, compute, complete);
         h.assertTrue(runs.get() == 1, "recomputed inside the refresh window");
-        cache.get(a, addon, 200, 100, 16, "overworld", compute);
+        cache.get(a, addon, 200, 100, 16, "overworld", o, compute, complete);
         h.assertTrue(runs.get() == 2, "not recomputed after the refresh window");
-        cache.get(a, addon, 201, 100, 32, "overworld", compute);
+        cache.get(a, addon, 201, 100, 32, "overworld", o, compute, complete);
         h.assertTrue(runs.get() == 3, "radius change ignored");
-        cache.get(a, addon, 202, 100, 32, "the_nether", compute);
+        cache.get(a, addon, 202, 100, 32, "the_nether", o, compute, complete);
         h.assertTrue(runs.get() == 4, "dimension change ignored");
-        cache.get(new UUID(2, 2), addon, 202, 100, 32, "the_nether", compute);
+        cache.get(new UUID(2, 2), addon, 202, 100, 32, "the_nether", o, compute, complete);
         h.assertTrue(runs.get() == 5, "cache shared between players");
-        cache.get(a, AddonRegistry.CONTAINER, 202, 100, 32, "the_nether", compute);
+        cache.get(a, AddonRegistry.CONTAINER, 202, 100, 32, "the_nether", o, compute, complete);
         h.assertTrue(runs.get() == 6, "cache shared between addons");
+        // movement: radius 32 -> limit 8 blocks
+        cache.get(a, addon, 203, 100, 32, "the_nether", new Vec3(7, 0, 0), compute, complete);
+        h.assertTrue(runs.get() == 6, "recomputed after a move within radius/4");
+        cache.get(a, addon, 204, 100, 32, "the_nether", new Vec3(9, 0, 0), compute, complete);
+        h.assertTrue(runs.get() == 7, "not recomputed after a move beyond radius/4");
+        // incomplete (budget exhausted) results are not cached
+        ResourceLocation motion = AddonRegistry.MOTION;
+        cache.get(a, motion, 300, 100, 32, "the_nether", o, compute, () -> true);
+        cache.get(a, motion, 301, 100, 32, "the_nether", o, compute, complete);
+        h.assertTrue(runs.get() == 9, "incomplete result was cached: " + runs.get());
+        cache.get(a, motion, 302, 100, 32, "the_nether", o, compute, complete);
+        h.assertTrue(runs.get() == 9, "complete result was not cached: " + runs.get());
         h.succeed();
     }
 

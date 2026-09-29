@@ -97,6 +97,12 @@ public final class RadarScanner {
                 blips.add(new Blip(id, category, color, shown.x, shown.y, shown.z, hit.name(), dist > range, false));
             }
         }
-        return new ScanSnapshot(tier, energy, capacity, settings.range(tier), settings.refreshSeconds(), false, now, blips, paying);
+        int motionRadius = 0;
+        for (AddonSettings a : addons) {
+            if (a.def().detector() == it.ratlab.signalradar.addon.AddonDefinition.Detector.MOTION) {
+                motionRadius = Math.max(motionRadius, a.radius(tier, settings.range(tier)));
+            }
+        }
+        return new ScanSnapshot(tier, energy, capacity, settings.range(tier), settings.refreshSeconds(), false, now, blips, paying, motionRadius);
     }
 }

@@ -85,6 +85,9 @@ public final class RadarCommands {
         if (!(radar.getItem() instanceof RadarItem)) {
             throw NO_RADAR.create();
         }
+        if (p.containerMenu instanceof it.ratlab.signalradar.addon.menu.AddonMenu) {
+            throw new SimpleCommandExceptionType(Component.translatable("command.signalradar.addon.menu_open", p.getDisplayName())).create();
+        }
         ResourceLocation id = ResourceLocationArgument.getId(c, "addon");
         List<ResourceLocation> now = new ArrayList<>(AddonRules.installed(radar));
         if (add) {

@@ -419,12 +419,12 @@ public final class ScanGameTests {
         List<Blip> blips = new ArrayList<>();
         blips.add(new Blip("signalradar:a", "narrative", 0x7CFC00, 1.5, 64.0, -3000.25, Component.literal("Faint signal"), false, false));
         blips.add(new Blip("signalradar:b", "story", 0x123456, -1, 2, 3, Blip.UNKNOWN_NAME, true, true));
-        ScanSnapshot in = new ScanSnapshot(3, 12345, 20000, 2048, 5, false, 987654321L, blips);
+        ScanSnapshot in = new ScanSnapshot(3, 12345, 20000, 2048, 5, false, 987654321L, blips, true, 48);
         RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), h.getLevel().registryAccess(), ConnectionType.NEOFORGE);
         SnapshotPayload.CODEC.encode(buf, new SnapshotPayload(in));
         ScanSnapshot out = SnapshotPayload.CODEC.decode(buf).snapshot();
         h.assertTrue(out.tier() == 3 && out.energy() == 12345 && out.capacity() == 20000 && out.range() == 2048
-                && out.refreshSeconds() == 5 && !out.noSignal() && out.gameTime() == 987654321L, "header");
+                && out.refreshSeconds() == 5 && !out.noSignal() && out.gameTime() == 987654321L && out.motionRadius() == 48 && out.charged(), "header");
         h.assertTrue(out.blips().size() == 2, "blip count");
         Blip a = out.blips().get(0);
         Blip b = out.blips().get(1);
@@ -435,7 +435,7 @@ public final class ScanGameTests {
         // A blip count above the cap is rejected, not truncated.
         RegistryFriendlyByteBuf bad = new RegistryFriendlyByteBuf(Unpooled.buffer(), h.getLevel().registryAccess(), ConnectionType.NEOFORGE);
         bad.writeVarInt(0).writeVarInt(0).writeVarInt(0).writeVarInt(0).writeVarInt(0);
-        bad.writeBoolean(false).writeLong(0L).writeVarInt(1_000_000);
+        bad.writeBoolean(false).writeBoolean(false).writeLong(0L).writeVarInt(0).writeVarInt(1_000_000);
         boolean threw = false;
         try {
             SnapshotPayload.CODEC.decode(bad);

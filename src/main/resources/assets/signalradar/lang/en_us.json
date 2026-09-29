@@ -58,6 +58,7 @@
   "gui.signalradar.addons.refusal.duplicate": "Already installed",
   "command.signalradar.addon.unknown": "Unknown addon %s",
   "command.signalradar.addon.full": "All addon slots are in use",
+  "command.signalradar.addon.menu_open": "%s has the addon menu open",
   "command.signalradar.addon.added": "Installed %s in %s's radar",
   "command.signalradar.addon.removed": "Removed %s from %s's radar",
   "command.signalradar.addon.not_installed": "%s is not installed",
