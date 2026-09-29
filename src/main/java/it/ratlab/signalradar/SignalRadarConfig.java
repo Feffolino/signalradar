@@ -21,6 +21,10 @@ public final class SignalRadarConfig {
     private static final ModConfigSpec.IntValue STRUCTURE_LOOKUPS_PER_TICK;
     private static final ModConfigSpec.IntValue MAX_SCANNABLE_STRUCTURES;
     private static final ModConfigSpec.IntValue MAX_BLOCK_CHECKS_PER_SCAN;
+    private static final ModConfigSpec.ConfigValue<List<? extends Integer>> SLOTS_BY_TIER;
+    public static final List<Integer> DEFAULT_SLOTS = List.of(1, 2, 3, 4, 5);
+    /** The addon menu has room for this many slots. */
+    public static final int MAX_ADDON_SLOTS = 5;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -45,6 +49,11 @@ public final class SignalRadarConfig {
                         "Each 16x16x16 chunk section that may contain the block costs 4096. When the budget runs out the search",
                         "stops and keeps the nearest block found so far.")
                 .defineInRange("maxBlockChecksPerScan", 200000, 4096, Integer.MAX_VALUE);
+        b.pop();
+        b.push("addons");
+        SLOTS_BY_TIER = b.comment("Addon slots for tiers 0-4 (exactly 5 values, 0-5 each, otherwise the defaults are used).")
+                .defineList("slotsByTier", DEFAULT_SLOTS, () -> 1, o -> o instanceof Integer);
+        it.ratlab.signalradar.addon.AddonConfig.define(b);
         b.pop();
         SPEC = b.build();
     }
@@ -85,6 +94,15 @@ public final class SignalRadarConfig {
 
     public static int[] fuzzByTier() {
         return tierList(FUZZ_BY_TIER, DEFAULT_FUZZ, "fuzzByTier");
+    }
+
+    /** Addon slots per tier, each clamped to 0..{@link #MAX_ADDON_SLOTS}. */
+    public static int[] slotsByTier() {
+        int[] v = tierList(SLOTS_BY_TIER, DEFAULT_SLOTS, "slotsByTier");
+        for (int i = 0; i < v.length; i++) {
+            v[i] = Math.min(v[i], MAX_ADDON_SLOTS);
+        }
+        return v;
     }
 
     private static boolean warned;

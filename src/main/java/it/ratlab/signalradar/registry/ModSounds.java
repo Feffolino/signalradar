@@ -13,11 +13,11 @@ public final class ModSounds {
 
     /** A new scan arrived while the radar is held. */
     public static final DeferredHolder<SoundEvent, SoundEvent> SCAN_PING = register("scan_ping");
-    /** The sweep crossed a narrative (or, from phase 4, motion tracker) blip. */
+    /** The sweep crossed a narrative or motion tracker blip. */
     public static final DeferredHolder<SoundEvent, SoundEvent> BLIP = register("blip");
     /** A target was found (phase 5). */
     public static final DeferredHolder<SoundEvent, SoundEvent> TARGET_FOUND = register("target_found");
-    /** Motion tracker beep (phase 4). */
+    /** Motion tracker beep. */
     public static final DeferredHolder<SoundEvent, SoundEvent> MOTION_BEEP = register("motion_beep");
 
     private ModSounds() {}

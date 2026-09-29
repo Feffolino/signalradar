@@ -2,6 +2,7 @@
 package it.ratlab.signalradar;
 
 import com.mojang.logging.LogUtils;
+import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.item.RadarEnergyStorage;
 import it.ratlab.signalradar.registry.ModComponents;
 import it.ratlab.signalradar.registry.ModItems;
@@ -30,6 +31,8 @@ public final class SignalRadar {
         ModItems.ITEMS.register(modBus);
         it.ratlab.signalradar.registry.ModSounds.SOUNDS.register(modBus);
         it.ratlab.signalradar.registry.ModRecipes.SERIALIZERS.register(modBus);
+        it.ratlab.signalradar.registry.ModMenus.MENUS.register(modBus);
+        modBus.addListener(it.ratlab.signalradar.addon.AddonRegistry::onRegister);
         modBus.addListener(SignalRadar::registerCapabilities);
         modBus.addListener(SignalRadar::addToTabs);
         modBus.addListener(it.ratlab.signalradar.net.RadarNetworking::register);
@@ -60,6 +63,7 @@ public final class SignalRadar {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.RADAR.get());
             ModItems.MODULES.forEach(m -> event.accept(m.get()));
+            AddonRegistry.active().forEach(d -> AddonRegistry.item(d.id()).ifPresent(event::accept));
         }
     }
 }

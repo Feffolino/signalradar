@@ -1,0 +1,155 @@
+// SPDX-License-Identifier: MIT
+package it.ratlab.signalradar.addon;
+
+import it.ratlab.signalradar.SignalRadar;
+import it.ratlab.signalradar.addon.AddonDefinition.Detector;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.registries.RegisterEvent;
+
+/**
+ * All addon definitions: the built-ins plus custom ones added through {@link #registerCustom}.
+ * <p>
+ * <b>Timing.</b> Addon items are registered in this mod's {@link RegisterEvent} listener for {@code Registries.ITEM}.
+ * {@code registerCustom} works from any point after the class loads (mod construction, e.g. KubeJS startup scripts)
+ * until that listener starts; from then on the registry is frozen and calls log an error and return false.
+ * Definitions with a {@code requiredModId} whose mod is not loaded stay in {@link #all()} but get no item
+ * ({@link #isActive} is false).
+ */
+public final class AddonRegistry {
+    public static final ResourceLocation CONTAINER = SignalRadar.id("addon_container");
+    public static final ResourceLocation ORE = SignalRadar.id("addon_ore");
+    public static final ResourceLocation BIOSIGN = SignalRadar.id("addon_biosign");
+    public static final ResourceLocation STRUCTURE = SignalRadar.id("addon_structure");
+    public static final ResourceLocation MOTION = SignalRadar.id("addon_motion");
+
+    private static final Map<ResourceLocation, AddonDefinition> DEFS = new LinkedHashMap<>();
+    private static final List<AddonDefinition> BUILTINS = new ArrayList<>();
+    private static boolean frozen;
+
+    static {
+        builtin(new AddonDefinition(CONTAINER, Detector.CONTAINER, 0, 24, 48, 10, 0xE0A040, 10, "container", null,
+                SignalRadar.id("container_targets"), false));
+        builtin(new AddonDefinition(ORE, Detector.BLOCK_TAG, 1, 16, 32, 5, 0xB0B0B0, 15, "ore", null,
+                SignalRadar.id("ore_targets"), true));
+        builtin(new AddonDefinition(BIOSIGN, Detector.BIOSIGN, 1, 32, 64, 1, 0x4CD964, 10, "biosign", null,
+                SignalRadar.id("biosign"), false));
+        // radius 0..0 = the radar's tier range; results come from the structure cache, refreshed every 5 s.
+        builtin(new AddonDefinition(STRUCTURE, Detector.STRUCTURE_TAG, 1, 0, 0, 5, 0x40C0FF, 10, "structure", null,
+                SignalRadar.id("scannable_structures"), false));
+        builtin(new AddonDefinition(MOTION, Detector.MOTION, 2, 24, 48, 1, 0xFF3030, 20, "motion", null,
+                SignalRadar.id("trackable"), false));
+    }
+
+    private AddonRegistry() {}
+
+    private static void builtin(AddonDefinition def) {
+        BUILTINS.add(def);
+        DEFS.put(def.id(), def);
+    }
+
+    /**
+     * Adds a custom addon. Public API for other mods / phase 7 KubeJS startup scripts.
+     *
+     * @return true when added; false (and an error in the log, no exception) when the registry is already frozen or the
+     *         id is taken
+     */
+    public static synchronized boolean registerCustom(AddonDefinition def) {
+        if (frozen) {
+            SignalRadar.LOGGER.error("Addon {} registered too late (item registration already ran); ignored. "
+                    + "Register custom addons during mod construction / startup scripts.", def.id());
+            return false;
+        }
+        if (DEFS.containsKey(def.id())) {
+            SignalRadar.LOGGER.error("Addon {} is already registered; ignored", def.id());
+            return false;
+        }
+        DEFS.put(def.id(), def);
+        return true;
+    }
+
+    public static synchronized boolean isFrozen() {
+        return frozen;
+    }
+
+    /** Every definition collected so far (built-ins first), including ones whose required mod is missing. */
+    public static synchronized List<AddonDefinition> all() {
+        return List.copyOf(DEFS.values());
+    }
+
+    /** The built-in definitions only (they have server config entries). */
+    public static List<AddonDefinition> builtins() {
+        return List.copyOf(BUILTINS);
+    }
+
+    public static synchronized Optional<AddonDefinition> get(ResourceLocation id) {
+        return Optional.ofNullable(DEFS.get(id));
+    }
+
+    public static boolean isBuiltin(AddonDefinition def) {
+        return BUILTINS.contains(def);
+    }
+
+    /** Required mod present (or none required). */
+    public static boolean modPresent(AddonDefinition def) {
+        String mod = def.requiredModId();
+        if (mod == null) {
+            return true;
+        }
+        ModList list = ModList.get();
+        return list != null && list.isLoaded(mod);
+    }
+
+    /** The addon exists in this game (its required mod, if any, is loaded). */
+    public static boolean isActive(AddonDefinition def) {
+        return modPresent(def);
+    }
+
+    /** Active definitions only. */
+    public static List<AddonDefinition> active() {
+        return all().stream().filter(AddonRegistry::isActive).toList();
+    }
+
+    public static Optional<AddonDefinition> forStack(ItemStack stack) {
+        return stack.getItem() instanceof AddonItem item ? get(item.defId()) : Optional.empty();
+    }
+
+    /** The registered item of an addon (empty before registration / when the required mod is missing). */
+    public static Optional<Item> item(ResourceLocation id) {
+        return BuiltInRegistries.ITEM.getOptional(id).filter(i -> i instanceof AddonItem);
+    }
+
+    /** Mod bus listener: freezes the registry and registers one {@link AddonItem} per active definition. */
+    public static void onRegister(RegisterEvent event) {
+        if (!event.getRegistryKey().equals(Registries.ITEM)) {
+            return;
+        }
+        List<AddonDefinition> defs;
+        synchronized (AddonRegistry.class) {
+            frozen = true;
+            defs = new ArrayList<>(DEFS.values());
+        }
+        event.register(Registries.ITEM, helper -> {
+            for (AddonDefinition def : defs) {
+                if (!modPresent(def)) {
+                    SignalRadar.LOGGER.info("Addon {} skipped: mod '{}' is not loaded", def.id(), def.requiredModId());
+                    continue;
+                }
+                try {
+                    helper.register(def.id(), new AddonItem(def.id(), new Item.Properties().stacksTo(16)));
+                } catch (RuntimeException e) {
+                    SignalRadar.LOGGER.error("Addon item {} could not be registered: {}", def.id(), e.toString());
+                }
+            }
+        });
+    }
+}

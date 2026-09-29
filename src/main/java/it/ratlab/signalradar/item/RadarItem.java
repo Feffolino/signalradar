@@ -2,10 +2,15 @@
 package it.ratlab.signalradar.item;
 
 import it.ratlab.signalradar.SignalRadarConfig;
+import it.ratlab.signalradar.addon.AddonRegistry;
+import it.ratlab.signalradar.addon.AddonRules;
+import it.ratlab.signalradar.addon.menu.AddonMenu;
 import it.ratlab.signalradar.registry.ModComponents;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -41,15 +46,36 @@ public class RadarItem extends Item {
         stack.set(ModComponents.ENERGY.get(), Mth.clamp(fe, 0, SignalRadarConfig.capacity()));
     }
 
+    /** Raw installed addon ids (slot order). */
+    public static List<ResourceLocation> addons(ItemStack stack) {
+        return stack.getOrDefault(ModComponents.ADDONS.get(), List.of());
+    }
+
+    public static void setAddons(ItemStack stack, List<ResourceLocation> ids) {
+        if (ids.isEmpty()) {
+            stack.remove(ModComponents.ADDONS.get());
+        } else {
+            stack.set(ModComponents.ADDONS.get(), List.copyOf(ids));
+        }
+    }
+
+    /** Addon slots of a radar of this tier ({@code slotsByTier} config, default tier + 1, max 5). */
+    public static int slots(int tier) {
+        return SignalRadarConfig.slotsByTier()[Mth.clamp(tier, 0, MAX_TIER)];
+    }
+
     /**
-     * Hold right-click = raise to face (client pose + text line; vanilla slows a player using an item). Sneaking is
-     * reserved for the addon GUI (phase 4): pass for now.
+     * Hold right-click = raise to face (client pose + text line; vanilla slows a player using an item). Sneaking
+     * opens the addon menu instead.
      */
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (player.isShiftKeyDown()) {
-            return InteractionResultHolder.pass(stack);
+            if (player instanceof ServerPlayer sp) {
+                AddonMenu.open(sp, hand);
+            }
+            return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
         }
         player.startUsingItem(hand);
         return InteractionResultHolder.consume(stack);
@@ -97,5 +123,11 @@ public class RadarItem extends Item {
         tooltip.add(Component.translatable("tooltip.signalradar.tier", tier(stack), MAX_TIER).withStyle(ChatFormatting.GREEN));
         tooltip.add(Component.translatable("tooltip.signalradar.energy", energy(stack), SignalRadarConfig.capacity())
                 .withStyle(ChatFormatting.GRAY));
+        List<ResourceLocation> ids = AddonRules.installed(stack);
+        tooltip.add(Component.translatable("tooltip.signalradar.addons", ids.size(), slots(tier(stack))).withStyle(ChatFormatting.GRAY));
+        for (ResourceLocation id : ids) {
+            tooltip.add(Component.literal(" ").append(AddonRegistry.item(id).map(i -> i.getDescription())
+                    .orElse(Component.literal(id.toString()))).withStyle(ChatFormatting.DARK_GREEN));
+        }
     }
 }

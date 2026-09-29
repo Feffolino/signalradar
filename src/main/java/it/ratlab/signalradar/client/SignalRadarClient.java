@@ -3,6 +3,7 @@ package it.ratlab.signalradar.client;
 
 import it.ratlab.signalradar.net.RadarNetworking;
 import it.ratlab.signalradar.registry.ModItems;
+import it.ratlab.signalradar.registry.ModMenus;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
@@ -10,6 +11,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -21,6 +23,7 @@ public final class SignalRadarClient {
         container.registerConfig(ModConfig.Type.CLIENT, RadarClientConfig.SPEC);
         modBus.addListener(ModelEvent.RegisterAdditional.class, RadarItemRenderer::registerModels);
         modBus.addListener((RegisterClientExtensionsEvent e) -> e.registerItem(new RadarClientExtensions(), ModItems.RADAR.get()));
+        modBus.addListener((RegisterMenuScreensEvent e) -> e.register(ModMenus.ADDONS.get(), AddonScreen::new));
         modBus.addListener((RegisterClientReloadListenersEvent e) -> e.registerReloadListener(new RadarScreenLoader()));
         RadarNetworking.clientSnapshot = p -> {
             ClientRadarState.accept(p);
