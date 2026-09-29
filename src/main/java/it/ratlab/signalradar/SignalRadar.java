@@ -25,6 +25,7 @@ public final class SignalRadar {
         container.registerConfig(ModConfig.Type.SERVER, SignalRadarConfig.SPEC);
         ModComponents.COMPONENTS.register(modBus);
         ModItems.ITEMS.register(modBus);
+        it.ratlab.signalradar.registry.ModRecipes.SERIALIZERS.register(modBus);
         modBus.addListener(SignalRadar::registerCapabilities);
         modBus.addListener(SignalRadar::addToTabs);
 
