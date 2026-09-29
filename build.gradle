@@ -47,6 +47,14 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
             systemProperty 'signalradar.gametests', 'true'
         }
+        // Same game tests with Manhole Travel, Lootr and FTB Teams (+ FTB Library, Architectury) dropped into run-compat/mods
+        // (see tools/prepare-compat-run.sh); the compat detectors are exercised for real. Not part of the default check.
+        gameTestServerCompat {
+            type = "gameTestServer"
+            gameDirectory = project.file('run-compat')
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'signalradar.gametests', 'true'
+        }
         configureEach {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             logLevel = org.slf4j.event.Level.DEBUG
