@@ -12,7 +12,10 @@ import it.ratlab.signalradar.addon.AddonDefinition;
 import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.addon.AddonRules;
 import it.ratlab.signalradar.data.StructureCacheData;
+import it.ratlab.signalradar.api.SignalRadarAPI;
 import it.ratlab.signalradar.item.RadarItem;
+import it.ratlab.signalradar.progress.PlayerData;
+import it.ratlab.signalradar.progress.StageHelper;
 import it.ratlab.signalradar.scan.BlockLocatorScan;
 import it.ratlab.signalradar.scan.Locators;
 import it.ratlab.signalradar.scan.ScanHandler;
@@ -35,12 +38,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
-/** {@code /signalradar} (op level 2): settier, charge, addon, targets, clearcache. */
+/** {@code /signalradar} (op level 2): settier, charge, addon, unlock, lock, resetfound, targets, clearcache. */
 public final class RadarCommands {
     private static final SimpleCommandExceptionType NO_RADAR = new SimpleCommandExceptionType(Component.translatable("command.signalradar.no_radar"));
 
     private static final SuggestionProvider<CommandSourceStack> ADDON_IDS = (c, b) ->
             SharedSuggestionProvider.suggestResource(AddonRegistry.active().stream().map(AddonDefinition::id), b);
+
+    private static final SuggestionProvider<CommandSourceStack> TARGET_IDS = (c, b) ->
+            SharedSuggestionProvider.suggestResource(TargetManager.all().stream().map(TargetDef::id), b);
 
     private RadarCommands() {}
 
@@ -58,6 +64,13 @@ public final class RadarCommands {
                                 .executes(c -> addon(c, true))))
                         .then(Commands.literal("remove").then(Commands.argument("addon", ResourceLocationArgument.id()).suggests(ADDON_IDS)
                                 .executes(c -> addon(c, false))))))
+                .then(Commands.literal("unlock").then(Commands.argument("player", EntityArgument.player())
+                        .then(Commands.argument("target", ResourceLocationArgument.id()).suggests(TARGET_IDS).executes(c -> unlock(c, true)))))
+                .then(Commands.literal("lock").then(Commands.argument("player", EntityArgument.player())
+                        .then(Commands.argument("target", ResourceLocationArgument.id()).suggests(TARGET_IDS).executes(c -> unlock(c, false)))))
+                .then(Commands.literal("resetfound").then(Commands.argument("player", EntityArgument.player())
+                        .then(Commands.literal("all").executes(RadarCommands::resetAllFound))
+                        .then(Commands.argument("target", ResourceLocationArgument.id()).suggests(TARGET_IDS).executes(RadarCommands::resetFound))))
                 .then(Commands.literal("clearcache").executes(RadarCommands::clearCache)));
     }
 
@@ -105,6 +118,49 @@ public final class RadarCommands {
         return now.size();
     }
 
+    private static TargetDef targetArg(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
+        ResourceLocation id = ResourceLocationArgument.getId(c, "target");
+        TargetDef def = TargetManager.get(id);
+        if (def == null) {
+            throw new SimpleCommandExceptionType(Component.translatable("command.signalradar.target.unknown", id.toString())).create();
+        }
+        return def;
+    }
+
+    private static int unlock(CommandContext<CommandSourceStack> c, boolean on) throws CommandSyntaxException {
+        ServerPlayer p = EntityArgument.getPlayer(c, "player");
+        TargetDef def = targetArg(c);
+        if (on) {
+            SignalRadarAPI.unlock(p, def.id());
+        } else {
+            SignalRadarAPI.lock(p, def.id());
+        }
+        c.getSource().sendSuccess(() -> Component.translatable(on ? "command.signalradar.unlock" : "command.signalradar.lock",
+                def.id().toString(), p.getDisplayName()), true);
+        return 1;
+    }
+
+    /** Clears the found flag and removes the found stage. */
+    private static int resetFound(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
+        ServerPlayer p = EntityArgument.getPlayer(c, "player");
+        TargetDef def = targetArg(c);
+        SignalRadarAPI.resetFound(p, def.id());
+        c.getSource().sendSuccess(() -> Component.translatable("command.signalradar.resetfound", def.id().toString(), p.getDisplayName()), true);
+        return 1;
+    }
+
+    private static int resetAllFound(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
+        ServerPlayer p = EntityArgument.getPlayer(c, "player");
+        int n = PlayerData.get(p).found().size();
+        SignalRadarAPI.resetAllFound(p);
+        c.getSource().sendSuccess(() -> Component.translatable("command.signalradar.resetfound.all", n, p.getDisplayName()), true);
+        return n;
+    }
+
+    private static Component yesNo(boolean v) {
+        return Component.translatable(v ? "command.signalradar.targets.state.yes" : "command.signalradar.targets.state.no");
+    }
+
     private static int charge(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
         ServerPlayer p = EntityArgument.getPlayer(c, "player");
         ItemStack radar = radarOf(p);
@@ -120,14 +176,18 @@ public final class RadarCommands {
         int range = ScanSettings.fromConfig().range(tier);
         long now = p.level().getGameTime();
         int count = 0;
+        PlayerData pd = PlayerData.get(p);
         var budget = new it.ratlab.signalradar.scan.BlockLocatorScan.Budget(SignalRadarConfig.maxBlockChecksPerScan());
         for (TargetDef def : TargetManager.all()) {
             count++;
             Optional<Vec3> pos = Locators.locate(p, def, range, p.serverLevel(), now, budget);
             Component where = pos.<Component>map(v -> Component.literal(String.format("%.0f %.0f %.0f", v.x, v.y, v.z)))
                     .orElseGet(() -> Component.translatable("command.signalradar.targets.none"));
+            Component unlocked = def.requiresUnlock() ? yesNo(pd.isUnlocked(def.id())) : Component.translatable("command.signalradar.targets.state.na");
+            Component stage = def.requiresStage() == null ? Component.translatable("command.signalradar.targets.state.na")
+                    : Component.literal(def.requiresStage() + "=").append(yesNo(StageHelper.has(p, def.requiresStage())));
             src.sendSuccess(() -> Component.translatable("command.signalradar.targets.entry", def.id().toString(), def.locator().key(),
-                    def.minTier(), where), false);
+                    def.minTier(), where, unlocked, stage, yesNo(pd.isFound(def.id()))), false);
         }
         StructureCacheData data = StructureCacheData.get(src.getServer());
         data.entries().forEach((k, e) -> src.sendSuccess(() -> Component.translatable("command.signalradar.targets.cached", k,

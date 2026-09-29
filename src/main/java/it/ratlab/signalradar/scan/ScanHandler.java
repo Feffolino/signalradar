@@ -104,7 +104,7 @@ public final class ScanHandler {
                     () -> Detectors.run(a, player, level, radius, budget, now), () -> usesBudget && budget.exhausted());
         };
         ScanSnapshot snapshot = RadarScanner.scan(radar, player.getUUID(), player.position(), now, settings, TargetManager.all(),
-                def -> Locators.locate(player, def, range, level, now, budget), addons, detect, charge);
+                def -> Locators.locate(player, def, range, level, now, budget), addons, detect, charge, PlayerProgress.of(player));
         PacketDistributor.sendToPlayer(player, new SnapshotPayload(snapshot));
         return snapshot;
     }

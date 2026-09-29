@@ -64,6 +64,12 @@ public final class StructureLookupService {
         return Optional.empty();
     }
 
+    /** The cached hit only: never queues a search. */
+    public Optional<BlockPos> peek(StructureCacheData data, ResourceKey<Level> dim, Locator.Structure locator) {
+        StructureCacheData.Entry e = data.entry(StructureCacheData.key(dim, locator));
+        return e == null ? Optional.empty() : Optional.ofNullable(e.pos());
+    }
+
     /** Runs up to {@code max} queued searches; returns how many ran. */
     public int tick(Function<ResourceKey<Level>, ServerLevel> levels, StructureCacheData data, long now, int max) {
         int done = 0;

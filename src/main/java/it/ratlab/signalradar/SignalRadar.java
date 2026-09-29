@@ -28,6 +28,7 @@ public final class SignalRadar {
     public SignalRadar(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.SERVER, SignalRadarConfig.SPEC);
         ModComponents.COMPONENTS.register(modBus);
+        it.ratlab.signalradar.registry.ModAttachments.ATTACHMENTS.register(modBus);
         ModItems.ITEMS.register(modBus);
         it.ratlab.signalradar.registry.ModSounds.SOUNDS.register(modBus);
         it.ratlab.signalradar.registry.ModRecipes.SERIALIZERS.register(modBus);
@@ -41,11 +42,16 @@ public final class SignalRadar {
         NeoForge.EVENT_BUS.addListener(it.ratlab.signalradar.command.RadarCommands::register);
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent e) -> it.ratlab.signalradar.scan.ScanHandler.reset());
         it.ratlab.signalradar.scan.ScanHandler.register(NeoForge.EVENT_BUS);
+        it.ratlab.signalradar.progress.FoundHandler.register(NeoForge.EVENT_BUS);
+        if (net.neoforged.fml.ModList.get().isLoaded("kubejs")) {
+            it.ratlab.signalradar.progress.StageHelper.enableKubeJS();
+        }
 
         if (Boolean.getBoolean("signalradar.gametests")) {
             it.ratlab.signalradar.test.RadarGameTests.register(modBus);
             it.ratlab.signalradar.test.ScanGameTests.register(modBus);
             it.ratlab.signalradar.test.AddonGameTests.register(modBus);
+            it.ratlab.signalradar.test.ProgressGameTests.register(modBus);
         }
 
         if (FMLEnvironment.dist.isClient()) {

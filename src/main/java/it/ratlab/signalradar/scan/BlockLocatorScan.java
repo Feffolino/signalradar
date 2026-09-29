@@ -42,6 +42,13 @@ public final class BlockLocatorScan {
         return r;
     }
 
+    /** The last cached result for {@code key} whatever its age; never computes. */
+    public Optional<BlockPos> peek(UUID player, String key) {
+        Map<String, Cached> m = cache.get(player);
+        Cached c = m == null ? null : m.get(key);
+        return c == null ? Optional.empty() : c.result();
+    }
+
     public void forget(UUID player) {
         cache.remove(player);
     }

@@ -53,6 +53,10 @@ public final class RadarColors {
     public static final int MOTION = 0xFF3030;
     public static final double MOTION_PULSE_MIN = 0.35;
 
+    /** Last death marker (category {@code last_death}); the server sends the same colour. */
+    public static final String LAST_DEATH_CATEGORY = "last_death";
+    public static final int LAST_DEATH = 0xE040E0;
+
     /** Fallback when a blip has no colour (0). */
     public static final int BLIP_DEFAULT = 0x7CFC00;
 
