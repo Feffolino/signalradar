@@ -55,9 +55,9 @@ public class AddonMenu extends AbstractContainerMenu {
         this(id, inv, buf.readBoolean() ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND, buf.readVarInt(), buf.readVarInt(), null);
     }
 
-    /** Server side. */
-    private AddonMenu(int id, Inventory inv, InteractionHand hand, ItemStack radar) {
-        this(id, inv, hand, RadarItem.tier(radar), RadarItem.slots(RadarItem.tier(radar)), radar);
+    /** Server side: a menu for the radar currently in {@code hand} of the inventory's player. */
+    public static AddonMenu create(int id, Inventory inv, InteractionHand hand, ItemStack radar) {
+        return new AddonMenu(id, inv, hand, RadarItem.tier(radar), RadarItem.slots(RadarItem.tier(radar)), radar);
     }
 
     private AddonMenu(int id, Inventory inv, InteractionHand hand, int tier, int slotsArg, @Nullable ItemStack radar) {
@@ -114,7 +114,7 @@ public class AddonMenu extends AbstractContainerMenu {
         }
         int tier = RadarItem.tier(radar);
         int slots = Math.min(RadarItem.slots(tier), MAX_SLOTS);
-        player.openMenu(new SimpleMenuProvider((id, inv, p) -> new AddonMenu(id, inv, hand, radar),
+        player.openMenu(new SimpleMenuProvider((id, inv, p) -> AddonMenu.create(id, inv, hand, radar),
                 Component.translatable("gui.signalradar.addons.title")), buf -> {
                     buf.writeBoolean(hand == InteractionHand.OFF_HAND);
                     buf.writeVarInt(tier);
@@ -210,7 +210,7 @@ public class AddonMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player p, int index) {
-        if (index == radarMenuSlot || index < 0 || index >= slots.size()) {
+        if (index == radarMenuSlot || index < 0 || index >= slots.size() || (radarRef != null && radarIfValid() == null)) {
             return ItemStack.EMPTY;
         }
         Slot slot = slots.get(index);

@@ -16,11 +16,11 @@ public final class AddonMath {
      * tier the minimum is returned (such an addon is never active anyway).
      */
     public static int radius(int radiusMin, int radiusMax, int minTier, int tier) {
+        if (tier >= MAX_TIER) {
+            return radiusMax;
+        }
         if (tier <= minTier) {
             return radiusMin;
-        }
-        if (minTier >= MAX_TIER) {
-            return radiusMax;
         }
         double t = Math.min(1.0, (tier - minTier) / (double) (MAX_TIER - minTier));
         return (int) Math.round(radiusMin + (radiusMax - radiusMin) * t);
