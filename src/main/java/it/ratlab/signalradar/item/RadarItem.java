@@ -7,9 +7,15 @@ import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.level.Level;
 
 public class RadarItem extends Item {
     public static final int MAX_TIER = 4;
@@ -33,6 +39,31 @@ public class RadarItem extends Item {
 
     public static void setEnergy(ItemStack stack, int fe) {
         stack.set(ModComponents.ENERGY.get(), Mth.clamp(fe, 0, SignalRadarConfig.capacity()));
+    }
+
+    /**
+     * Hold right-click = raise to face (client pose + text line; vanilla slows a player using an item). Sneaking is
+     * reserved for the addon GUI (phase 4): pass for now.
+     */
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
+        if (player.isShiftKeyDown()) {
+            return InteractionResultHolder.pass(stack);
+        }
+        player.startUsingItem(hand);
+        return InteractionResultHolder.consume(stack);
+    }
+
+    @Override
+    public int getUseDuration(ItemStack stack, LivingEntity entity) {
+        return 72000;
+    }
+
+    /** NONE: our own hand transform draws the raise (spyglass would hide the item and zoom). */
+    @Override
+    public UseAnim getUseAnimation(ItemStack stack) {
+        return UseAnim.NONE;
     }
 
     /** Energy / tier components change on every scan: only a real item or slot change re-raises the item. */
