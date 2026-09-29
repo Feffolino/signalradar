@@ -4,6 +4,9 @@
     "signalradar:addon_ore",
     "signalradar:addon_biosign",
     "signalradar:addon_structure",
-    "signalradar:addon_motion"
+    "signalradar:addon_motion",
+    {"id": "signalradar:addon_manhole", "required": false},
+    {"id": "signalradar:addon_loot", "required": false},
+    {"id": "signalradar:addon_team", "required": false}
   ]
 }

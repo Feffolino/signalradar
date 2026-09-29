@@ -63,6 +63,10 @@ neoForge {
 repositories {
     maven { name = "LatvianModder (KubeJS, Rhino)"; url = "https://maven.latvian.dev/releases"
             content { includeGroup "dev.latvian.mods" } }
+    maven { name = "FTB"; url = "https://maven.ftb.dev/releases"
+            content { includeGroup "dev.ftb.mods" } }
+    maven { name = "Architectury"; url = "https://maven.architectury.dev"
+            content { includeGroup "dev.architectury" } }
 }
 
 configurations {
@@ -74,6 +78,12 @@ dependencies {
     // hard dependency). Code that touches them lives in compat/ and is only class-loaded after a ModList check.
     compileOnly("dev.latvian.mods:kubejs-neoforge:2101.7.2-build.377") { transitive = false }
     compileOnly("dev.latvian.mods:rhino:2101.2.7-build.85") { transitive = false }
+    // Manhole Travel and Lootr: jars copied from the pack into libs/ (gitignored, never committed or bundled).
+    compileOnly files('libs/manholes-1.7.0.jar')
+    compileOnly files('libs/lootr-neoforge-1.21.1-1.11.38.127.jar')
+    compileOnly("dev.ftb.mods:ftb-teams-neoforge:2101.1.11") { transitive = false }
+    compileOnly("dev.ftb.mods:ftb-library-neoforge:2101.1.36") { transitive = false }
+    compileOnly("dev.architectury:architectury-neoforge:13.0.11") { transitive = false }
 
     // Unit tests cover the pure display math (package display, no Minecraft classes).
     testImplementation platform('org.junit:junit-bom:5.10.1')
@@ -102,6 +112,9 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_license            : mod_license,
             mod_version            : mod_version,
             kubejs_version_range   : kubejs_version_range,
+            manholes_version_range : manholes_version_range,
+            lootr_version_range    : lootr_version_range,
+            ftbteams_version_range : ftbteams_version_range,
     ]
     inputs.properties replaceProperties
     expand replaceProperties

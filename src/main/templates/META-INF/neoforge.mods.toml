@@ -33,3 +33,24 @@ Targets are data-driven (datapack JSON), with optional KubeJS integration.
     versionRange="${kubejs_version_range}"
     ordering="NONE"
     side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="manholes"
+    type="optional"
+    versionRange="${manholes_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="lootr"
+    type="optional"
+    versionRange="${lootr_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="ftbteams"
+    type="optional"
+    versionRange="${ftbteams_version_range}"
+    ordering="NONE"
+    side="BOTH"

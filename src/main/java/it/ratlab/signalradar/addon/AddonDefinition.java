@@ -25,14 +25,18 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
                               int color, int energyCost, String category, @Nullable String requiredModId,
                               @Nullable ResourceLocation tag, boolean useMapColor) {
 
-    /** Detector types. The first four are public (custom addons); biosign and motion are built-in behaviours. */
+    /** Detector types. The first four are public (custom addons); the rest are built-in behaviours (biosign, motion, compat). */
     public enum Detector {
         CONTAINER("container", true),
         BLOCK_TAG("block_tag", true),
         ENTITY_TAG("entity_tag", true),
         STRUCTURE_TAG("structure_tag", true),
         BIOSIGN("biosign", false),
-        MOTION("motion", false);
+        MOTION("motion", false),
+        /** Compat detectors: need their mod, code lives in {@code compat/}. */
+        MANHOLE("manhole", false),
+        LOOT("loot", false),
+        TEAM("team", false);
 
         private final String jsonName;
         private final boolean publicType;

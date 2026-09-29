@@ -5,6 +5,7 @@ import it.ratlab.signalradar.SignalRadar;
 import it.ratlab.signalradar.SignalRadarConfig;
 import it.ratlab.signalradar.addon.AddonDefinition;
 import it.ratlab.signalradar.addon.AddonMath;
+import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.addon.AddonSettings;
 import it.ratlab.signalradar.data.StructureCacheData;
 import it.ratlab.signalradar.scan.BlockLocatorScan;
@@ -84,8 +85,14 @@ public final class Detectors {
                 }
                 case MOTION -> motion(addon, player, level, radius);
                 case STRUCTURE_TAG -> structures(addon, player, level, radius, now);
+                case MANHOLE -> AddonRegistry.modPresent(def)
+                        ? it.ratlab.signalradar.compat.manholes.ManholeDetector.run(player, level, radius) : List.<Hit>of();
+                case LOOT -> AddonRegistry.modPresent(def)
+                        ? it.ratlab.signalradar.compat.lootr.LootrDetector.run(player, level, radius) : List.<Hit>of();
+                case TEAM -> AddonRegistry.modPresent(def)
+                        ? it.ratlab.signalradar.compat.ftbteams.TeamDetector.run(player, level, radius) : List.<Hit>of();
             };
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | LinkageError e) {
             SignalRadar.LOGGER.warn("Addon {} detector failed: {}", def.id(), e.toString());
             return List.of();
         }

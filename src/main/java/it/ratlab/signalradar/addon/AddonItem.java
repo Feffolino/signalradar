@@ -42,6 +42,8 @@ public class AddonItem extends Item {
         tooltip.add(Component.translatable("tooltip.signalradar.addon.min_tier", s.minTier()).withStyle(ChatFormatting.GREEN));
         if (s.usesTierRange()) {
             tooltip.add(Component.translatable("tooltip.signalradar.addon.range_tier").withStyle(ChatFormatting.DARK_GREEN));
+        } else if (s.radiusMin() >= AddonMath.WHOLE_DIMENSION_RADIUS) {
+            tooltip.add(Component.translatable("tooltip.signalradar.addon.range_dimension").withStyle(ChatFormatting.DARK_GREEN));
         } else {
             tooltip.add(Component.translatable("tooltip.signalradar.addon.range", s.radiusMin(), s.radiusMax()).withStyle(ChatFormatting.DARK_GREEN));
         }

@@ -8,6 +8,8 @@ import java.util.Locale;
 /** Pure addon helpers (no Minecraft classes, unit tested). */
 public final class AddonMath {
     public static final int MAX_TIER = 4;
+    /** Radius (also the config maximum) that stands for "the whole dimension" (team addon). */
+    public static final int WHOLE_DIMENSION_RADIUS = 100_000;
 
     private AddonMath() {}
 

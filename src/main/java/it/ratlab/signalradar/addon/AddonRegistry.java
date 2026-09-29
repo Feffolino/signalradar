@@ -31,6 +31,9 @@ public final class AddonRegistry {
     public static final ResourceLocation BIOSIGN = SignalRadar.id("addon_biosign");
     public static final ResourceLocation STRUCTURE = SignalRadar.id("addon_structure");
     public static final ResourceLocation MOTION = SignalRadar.id("addon_motion");
+    public static final ResourceLocation MANHOLE = SignalRadar.id("addon_manhole");
+    public static final ResourceLocation LOOT = SignalRadar.id("addon_loot");
+    public static final ResourceLocation TEAM = SignalRadar.id("addon_team");
 
     private static final Map<ResourceLocation, AddonDefinition> DEFS = new LinkedHashMap<>();
     private static final List<AddonDefinition> BUILTINS = new ArrayList<>();
@@ -48,6 +51,10 @@ public final class AddonRegistry {
                 SignalRadar.id("scannable_structures"), false));
         builtin(new AddonDefinition(MOTION, Detector.MOTION, 2, 24, 48, 1, 0xFF3030, 20, "motion", null,
                 SignalRadar.id("trackable"), false));
+        // Compat addons: only get an item when their mod is loaded. Team radius = whole dimension (config maximum, 100000).
+        builtin(new AddonDefinition(MANHOLE, Detector.MANHOLE, 0, 96, 160, 5, 0xC8A050, 5, "manhole", "manholes", null, false));
+        builtin(new AddonDefinition(LOOT, Detector.LOOT, 2, 48, 96, 10, 0xB060FF, 10, "loot", "lootr", null, false));
+        builtin(new AddonDefinition(TEAM, Detector.TEAM, 1, AddonMath.WHOLE_DIMENSION_RADIUS, AddonMath.WHOLE_DIMENSION_RADIUS, 1, 0x40E0D0, 5, "team", "ftbteams", null, false));
     }
 
     private AddonRegistry() {}
