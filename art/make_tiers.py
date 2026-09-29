@@ -1,7 +1,20 @@
-"""Generate radar_t0..t4.json from radar.json: antenna mast grows one segment per tier.
-radar.json (tier 0) gets item overrides on predicate signalradar:tier."""
-import json, copy
-base = json.load(open("radar.json"))
+"""Build the shipped radar item models from art/radar.json (Blockbench export, tier 0 geometry).
+
+Outputs (written straight into the mod resources, see art/README.md):
+  models/item/radar.json             builtin/entity item model: display transforms + particle only. The item is drawn
+                                     by the BEWLR (RadarItemRenderer), which picks the body model by tier.
+  models/item/radar_body_t0..t4.json geometry per tier (antenna mast grows one segment per tier); loaded as standalone
+                                     models (ModelEvent.RegisterAdditional).
+Run from anywhere:  python art/make_tiers.py
+"""
+import copy
+import json
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(HERE, "..", "src", "main", "resources", "assets", "signalradar", "models", "item")
+
+base = json.load(open(os.path.join(HERE, "radar.json")))
 els = base["elements"]
 mast = next(e for e in els if e["name"] == "antenna")
 tip = next(e for e in els if e["name"] == "antenna_tip")
@@ -9,7 +22,8 @@ rest = [e for e in els if e["name"] not in ("antenna", "antenna_tip")]
 SEG = 1.75  # height of one mast segment
 Y0 = 16.0
 
-def model(tier):
+
+def body(tier):
     out = list(rest)
     y = Y0
     for i in range(tier + 1):
@@ -31,16 +45,29 @@ def model(tier):
     t["from"] = [12.15, y, 7.15]
     t["to"] = [13.35, y + 1, 8.35]
     out.append(t)
-    m = {k: v for k, v in base.items() if k != "elements"}
+    # Geometry only: display transforms live on the item model (the BEWLR draws this in model space).
+    m = {k: v for k, v in base.items() if k not in ("elements", "display", "overrides")}
     m["elements"] = out
     return m
 
+
+def item_model():
+    return {
+        "parent": "builtin/entity",
+        "textures": {"particle": base["textures"].get("particle", base["textures"]["0"])},
+        "display": base["display"],
+    }
+
+
+def write(name, m):
+    with open(os.path.join(OUT, name), "w", newline="\n") as f:
+        json.dump(m, f, indent=1)
+        f.write("\n")
+
+
+write("radar.json", item_model())
+print("radar.json (builtin/entity)")
 for t in range(5):
-    m = model(t)
-    if t == 0:
-        m["overrides"] = [{"predicate": {"signalradar:tier": n / 4}, "model": f"signalradar:item/radar_t{n}"} for n in range(1, 5)]
-        name = "radar.json"
-    else:
-        name = f"radar_t{t}.json"
-    json.dump(m, open(name if t else "radar_item.json", "w"), indent=1)
-    print(name, len(m["elements"]), "elements, antenna top", round(Y0 + (t + 1) * SEG + 1, 2))
+    m = body(t)
+    write(f"radar_body_t{t}.json", m)
+    print(f"radar_body_t{t}.json", len(m["elements"]), "elements, antenna top", round(Y0 + (t + 1) * SEG + 1, 2))
