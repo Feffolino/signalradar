@@ -11,6 +11,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
@@ -31,6 +32,10 @@ public final class SignalRadar {
 
         if (Boolean.getBoolean("signalradar.gametests")) {
             it.ratlab.signalradar.test.RadarGameTests.register(modBus);
+        }
+
+        if (FMLEnvironment.dist.isClient()) {
+            it.ratlab.signalradar.client.SignalRadarClient.init(modBus);
         }
     }
 

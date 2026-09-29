@@ -1,0 +1,10 @@
+{
+  "item.signalradar.radar": "Signal Radar",
+  "item.signalradar.radar_module_1": "Radar Module I",
+  "item.signalradar.radar_module_2": "Radar Module II",
+  "item.signalradar.radar_module_3": "Radar Module III",
+  "item.signalradar.radar_module_4": "Radar Module IV",
+  "tooltip.signalradar.tier": "Tier %s / %s",
+  "tooltip.signalradar.energy": "FE %s / %s",
+  "tag.item.signalradar.radar_modules": "Radar Modules"
+}
