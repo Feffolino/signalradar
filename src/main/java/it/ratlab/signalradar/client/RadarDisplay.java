@@ -116,13 +116,14 @@ final class RadarDisplay {
         d.rect(lay.x0(), lay.y0(), lay.x1(), lay.y1(), L_BG, RadarColors.SCREEN_BG);
         d.disc(cx, cy, r, L_DISC, RadarColors.DISC);
         double sweep = mode == Mode.STATIC ? STATIC_SWEEP : RadarMath.sweepAngle(ticks);
-        float yaw = player != null && mode != Mode.STATIC ? player.getViewYRot(partial) : 180f;
+        // Only live data follows the player's yaw; the cosmetic sweep keeps a fixed north marker.
+        float yaw = player != null && mode == Mode.LIVE ? player.getViewYRot(partial) : 180f;
 
         List<Text> texts = new ArrayList<>();
         if (noSignal && mode != Mode.STATIC) {
             d.noise(cx, cy, r, (long) (ticks / 2));
             if (blink) {
-                texts.add(new Text(Component.translatable("signalradar.display.no_signal").getString(), cx, cy, 0.1f, RadarColors.NO_SIGNAL_TEXT, true));
+                texts.add(new Text(noSignalText(), cx, cy, 0.1f, RadarColors.NO_SIGNAL_TEXT, true));
             }
         } else {
             d.trail(cx, cy, r, sweep);
@@ -151,6 +152,31 @@ final class RadarDisplay {
     private static net.minecraft.world.entity.HumanoidArm armOf(ItemDisplayContext ctx) {
         return ctx == ItemDisplayContext.FIRST_PERSON_LEFT_HAND ? net.minecraft.world.entity.HumanoidArm.LEFT
                 : net.minecraft.world.entity.HumanoidArm.RIGHT;
+    }
+
+    private static String noSignalString;
+    private static String noSignalLang;
+
+    /** Translated once per language, not per frame. */
+    private static String noSignalText() {
+        String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+        if (noSignalString == null || !lang.equals(noSignalLang)) {
+            noSignalString = Component.translatable("signalradar.display.no_signal").getString();
+            noSignalLang = lang;
+        }
+        return noSignalString;
+    }
+
+    private static ScanSnapshot labelSnapshot;
+    private static String labelText = "";
+
+    /** Range label, formatted once per snapshot. */
+    private static String rangeLabel(ScanSnapshot snap) {
+        if (snap != labelSnapshot) {
+            labelSnapshot = snap;
+            labelText = snap.range() >= 1000 ? String.format("%.1fk", snap.range() / 1000.0) : snap.range() + "m";
+        }
+        return labelText;
     }
 
     private record Text(String text, double x, double y, float scale, int color, boolean centered) {}
@@ -283,8 +309,7 @@ final class RadarDisplay {
         // Range label (live data only), then the energy bar filling the rest.
         double barTop = py0 - 0.25;
         if (snap != null) {
-            String label = snap.range() >= 1000 ? String.format("%.1fk", snap.range() / 1000.0) : snap.range() + "m";
-            texts.add(new Text(label, (px0 + px1) / 2, py0 - 0.5, 0.065f, RadarColors.RANGE_TEXT, true));
+            texts.add(new Text(rangeLabel(snap), (px0 + px1) / 2, py0 - 0.5, 0.065f, RadarColors.RANGE_TEXT, true));
             barTop = py0 - 0.9;
         }
         double bw = Math.min(0.9, (px1 - px0) * 0.45);
