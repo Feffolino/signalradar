@@ -1,0 +1,20 @@
+{
+  "name": {
+    "text": "Test signal tier 3"
+  },
+  "category": "narrative",
+  "min_tier": 3,
+  "color": "#FF8C00",
+  "reveal_distance": 128,
+  "found_radius": 24,
+  "hide_when_found": false,
+  "locator": {
+    "type": "pos",
+    "pos": [
+      0,
+      70,
+      -1500
+    ],
+    "dimension": "minecraft:overworld"
+  }
+}

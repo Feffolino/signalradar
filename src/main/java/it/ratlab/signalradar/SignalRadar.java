@@ -39,6 +39,7 @@ public final class SignalRadar {
 
         if (Boolean.getBoolean("signalradar.gametests")) {
             it.ratlab.signalradar.test.RadarGameTests.register(modBus);
+            it.ratlab.signalradar.test.ScanGameTests.register(modBus);
         }
 
         if (FMLEnvironment.dist.isClient()) {
