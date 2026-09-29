@@ -88,6 +88,7 @@ public final class CompatGameTests {
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void manholeAddonListsOnlyUnopenedNetworkNodes(GameTestHelper h) {
         if (loaded("manholes")) {
+            SignalRadar.LOGGER.info("compat check running: Manhole");
             it.ratlab.signalradar.test.compat.ManholeChecks.run(h);
         }
         h.succeed();
@@ -96,6 +97,7 @@ public final class CompatGameTests {
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void lootAddonListsOnlyUnopenedLootrContainers(GameTestHelper h) {
         if (loaded("lootr")) {
+            SignalRadar.LOGGER.info("compat check running: Lootr");
             it.ratlab.signalradar.test.compat.LootrChecks.run(h);
         }
         h.succeed();
@@ -105,6 +107,7 @@ public final class CompatGameTests {
     public static void teamAddonListsOnlineTeammates(GameTestHelper h) {
         if (loaded("ftbteams")) {
             try {
+                SignalRadar.LOGGER.info("compat check running: Team");
                 it.ratlab.signalradar.test.compat.TeamChecks.run(h);
             } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
                 throw new IllegalStateException("team setup failed: " + e.getMessage(), e);
