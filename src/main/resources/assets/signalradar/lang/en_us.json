@@ -15,5 +15,13 @@
   "command.signalradar.targets.cached": "cached structure %s: %s",
   "command.signalradar.targets.miss": "miss",
   "command.signalradar.targets.summary": "%s targets loaded, %s cached structure searches, %s pending",
-  "command.signalradar.clearcache": "Cleared %s cached structure searches"
+  "command.signalradar.clearcache": "Cleared %s cached structure searches",
+  "subtitles.signalradar.scan_ping": "Radar pings",
+  "subtitles.signalradar.blip": "Radar blip",
+  "subtitles.signalradar.target_found": "Signal acquired",
+  "subtitles.signalradar.motion_beep": "Motion tracker beeps",
+  "signalradar.display.no_signal": "NO SIGNAL",
+  "signalradar.configuration.motionBeep": "Motion tracker beep",
+  "signalradar.configuration.screenBrightness": "Screen brightness",
+  "signalradar.configuration.showHeightArrows": "Height arrows"
 }

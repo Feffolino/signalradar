@@ -28,6 +28,7 @@ public final class SignalRadar {
         container.registerConfig(ModConfig.Type.SERVER, SignalRadarConfig.SPEC);
         ModComponents.COMPONENTS.register(modBus);
         ModItems.ITEMS.register(modBus);
+        it.ratlab.signalradar.registry.ModSounds.SOUNDS.register(modBus);
         it.ratlab.signalradar.registry.ModRecipes.SERIALIZERS.register(modBus);
         modBus.addListener(SignalRadar::registerCapabilities);
         modBus.addListener(SignalRadar::addToTabs);
@@ -43,7 +44,7 @@ public final class SignalRadar {
         }
 
         if (FMLEnvironment.dist.isClient()) {
-            it.ratlab.signalradar.client.SignalRadarClient.init(modBus);
+            it.ratlab.signalradar.client.SignalRadarClient.init(modBus, container);
         }
     }
 

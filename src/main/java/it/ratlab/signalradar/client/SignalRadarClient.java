@@ -1,27 +1,38 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.client;
 
-import it.ratlab.signalradar.SignalRadar;
-import it.ratlab.signalradar.item.RadarItem;
+import it.ratlab.signalradar.net.RadarNetworking;
 import it.ratlab.signalradar.registry.ModItems;
-import net.minecraft.client.renderer.item.ItemProperties;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.neoforged.neoforge.common.NeoForge;
 
 /** Client-only setup. Touched only when running on the physical client. */
 public final class SignalRadarClient {
     private SignalRadarClient() {}
 
-    public static void init(IEventBus modBus) {
-        modBus.addListener(SignalRadarClient::setup);
-        it.ratlab.signalradar.net.RadarNetworking.clientSnapshot = ClientRadarState::accept;
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
-                (net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut e) -> ClientRadarState.clear());
-    }
-
-    private static void setup(FMLClientSetupEvent event) {
-        // Model overrides radar_t1..t4 use predicate signalradar:tier = tier / 4.
-        event.enqueueWork(() -> ItemProperties.register(ModItems.RADAR.get(), SignalRadar.id("tier"),
-                (stack, level, entity, seed) -> RadarItem.tier(stack) / (float) RadarItem.MAX_TIER));
+    public static void init(IEventBus modBus, ModContainer container) {
+        container.registerConfig(ModConfig.Type.CLIENT, RadarClientConfig.SPEC);
+        modBus.addListener(ModelEvent.RegisterAdditional.class, RadarItemRenderer::registerModels);
+        modBus.addListener((RegisterClientExtensionsEvent e) -> e.registerItem(new RadarClientExtensions(), ModItems.RADAR.get()));
+        modBus.addListener((RegisterClientReloadListenersEvent e) -> e.registerReloadListener(new RadarScreenLoader()));
+        RadarNetworking.clientSnapshot = p -> {
+            ClientRadarState.accept(p);
+            RadarClientSounds.onSnapshot(p.snapshot());
+        };
+        NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e) -> {
+            RaiseState.tick();
+            RadarClientSounds.tick();
+        });
+        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
+            ClientRadarState.clear();
+            RaiseState.reset();
+        });
     }
 }
