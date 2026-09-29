@@ -39,16 +39,17 @@ final class RadarDisplay {
     static final RenderType QUADS = RenderType.text(SignalRadar.id("textures/misc/white.png"));
     private static final int LIGHT = LightTexture.FULL_BRIGHT;
 
-    // Layers in model units in front of the screen plane.
-    private static final float L_BG = 0.010f;
-    private static final float L_DISC = 0.020f;
-    private static final float L_TRAIL = 0.030f;
-    private static final float L_RING = 0.040f;
-    private static final float L_SWEEP = 0.050f;
-    private static final float L_BLIP = 0.060f;
-    private static final float L_MARK = 0.070f;
-    private static final float L_TEXT_BG = 0.080f;
-    private static final float L_TEXT = 0.095f;
+    // Layers in model units in front of the screen plane: 0.03 apart so they do not z-fight at item-frame distance,
+    // all within 0.3 units (still behind the bezel front).
+    private static final float L_BG = 0.030f;
+    private static final float L_DISC = 0.060f;
+    private static final float L_TRAIL = 0.090f;
+    private static final float L_RING = 0.120f;
+    private static final float L_SWEEP = 0.150f;
+    private static final float L_BLIP = 0.180f;
+    private static final float L_MARK = 0.210f;
+    private static final float L_TEXT_BG = 0.240f;
+    private static final float L_TEXT = 0.280f;
 
     private static final int DISC_SEGMENTS = 48;
     private static final int TRAIL_SEGMENTS = 20;
@@ -329,7 +330,7 @@ final class RadarDisplay {
         } else {
             c = energyFrac < 0.2 ? RadarColors.LED_LOW : RadarColors.LED_OK;
         }
-        float e = 0.01f;
+        float e = 0.03f;
         // South face (+z).
         quad3(lay.ledX0(), lay.ledY0(), lay.ledZ1() + e, lay.ledX1(), lay.ledY0(), lay.ledZ1() + e,
                 lay.ledX1(), lay.ledY1(), lay.ledZ1() + e, lay.ledX0(), lay.ledY1(), lay.ledZ1() + e, c);
