@@ -9,10 +9,13 @@ public final class RadarNetworking {
     /** Set by the client entry point; stays a no-op on a dedicated server (which never receives it). */
     public static Consumer<SnapshotPayload> clientSnapshot = p -> {};
 
+    /** 2: snapshot carries range + refreshSeconds (phase 3). */
+    public static final String PROTOCOL = "2";
+
     private RadarNetworking() {}
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar r = event.registrar("1");
+        PayloadRegistrar r = event.registrar(PROTOCOL);
         r.playToClient(SnapshotPayload.TYPE, SnapshotPayload.CODEC,
                 (p, ctx) -> ctx.enqueueWork(() -> clientSnapshot.accept(p)));
     }

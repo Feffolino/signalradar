@@ -30,7 +30,7 @@ public final class RadarScanner {
         int capacity = SignalRadarConfig.capacity();
         int energy = RadarItem.energy(radar);
         if (energy < settings.scanCost()) {
-            return new ScanSnapshot(tier, energy, capacity, true, now, List.of());
+            return new ScanSnapshot(tier, energy, capacity, settings.range(tier), settings.refreshSeconds(), true, now, List.of());
         }
         RadarItem.setEnergy(radar, energy - settings.scanCost());
         energy = RadarItem.energy(radar);
@@ -55,6 +55,6 @@ public final class RadarScanner {
             blips.add(new Blip(def.blipId(), def.category(), def.color(), shown.x, shown.y, shown.z,
                     revealed ? def.name() : Blip.UNKNOWN_NAME, dist > range, false));
         }
-        return new ScanSnapshot(tier, energy, capacity, false, now, blips);
+        return new ScanSnapshot(tier, energy, capacity, settings.range(tier), settings.refreshSeconds(), false, now, blips);
     }
 }
