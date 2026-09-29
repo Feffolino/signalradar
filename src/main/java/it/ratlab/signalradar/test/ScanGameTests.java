@@ -124,6 +124,8 @@ public final class ScanGameTests {
         h.assertTrue(ent.locator() instanceof Locator.Entity e && "sr".equals(e.tag()) && e.entityType() != null, "entity " + ent.locator());
         TargetDef blk = TargetParser.parse(ID, json("{\"locator\":{\"type\":\"block\",\"block\":\"#c:ores\",\"radius\":9}}")).orElseThrow();
         h.assertTrue(blk.locator() instanceof Locator.Block b && b.tag() && b.radius() == 9, "block " + blk.locator());
+        TargetDef big = TargetParser.parse(ID, json("{\"locator\":{\"type\":\"block\",\"block\":\"stone\",\"radius\":500}}")).orElseThrow();
+        h.assertTrue(big.locator() instanceof Locator.Block b2 && b2.radius() == Locator.Block.MAX_RADIUS, "radius not clamped " + big.locator());
         h.succeed();
     }
 
@@ -364,6 +366,11 @@ public final class ScanGameTests {
         var none = BlockLocatorScan.matcher(new Locator.Block(ResourceLocation.withDefaultNamespace("emerald_block"), false, 8)).orElseThrow();
         h.assertTrue(BlockLocatorScan.find(h.getLevel(), from, 8, none).isEmpty(), "found an absent block");
         h.assertTrue(BlockLocatorScan.matcher(new Locator.Block(ResourceLocation.parse("nope:nothing"), false, 8)).isEmpty(), "unknown block accepted");
+        // Work budget: nothing left = no search; one section's worth is taken per searched section.
+        h.assertTrue(BlockLocatorScan.find(h.getLevel(), from, 8, match, new BlockLocatorScan.Budget(0)).isEmpty(), "searched without budget");
+        BlockLocatorScan.Budget budget = new BlockLocatorScan.Budget(1_000_000);
+        h.assertTrue(BlockLocatorScan.find(h.getLevel(), from, 8, match, budget).isPresent(), "budgeted search failed");
+        h.assertTrue(budget.remaining() < 1_000_000 && (1_000_000 - budget.remaining()) % 4096 == 0, "budget " + budget.remaining());
         h.succeed();
     }
 

@@ -21,11 +21,19 @@ public final class Locators {
      * @param range radar range in blocks for the player's tier (entity search box)
      * @return the real (unfuzzed) position, or empty when unavailable (other dimension, pending structure, nothing found)
      */
-    public static Optional<Vec3> locate(ServerPlayer player, TargetDef def, int range, ServerLevel level, long now) {
-        return locate(player, def.locator(), range, level, now);
+    public static Optional<Vec3> locate(ServerPlayer player, TargetDef def, int range, ServerLevel level, long now,
+                                        BlockLocatorScan.Budget budget) {
+        return locate(player, def.locator(), range, level, now, budget);
     }
 
+    /** Unlimited block-check budget (tests, single lookups). */
     public static Optional<Vec3> locate(ServerPlayer player, Locator locator, int range, ServerLevel level, long now) {
+        return locate(player, locator, range, level, now, BlockLocatorScan.Budget.unlimited());
+    }
+
+    /** @param budget block checks left for this player scan (block locators only) */
+    public static Optional<Vec3> locate(ServerPlayer player, Locator locator, int range, ServerLevel level, long now,
+                                        BlockLocatorScan.Budget budget) {
         if (locator instanceof Locator.Pos l) {
             if (!level.dimension().location().equals(l.dimension())) {
                 return Optional.empty();
@@ -43,7 +51,7 @@ public final class Locators {
             }
             long ttl = it.ratlab.signalradar.SignalRadarConfig.scanRefreshSeconds() * 20L;
             Optional<BlockPos> found = BlockLocatorScan.INSTANCE.cached(player.getUUID(), l.key() + "@" + level.dimension().location(), now, ttl,
-                    () -> BlockLocatorScan.find(level, player.position(), l.radius(), match.get()));
+                    () -> BlockLocatorScan.find(level, player.position(), l.radius(), match.get(), budget));
             return found.map(Vec3::atCenterOf);
         }
         return Optional.empty();

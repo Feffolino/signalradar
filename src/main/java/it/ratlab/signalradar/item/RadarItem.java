@@ -35,6 +35,17 @@ public class RadarItem extends Item {
         stack.set(ModComponents.ENERGY.get(), Mth.clamp(fe, 0, SignalRadarConfig.capacity()));
     }
 
+    /** Energy / tier components change on every scan: only a real item or slot change re-raises the item. */
+    @Override
+    public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
+        return slotChanged || oldStack.getItem() != newStack.getItem();
+    }
+
+    @Override
+    public boolean shouldCauseBlockBreakReset(ItemStack oldStack, ItemStack newStack) {
+        return oldStack.getItem() != newStack.getItem();
+    }
+
     @Override
     public boolean isBarVisible(ItemStack stack) {
         return true;

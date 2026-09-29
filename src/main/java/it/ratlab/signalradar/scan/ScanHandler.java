@@ -64,8 +64,9 @@ public final class ScanHandler {
     public static ScanSnapshot sendScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now) {
         ServerLevel level = player.serverLevel();
         int range = settings.range(RadarItem.tier(radar));
+        BlockLocatorScan.Budget budget = new BlockLocatorScan.Budget(it.ratlab.signalradar.SignalRadarConfig.maxBlockChecksPerScan());
         ScanSnapshot snapshot = RadarScanner.scan(radar, player.getUUID(), player.position(), now, settings, TargetManager.all(),
-                def -> Locators.locate(player, def, range, level, now));
+                def -> Locators.locate(player, def, range, level, now, budget));
         PacketDistributor.sendToPlayer(player, new SnapshotPayload(snapshot));
         return snapshot;
     }

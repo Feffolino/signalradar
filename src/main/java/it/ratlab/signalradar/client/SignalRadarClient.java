@@ -15,6 +15,8 @@ public final class SignalRadarClient {
     public static void init(IEventBus modBus) {
         modBus.addListener(SignalRadarClient::setup);
         it.ratlab.signalradar.net.RadarNetworking.clientSnapshot = ClientRadarState::accept;
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
+                (net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut e) -> ClientRadarState.clear());
     }
 
     private static void setup(FMLClientSetupEvent event) {

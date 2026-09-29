@@ -105,7 +105,7 @@ public final class TargetParser {
             case "block": {
                 String s = GsonHelper.getAsString(l, "block");
                 boolean tag = s.startsWith("#");
-                int radius = Mth.clamp(GsonHelper.getAsInt(l, "radius", 32), 1, 128);
+                int radius = Mth.clamp(GsonHelper.getAsInt(l, "radius", 32), 1, Locator.Block.MAX_RADIUS);
                 return new Locator.Block(resource(tag ? s.substring(1) : s), tag, radius);
             }
             default:

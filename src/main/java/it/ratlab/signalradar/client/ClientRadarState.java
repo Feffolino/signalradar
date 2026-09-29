@@ -31,7 +31,9 @@ public final class ClientRadarState {
         return receivedAtMillis;
     }
 
+    /** Forget the last snapshot (logout / world change). */
     public static void clear() {
         latest = null;
+        receivedAtMillis = 0L;
     }
 }

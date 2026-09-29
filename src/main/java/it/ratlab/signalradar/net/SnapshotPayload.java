@@ -48,7 +48,10 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
         int capacity = buf.readVarInt();
         boolean noSignal = buf.readBoolean();
         long time = buf.readLong();
-        int n = Math.min(buf.readVarInt(), MAX_BLIPS);
+        int n = buf.readVarInt();
+        if (n < 0 || n > MAX_BLIPS) {
+            throw new io.netty.handler.codec.DecoderException("Radar snapshot with " + n + " blips (max " + MAX_BLIPS + ")");
+        }
         List<Blip> blips = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
             String id = buf.readUtf();

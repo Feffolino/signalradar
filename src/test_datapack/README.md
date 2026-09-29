@@ -13,3 +13,11 @@ Not part of the mod jar. Five `pos` targets in the overworld, one per tier (`min
 Install: copy the folder `signalradar_test` into `<world>/datapacks/`, then `/reload` (or restart), and `/datapack enable "file/signalradar_test"` if it is not on already.
 Check with `/signalradar targets`, then hold a radar (`/give @s signalradar:radar`, `/signalradar charge @s`, `/signalradar settier @s 2`).
 Tier 0 already sees `tier0` (150 m away, within its 256 m range); `tier4` is beyond tier 0 range but hidden anyway until the radar is tier 4.
+
+## Cost of `block` locators
+A `block` locator searches the loaded chunks around the player (sphere, `radius` clamped to 1..64) on every scan of a
+player holding a radar (cached for one scan period). Chunk sections that cannot contain the block (palette check) are
+skipped for free; every other section costs 4096 block checks. All block targets of one player scan share the server
+config budget `maxBlockChecksPerScan` (default 200000, about 48 sections); when it runs out the search stops and keeps
+the nearest block found so far. Worst case (radius 64, a common block such as stone): about 700 sections, so the budget
+decides. Prefer rare blocks, small radii and few block targets; use `pos` or `structure` locators where possible.

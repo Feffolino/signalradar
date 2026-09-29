@@ -59,11 +59,43 @@ public final class BlockLocatorScan {
         return Optional.of(s -> s.is(b));
     }
 
+    /** Block states a search may still test during one player scan (shared by all block targets of that scan). */
+    public static final class Budget {
+        private int remaining;
+
+        public Budget(int checks) {
+            this.remaining = Math.max(0, checks);
+        }
+
+        public static Budget unlimited() {
+            return new Budget(Integer.MAX_VALUE);
+        }
+
+        /** Takes {@code n} checks; false (nothing taken) when not enough are left. */
+        public boolean take(int n) {
+            if (remaining < n) {
+                remaining = 0;
+                return false;
+            }
+            remaining -= n;
+            return true;
+        }
+
+        public int remaining() {
+            return remaining;
+        }
+    }
+
+    public static Optional<BlockPos> find(ServerLevel level, Vec3 center, int radius, Predicate<BlockState> match) {
+        return find(level, center, radius, match, Budget.unlimited());
+    }
+
     /**
      * Nearest matching block within {@code radius} (sphere) of {@code center}, loaded chunks only. Sections that
-     * cannot contain a match ({@link LevelChunkSection#maybeHas}) or lie outside the radius are skipped.
+     * cannot contain a match ({@link LevelChunkSection#maybeHas}) or lie outside the radius are skipped. Every section
+     * that is actually searched costs 4096 from {@code budget}; when it runs out the nearest block found so far wins.
      */
-    public static Optional<BlockPos> find(ServerLevel level, Vec3 center, int radius, Predicate<BlockState> match) {
+    public static Optional<BlockPos> find(ServerLevel level, Vec3 center, int radius, Predicate<BlockState> match, Budget budget) {
         int minCx = (int) Math.floor((center.x - radius) / 16.0);
         int maxCx = (int) Math.floor((center.x + radius) / 16.0);
         int minCz = (int) Math.floor((center.z - radius) / 16.0);
@@ -87,6 +119,9 @@ public final class BlockLocatorScan {
                     }
                     if (s.hasOnlyAir() || !s.maybeHas(match)) {
                         continue;
+                    }
+                    if (!budget.take(4096)) {
+                        return Optional.ofNullable(best);
                     }
                     for (int y = 0; y < 16; y++) {
                         for (int z = 0; z < 16; z++) {

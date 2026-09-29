@@ -34,8 +34,11 @@ public sealed interface Locator {
         }
     }
 
-    /** Nearest block (id or tag) within {@code radius} in loaded chunks. */
+    /** Nearest block (id or tag) within {@code radius} (1..{@link #MAX_RADIUS}) in loaded chunks. */
     record Block(ResourceLocation id, boolean tag, int radius) implements Locator {
+        /** Search cost grows with radius cubed: capped here, and each scan also has a block-check budget. */
+        public static final int MAX_RADIUS = 64;
+
         @Override
         public String key() {
             return "block:" + (tag ? "#" : "") + id + ":" + radius;

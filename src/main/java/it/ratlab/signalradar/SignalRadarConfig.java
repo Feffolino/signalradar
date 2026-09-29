@@ -20,6 +20,7 @@ public final class SignalRadarConfig {
     private static final ModConfigSpec.ConfigValue<List<? extends Integer>> FUZZ_BY_TIER;
     private static final ModConfigSpec.IntValue STRUCTURE_LOOKUPS_PER_TICK;
     private static final ModConfigSpec.IntValue MAX_SCANNABLE_STRUCTURES;
+    private static final ModConfigSpec.IntValue MAX_BLOCK_CHECKS_PER_SCAN;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -40,6 +41,10 @@ public final class SignalRadarConfig {
                 .defineInRange("structureLookupsPerTick", 1, 1, 64);
         MAX_SCANNABLE_STRUCTURES = b.comment("Max entries read from the scannable structures tag (used by the structure addon).")
                 .defineInRange("maxScannableStructures", 16, 1, 256);
+        MAX_BLOCK_CHECKS_PER_SCAN = b.comment("Max block states the 'block' locators may test in one player scan (all block targets together).",
+                        "Each 16x16x16 chunk section that may contain the block costs 4096. When the budget runs out the search",
+                        "stops and keeps the nearest block found so far.")
+                .defineInRange("maxBlockChecksPerScan", 200000, 4096, Integer.MAX_VALUE);
         b.pop();
         SPEC = b.build();
     }
@@ -68,6 +73,10 @@ public final class SignalRadarConfig {
 
     public static int maxScannableStructures() {
         return SPEC.isLoaded() ? MAX_SCANNABLE_STRUCTURES.get() : MAX_SCANNABLE_STRUCTURES.getDefault();
+    }
+
+    public static int maxBlockChecksPerScan() {
+        return SPEC.isLoaded() ? MAX_BLOCK_CHECKS_PER_SCAN.get() : MAX_BLOCK_CHECKS_PER_SCAN.getDefault();
     }
 
     public static int[] rangeByTier() {

@@ -76,9 +76,10 @@ public final class RadarCommands {
         int range = ScanSettings.fromConfig().range(tier);
         long now = p.level().getGameTime();
         int count = 0;
+        var budget = new it.ratlab.signalradar.scan.BlockLocatorScan.Budget(SignalRadarConfig.maxBlockChecksPerScan());
         for (TargetDef def : TargetManager.all()) {
             count++;
-            Optional<Vec3> pos = Locators.locate(p, def, range, p.serverLevel(), now);
+            Optional<Vec3> pos = Locators.locate(p, def, range, p.serverLevel(), now, budget);
             Component where = pos.<Component>map(v -> Component.literal(String.format("%.0f %.0f %.0f", v.x, v.y, v.z)))
                     .orElseGet(() -> Component.translatable("command.signalradar.targets.none"));
             src.sendSuccess(() -> Component.translatable("command.signalradar.targets.entry", def.id().toString(), def.locator().key(),
