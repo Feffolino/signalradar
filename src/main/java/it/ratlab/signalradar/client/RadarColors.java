@@ -48,6 +48,11 @@ public final class RadarColors {
     public static final int LED_NO_SIGNAL = 0xFF2020;
     public static final int LED_OFF = 0x301010;
 
+    /** Motion tracker blips (category {@code motion}): default colour, and the lowest brightness of the pulse. */
+    public static final String MOTION_CATEGORY = "motion";
+    public static final int MOTION = 0xFF3030;
+    public static final double MOTION_PULSE_MIN = 0.35;
+
     /** Fallback when a blip has no colour (0). */
     public static final int BLIP_DEFAULT = 0x7CFC00;
 

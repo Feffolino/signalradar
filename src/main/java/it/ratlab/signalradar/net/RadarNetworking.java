@@ -9,8 +9,8 @@ public final class RadarNetworking {
     /** Set by the client entry point; stays a no-op on a dedicated server (which never receives it). */
     public static Consumer<SnapshotPayload> clientSnapshot = p -> {};
 
-    /** 2: snapshot carries range + refreshSeconds (phase 3). */
-    public static final String PROTOCOL = "2";
+    /** 2: snapshot carries range + refreshSeconds (phase 3); 3: snapshot carries the charged flag (phase 4). */
+    public static final String PROTOCOL = "3";
 
     private RadarNetworking() {}
 

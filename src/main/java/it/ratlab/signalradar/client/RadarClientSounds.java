@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.client;
 
+import it.ratlab.signalradar.addon.AddonMath;
 import it.ratlab.signalradar.display.RadarMath;
 import it.ratlab.signalradar.display.Vec2;
 import it.ratlab.signalradar.display.Vec3d;
@@ -8,6 +9,7 @@ import it.ratlab.signalradar.item.RadarItem;
 import it.ratlab.signalradar.registry.ModSounds;
 import it.ratlab.signalradar.scan.Blip;
 import it.ratlab.signalradar.scan.ScanSnapshot;
+import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -16,11 +18,15 @@ import net.minecraft.world.item.ItemStack;
 
 /**
  * Local radar sounds: a ping when a new scan arrives while a radar is held, and a tick when the sweep crosses a
- * {@code narrative} blip (checked once per client tick, not per frame; other categories never tick). Phase 4 adds the
- * motion tracker's blips and beep here.
+ * {@code narrative} or {@code motion} blip (checked once per client tick, not per frame; other categories never tick),
+ * and the motion tracker beep.
  */
 public final class RadarClientSounds {
-    public static final String TICKING_CATEGORY = "narrative";
+    /** Only these categories tick when the sweep crosses them (never ore, containers, ...). */
+    public static final Set<String> TICKING_CATEGORIES = Set.of("narrative", RadarColors.MOTION_CATEGORY);
+    /** Motion beep interval reaches its slowest at this distance (the motion addon's max radius). */
+    private static final double BEEP_REFERENCE = 48.0;
+    private static int beepCooldown;
 
     private RadarClientSounds() {}
 
@@ -34,7 +40,7 @@ public final class RadarClientSounds {
 
     static void onSnapshot(ScanSnapshot snap) {
         LocalPlayer p = Minecraft.getInstance().player;
-        if (p != null && !snap.noSignal() && !held(p).isEmpty()) {
+        if (p != null && snap.charged() && !snap.noSignal() && !held(p).isEmpty()) {
             play(p, ModSounds.SCAN_PING.get(), 1f, 1f);
         }
     }
@@ -48,17 +54,20 @@ public final class RadarClientSounds {
         ItemStack radar = held(p);
         ScanSnapshot snap = ClientRadarState.latest();
         if (radar.isEmpty() || snap == null || snap.noSignal() || RadarItem.energy(radar) <= 0) {
+            beepCooldown = 0;
             return;
         }
         long nowMs = System.currentTimeMillis();
         if (RadarMath.stale(nowMs, ClientRadarState.receivedAtMillis(), snap.refreshSeconds())) {
+            beepCooldown = 0;
             return;
         }
+        motionBeep(p, snap, nowMs);
         long t = mc.level.getGameTime();
         double prev = RadarMath.sweepAngle(t - 1);
         double cur = RadarMath.sweepAngle(t);
         for (Blip b : snap.blips()) {
-            if (!TICKING_CATEGORY.equals(b.category())) {
+            if (!TICKING_CATEGORIES.contains(b.category())) {
                 continue;
             }
             Vec3d wp = ClientRadarState.position(b, nowMs);
@@ -67,6 +76,32 @@ public final class RadarClientSounds {
                 play(p, ModSounds.BLIP.get(), 1f, b.outOfRange() ? 0.8f : 1f);
                 return; // one tick per client tick is plenty
             }
+        }
+    }
+
+    /** Alien-style beep of the nearest motion blip: the closer it is, the faster the beeps. */
+    private static void motionBeep(LocalPlayer p, ScanSnapshot snap, long nowMs) {
+        if (!RadarClientConfig.motionBeep()) {
+            beepCooldown = 0;
+            return;
+        }
+        double nearest = Double.MAX_VALUE;
+        for (Blip b : snap.blips()) {
+            if (RadarColors.MOTION_CATEGORY.equals(b.category())) {
+                Vec3d wp = ClientRadarState.position(b, nowMs);
+                double dx = wp.x() - p.getX();
+                double dz = wp.z() - p.getZ();
+                nearest = Math.min(nearest, Math.sqrt(dx * dx + dz * dz));
+            }
+        }
+        if (nearest == Double.MAX_VALUE) {
+            beepCooldown = 0;
+            return;
+        }
+        if (--beepCooldown <= 0) {
+            float pitch = (float) (1.6 - 0.7 * Math.min(1.0, nearest / BEEP_REFERENCE));
+            play(p, ModSounds.MOTION_BEEP.get(), 0.7f, pitch);
+            beepCooldown = AddonMath.motionBeepTicks(nearest, BEEP_REFERENCE);
         }
     }
 

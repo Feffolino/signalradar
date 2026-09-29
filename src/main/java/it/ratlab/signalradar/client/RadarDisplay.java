@@ -132,7 +132,7 @@ final class RadarDisplay {
             d.northMarker(cx, cy, r, yaw, texts);
             d.tri(cx, cy + 0.28, cx - 0.2, cy - 0.18, cx + 0.2, cy - 0.18, L_MARK, RadarColors.NORTH); // you
             if (mode == Mode.LIVE && snap != null && player != null) {
-                d.blips(snap, player, partial, nowMs, cx, cy, r, sweep, yaw);
+                d.blips(snap, player, partial, nowMs, cx, cy, r, sweep, yaw, ticks);
                 if (RaiseState.progress(partial) > 0.5f && RaiseState.arm(player) == armOf(ctx)) {
                     d.raisedLine(snap, player, partial, nowMs, lay, texts);
                 }
@@ -213,7 +213,7 @@ final class RadarDisplay {
     }
 
     private void blips(ScanSnapshot snap, LocalPlayer player, float partial, long nowMs, double cx, double cy, double r,
-                       double sweep, float yaw) {
+                       double sweep, float yaw, double ticks) {
         Vec3 pos = player.getPosition(partial);
         boolean heights = RadarClientConfig.showHeightArrows();
         for (Blip b : snap.blips()) {
@@ -222,7 +222,14 @@ final class RadarDisplay {
             RadarMath.Placed p = RadarMath.place(rel, snap.range(), r, b.outOfRange());
             double ang = RadarMath.displayAngle(p.x(), p.y());
             double glow = RadarMath.phosphor(sweep, ang);
-            int base = b.color() == 0 ? RadarColors.BLIP_DEFAULT : b.color();
+            boolean motion = RadarColors.MOTION_CATEGORY.equals(b.category());
+            double pulse = 0;
+            if (motion) {
+                // Motion tracker: red blips that pulse regardless of the sweep.
+                pulse = 0.5 + 0.5 * Math.sin(ticks * 0.45);
+                glow = Math.max(glow, RadarColors.MOTION_PULSE_MIN + (1 - RadarColors.MOTION_PULSE_MIN) * pulse);
+            }
+            int base = b.color() == 0 ? (motion ? RadarColors.MOTION : RadarColors.BLIP_DEFAULT) : b.color();
             if (b.found()) {
                 base = RadarMath.mix(base, RadarColors.DISC, RadarColors.FOUND_DIM);
             }
@@ -239,7 +246,8 @@ final class RadarDisplay {
                 bx = cx + Math.sin(ang) * (baseR - 0.1);
                 by = cy + Math.cos(ang) * (baseR - 0.1);
             } else {
-                rect(bx - 0.21, by - 0.21, bx + 0.21, by + 0.21, L_BLIP, c);
+                double half = 0.21 + 0.07 * pulse;
+                rect(bx - half, by - half, bx + half, by + half, L_BLIP, c);
             }
             if (b.found()) {
                 int check = RadarMath.mix(RadarColors.DISC, RadarColors.FOUND_CHECK, Math.max(0.5, glow));

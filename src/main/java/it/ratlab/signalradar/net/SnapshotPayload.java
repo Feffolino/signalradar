@@ -30,6 +30,7 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
         buf.writeVarInt(s.range());
         buf.writeVarInt(s.refreshSeconds());
         buf.writeBoolean(s.noSignal());
+        buf.writeBoolean(s.charged());
         buf.writeLong(s.gameTime());
         buf.writeVarInt(s.blips().size());
         for (Blip b : s.blips()) {
@@ -51,6 +52,7 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
         int range = buf.readVarInt();
         int refresh = buf.readVarInt();
         boolean noSignal = buf.readBoolean();
+        boolean charged = buf.readBoolean();
         long time = buf.readLong();
         int n = buf.readVarInt();
         if (n < 0 || n > MAX_BLIPS) {
@@ -68,7 +70,7 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
             int flags = buf.readByte();
             blips.add(new Blip(id, category, color, x, y, z, name, (flags & FLAG_OUT_OF_RANGE) != 0, (flags & FLAG_FOUND) != 0));
         }
-        return new SnapshotPayload(new ScanSnapshot(tier, energy, capacity, range, refresh, noSignal, time, blips));
+        return new SnapshotPayload(new ScanSnapshot(tier, energy, capacity, range, refresh, noSignal, time, blips, charged));
     }
 
     @Override

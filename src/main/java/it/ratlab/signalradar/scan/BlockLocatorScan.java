@@ -2,7 +2,10 @@
 package it.ratlab.signalradar.scan;
 
 import it.ratlab.signalradar.target.Locator;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -96,13 +99,53 @@ public final class BlockLocatorScan {
      * that is actually searched costs 4096 from {@code budget}; when it runs out the nearest block found so far wins.
      */
     public static Optional<BlockPos> find(ServerLevel level, Vec3 center, int radius, Predicate<BlockState> match, Budget budget) {
+        double[] bestD = {Double.MAX_VALUE};
+        BlockPos[] best = {null};
+        visit(level, center, radius, match, budget, (p, d) -> {
+            if (d < bestD[0]) {
+                bestD[0] = d;
+                best[0] = p.immutable();
+            }
+            return true;
+        });
+        return Optional.ofNullable(best[0]);
+    }
+
+    /**
+     * Every matching block within {@code radius} (sphere) of {@code center}, nearest first, at most {@code limit} raw
+     * matches are examined (the search stops there), same section skipping and budget rules as {@link #find}.
+     */
+    public static List<BlockPos> findAll(ServerLevel level, Vec3 center, int radius, Predicate<BlockState> match, Budget budget, int limit) {
+        List<BlockPos> out = new ArrayList<>();
+        List<Double> dist = new ArrayList<>();
+        visit(level, center, radius, match, budget, (p, d) -> {
+            out.add(p.immutable());
+            dist.add(d);
+            return out.size() < limit;
+        });
+        Integer[] order = new Integer[out.size()];
+        for (int i = 0; i < order.length; i++) {
+            order[i] = i;
+        }
+        java.util.Arrays.sort(order, Comparator.comparingDouble(dist::get));
+        List<BlockPos> sorted = new ArrayList<>(order.length);
+        for (int i : order) {
+            sorted.add(out.get(i));
+        }
+        return sorted;
+    }
+
+    /** Receives each matching block (mutable position, squared distance to the centre); returns false to stop. */
+    private interface Visitor {
+        boolean hit(BlockPos.MutableBlockPos pos, double dist2);
+    }
+
+    private static void visit(ServerLevel level, Vec3 center, int radius, Predicate<BlockState> match, Budget budget, Visitor visitor) {
         int minCx = (int) Math.floor((center.x - radius) / 16.0);
         int maxCx = (int) Math.floor((center.x + radius) / 16.0);
         int minCz = (int) Math.floor((center.z - radius) / 16.0);
         int maxCz = (int) Math.floor((center.z + radius) / 16.0);
         double r2 = (double) radius * radius;
-        double bestD = Double.MAX_VALUE;
-        BlockPos best = null;
         BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos();
         for (int cx = minCx; cx <= maxCx; cx++) {
             for (int cz = minCz; cz <= maxCz; cz++) {
@@ -121,7 +164,7 @@ public final class BlockLocatorScan {
                         continue;
                     }
                     if (!budget.take(4096)) {
-                        return Optional.ofNullable(best);
+                        return;
                     }
                     for (int y = 0; y < 16; y++) {
                         for (int z = 0; z < 16; z++) {
@@ -134,9 +177,8 @@ public final class BlockLocatorScan {
                                 double dy = p.getY() + 0.5 - center.y;
                                 double dz = p.getZ() + 0.5 - center.z;
                                 double d = dx * dx + dy * dy + dz * dz;
-                                if (d <= r2 && d < bestD) {
-                                    bestD = d;
-                                    best = p.immutable();
+                                if (d <= r2 && !visitor.hit(p, d)) {
+                                    return;
                                 }
                             }
                         }
@@ -144,6 +186,5 @@ public final class BlockLocatorScan {
                 }
             }
         }
-        return Optional.ofNullable(best);
     }
 }

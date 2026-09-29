@@ -10,6 +10,11 @@ public record ScanSettings(int[] rangeByTier, int[] fuzzByTier, int scanCost, in
                 SignalRadarConfig.scanCost(), SignalRadarConfig.scanRefreshSeconds());
     }
 
+    /** Same settings with another snapshot refresh period (the send interval when addons refresh faster). */
+    public ScanSettings withRefreshSeconds(int seconds) {
+        return new ScanSettings(rangeByTier, fuzzByTier, scanCost, seconds);
+    }
+
     public int range(int tier) {
         return rangeByTier[Math.max(0, Math.min(tier, rangeByTier.length - 1))];
     }

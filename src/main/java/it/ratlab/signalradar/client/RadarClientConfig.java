@@ -8,7 +8,7 @@ public final class RadarClientConfig {
     private static final ModConfigSpec.Builder B = new ModConfigSpec.Builder();
 
     private static final ModConfigSpec.BooleanValue MOTION_BEEP = B
-            .comment("Motion tracker addon: beep faster as moving hostiles get closer (phase 4).")
+            .comment("Motion tracker addon: beep faster as moving hostiles get closer.")
             .define("motionBeep", true);
 
     private static final ModConfigSpec.DoubleValue SCREEN_BRIGHTNESS = B
