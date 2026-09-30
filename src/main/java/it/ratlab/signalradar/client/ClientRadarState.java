@@ -55,8 +55,7 @@ public final class ClientRadarState {
         if (from == null) {
             return to;
         }
-        double t = Math.max(0, Math.min(1, (nowMillis - receivedAtMillis) / (double) GLIDE_MILLIS));
-        t = t * t * (3 - 2 * t);
+        double t = it.ratlab.signalradar.display.RadarMath.glideFraction(nowMillis - receivedAtMillis, GLIDE_MILLIS);
         return new Vec3d(from.x() + (to.x() - from.x()) * t, from.y() + (to.y() - from.y()) * t, from.z() + (to.z() - from.z()) * t);
     }
 

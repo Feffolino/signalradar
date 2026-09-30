@@ -93,6 +93,8 @@ final class RadarDisplay {
     /** Squared horizontal distance of every blip of the snapshot being drawn (index = blip index), reused between frames. */
     private static double[] distSq = new double[64];
     private static double[] sortedDistSq = new double[64];
+    /** Glided world position of every blip of the snapshot being drawn (index = blip index). */
+    private static Vec3d[] shown = new Vec3d[64];
 
     static Mode mode(ItemDisplayContext ctx) {
         if (ctx == ItemDisplayContext.GUI) {
@@ -270,7 +272,8 @@ final class RadarDisplay {
         List<Blip> list = snap.blips();
         int maxIcons = RadarClientConfig.maxIcons();
         int range = RadarZoom.range(snap.range()); // chosen display range; farther blips sit on the rim with an arrow
-        double limit = iconDistanceLimit(list, pos.x, pos.z, maxIcons);
+        // distances of the drawn (glided) positions: layout decisions follow what is on screen
+        double limit = iconDistanceLimit(list, pos.x, pos.z, maxIcons, nowMs);
 
         // Where every blip is on the display, then merge the ones that sit almost on the same spot.
         int n = list.size();
@@ -282,7 +285,7 @@ final class RadarDisplay {
             if (vis == RadarMath.HIDDEN) {
                 continue; // local blip beyond the peripheral band: not drawn, not grouped
             }
-            Vec3d wp = ClientRadarState.position(b, nowMs);
+            Vec3d wp = shown[bi];
             Vec2 rel = RadarMath.relative(wp.x() - pos.x, wp.z() - pos.z, yaw);
             RadarMath.Placed p = RadarMath.place(rel, range, r, b.outOfRange() || vis == RadarMath.RIM);
             spots[bi] = new Spot(b, wp, p, RadarMath.displayAngle(p.x(), p.y()));
@@ -410,16 +413,20 @@ final class RadarDisplay {
      * Fills {@link #distSq} for the blips and returns the squared distance of the {@code max}-th nearest one (everything up
      * to it may be an icon); no allocation once the scratch arrays are big enough.
      */
-    private static double iconDistanceLimit(List<Blip> list, double px, double pz, int max) {
+    private static double iconDistanceLimit(List<Blip> list, double px, double pz, int max, long nowMs) {
         int n = list.size();
         if (distSq.length < n) {
             distSq = new double[n * 2];
             sortedDistSq = new double[n * 2];
         }
+        if (shown.length < n) {
+            shown = new Vec3d[n * 2];
+        }
         for (int i = 0; i < n; i++) {
-            Blip b = list.get(i);
-            double dx = b.x() - px;
-            double dz = b.z() - pz;
+            Vec3d wp = ClientRadarState.position(list.get(i), nowMs);
+            shown[i] = wp;
+            double dx = wp.x() - px;
+            double dz = wp.z() - pz;
             distSq[i] = dx * dx + dz * dz;
         }
         if (max <= 0) {

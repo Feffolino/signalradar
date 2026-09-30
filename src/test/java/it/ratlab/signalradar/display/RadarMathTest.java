@@ -247,4 +247,35 @@ class RadarMathTest {
         assertTrue(RadarMath.audible(4, 4));
         assertTrue(!RadarMath.audible(4.1, 4));
     }
+
+    @Test
+    void glideFractionIsSmoothAndClamped() {
+        assertEquals(0.0, RadarMath.glideFraction(0, 1000), 1e-9);
+        assertEquals(0.5, RadarMath.glideFraction(500, 1000), 1e-9);
+        assertEquals(1.0, RadarMath.glideFraction(1000, 1000), 1e-9);
+        assertEquals(1.0, RadarMath.glideFraction(5000, 1000), 1e-9);
+        assertEquals(0.0, RadarMath.glideFraction(-50, 1000), 1e-9);
+        assertEquals(1.0, RadarMath.glideFraction(10, 0), 1e-9);
+    }
+
+    @Test
+    void visibilityFollowsTheShownPositionWhileGliding() {
+        // zoom 16 m (band to 32 m, tier range 256): a biosign blip glides from 10 m to 40 m after a snapshot
+        int zoom = 16;
+        int tier = 256;
+        double start = RadarMath.shownDistance(0, 0, 10, 0, 40, 0, RadarMath.glideFraction(0, 1000));
+        assertEquals(10, start, 1e-9);
+        // right after the snapshot it is still drawn at 10 m: must stay DRAW (the old code used the 40 m target: HIDDEN at once)
+        assertEquals(RadarMath.DRAW, RadarMath.visibility("biosign", start, zoom, tier));
+        assertEquals(RadarMath.HIDDEN, RadarMath.visibility("biosign", 40, zoom, tier));
+        // halfway it is at 25 m: rim band
+        double mid = RadarMath.shownDistance(0, 0, 10, 0, 40, 0, RadarMath.glideFraction(500, 1000));
+        assertEquals(25, mid, 1e-9);
+        assertEquals(RadarMath.RIM, RadarMath.visibility("biosign", mid, zoom, tier));
+        // glide done: hidden, never back and forth
+        double end = RadarMath.shownDistance(0, 0, 10, 0, 40, 0, RadarMath.glideFraction(1000, 1000));
+        assertEquals(RadarMath.HIDDEN, RadarMath.visibility("biosign", end, zoom, tier));
+        // the player position is subtracted
+        assertEquals(5, RadarMath.shownDistance(3, 4, 0, 0, 0, 0, 1), 1e-9);
+    }
 }

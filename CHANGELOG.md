@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fixed: blips near the zoom range edge vanished and came back about 1 s later. Zoom visibility (rim band / hidden), merging and
+  the icon limit used the blip's new snapshot position while the blip was still drawn gliding (1 s) from its old one, so a blip
+  whose new position was across a zoom boundary disappeared at once and reappeared when the glide ended. The layout now uses
+  the drawn (glided) position, like the sounds already did.
 - Mob icons never use spawn eggs any more. Order: the mob's face (head model part; now also found when nested in the model tree
   or kept in a plain `head` field of a custom `EntityModel`, e.g. MutantsZombies), else a full-body mini render of the mob with its own
   renderer (front facing, frozen, fullbright, flattened; works for GeckoLib mobs such as Zombie Island), else the vanilla mob head

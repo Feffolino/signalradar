@@ -263,6 +263,27 @@ public final class RadarMath {
         return dist <= peripheralRange(zoomRange) ? RIM : HIDDEN;
     }
 
+    /** Smoothstepped glide progress 0..1 of a blip {@code elapsedMillis} after its snapshot arrived. */
+    public static double glideFraction(long elapsedMillis, long glideMillis) {
+        if (glideMillis <= 0) {
+            return 1;
+        }
+        double t = Math.max(0, Math.min(1, elapsedMillis / (double) glideMillis));
+        return t * t * (3 - 2 * t);
+    }
+
+    /**
+     * Horizontal distance from the player ({@code px, pz}) to where a blip is <b>drawn</b> while it glides from
+     * {@code (fromX, fromZ)} to its snapshot position {@code (toX, toZ)}. Visibility (zoom band, rim, hidden), grouping and the
+     * icon limit must use this, not the snapshot position: otherwise a blip whose new position lies across a zoom boundary is
+     * hidden (or pinned to the rim) at once while it is still drawn gliding, and pops back ~1 s later when the glide ends.
+     */
+    public static double shownDistance(double px, double pz, double fromX, double fromZ, double toX, double toZ, double glide) {
+        double x = fromX + (toX - fromX) * glide - px;
+        double z = fromZ + (toZ - fromZ) * glide - pz;
+        return Math.sqrt(x * x + z * z);
+    }
+
     /** True when a blip is close enough to sound (inside the effective display range). */
     public static boolean audible(double dist, int zoomRange) {
         return dist <= zoomRange;
