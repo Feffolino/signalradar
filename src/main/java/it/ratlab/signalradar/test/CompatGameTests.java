@@ -104,6 +104,22 @@ public final class CompatGameTests {
     }
 
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void lootrOpenInvalidatesLootCache(GameTestHelper h) {
+        if (loaded("lootr")) {
+            it.ratlab.signalradar.test.compat.LootrChecks.cache(h);
+        }
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void containerAddonFollowsIncludeLootrConfig(GameTestHelper h) {
+        if (loaded("lootr")) {
+            it.ratlab.signalradar.test.compat.LootrChecks.includeConfig(h);
+        }
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void teamAddonListsOnlineTeammates(GameTestHelper h) {
         if (loaded("ftbteams")) {
             try {

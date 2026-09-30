@@ -20,6 +20,8 @@ public final class AddonConfig {
     private static final Map<ResourceLocation, Values> VALUES = new HashMap<>();
     private static ModConfigSpec.ConfigValue<List<? extends String>> oreOverrides;
     private static ModConfigSpec.BooleanValue includeLootr;
+    /** Game tests only: forces the value of {@code includeLootrContainers} (null = follow the config). */
+    private static volatile Boolean lootrOverride;
 
     private AddonConfig() {}
 
@@ -63,7 +65,14 @@ public final class AddonConfig {
 
     /** {@code addons.container.includeLootrContainers}; true before the config is loaded. */
     public static boolean includeLootrContainers() {
+        if (lootrOverride != null) {
+            return lootrOverride;
+        }
         return includeLootr == null || !SignalRadarConfig.SPEC.isLoaded() || includeLootr.get();
+    }
+
+    public static void overrideIncludeLootrContainers(Boolean value) {
+        lootrOverride = value;
     }
 
     public static AddonSettings settings(AddonDefinition def) {

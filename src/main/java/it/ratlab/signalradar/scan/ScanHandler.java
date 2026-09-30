@@ -87,6 +87,14 @@ public final class ScanHandler {
         }
     }
 
+    /** Asks for the next snapshot of a player soon (free, inside the current paid period); no-op without a radar schedule. */
+    public static void requestRefresh(ServerPlayer player) {
+        ScanSchedule st = STATES.get(player.getUUID());
+        if (st != null) {
+            st.pullForward(player.level().getGameTime(), 5);
+        }
+    }
+
     /** Runs one charged scan now (base cost + installed addons) and sends the snapshot. */
     public static ScanSnapshot sendScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now) {
         return sendScan(player, radar, settings, now, AddonRules.active(radar), RadarScanner.Charge.PAY);

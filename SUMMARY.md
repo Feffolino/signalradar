@@ -249,6 +249,7 @@ Examples:
 | `scan.maxBlockChecksPerScan` | 200000 | 4096..max. |
 | `addons.slotsByTier` | `[1, 2, 3, 4, 5]` | |
 | `addons.<container/ore/biosign/structure/motion/manhole/loot/team>.{enabled,minTier,radiusMin,radiusMax,refreshSeconds,color,energyCost}` | see the addon table | |
+| `addons.container.includeLootrContainers` | `true` | When false the container addon skips Lootr block entities (use it with the Loot addon so chests are not listed twice). |
 | `addons.ore.colorOverrides` | `[]` | `"iron=#D8AF93"` style entries. |
 
 ### `config/signalradar-startup.toml` (STARTUP, loaded in the mod constructor)
@@ -358,9 +359,9 @@ Use `JAVA_HOME="/c/Program Files/Java/jdk-25"` on the dev machine.
 | Command | Needs | Result (1.0.0) |
 |---|---|---|
 | `./gradlew test` | nothing | 39 JUnit tests (pure logic: display, addon math, node filter, ore colours, scan schedule, icon specs and head mapping) |
-| `./gradlew runGameTestServer` | nothing | 80 game tests; optional-mod checks pass trivially without their mod |
-| `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | 80 game tests, the KubeJS ones run for real |
-| `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | 80 game tests, real compat detectors |
+| `./gradlew runGameTestServer` | nothing | 83 game tests; optional-mod checks pass trivially without their mod |
+| `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | 83 game tests, the KubeJS ones run for real |
+| `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | 83 game tests, real compat detectors |
 | `./gradlew runClient` / `runClientKubeJS` | | dev client (the second with KubeJS and the example scripts) |
 
 Game tests register only with `-Dsignalradar.gametests=true` (set by the gameTestServer run configs); they ship inside the jar
@@ -395,7 +396,8 @@ KubeJS scripts; see its README. `libs/` is gitignored: `manholes-1.7.0.jar`, `lo
 9. The raise pose goes through `applyForgeHandTransform`, not `UseAnim.SPYGLASS` (that hides the item and zooms the FOV).
 10. The found check reads positions from caches only and never triggers lookups. Stages through KubeJS when present, scoreboard tags otherwise.
 11. Bad ids in KubeJS calls log and no-op instead of throwing; the startup builder reports errors per addon.
-12. The manhole addon reads the node registry (no block scan) and hides nodes the network opened; the Lootr addon avoids loot generation.
+12. Opening (or closing) a Lootr container (`PlayerContainerEvent`, menu with an `ILootrInventory` slot; `compat/lootr/LootrEvents`) drops that player's Loot cache entry and pulls the next free snapshot within 5 ticks (`ScanSchedule.pullForward`, only in a paid period, never an extra charge).
+13. The manhole addon reads the node registry (no block scan) and hides nodes the network opened; the Lootr addon avoids loot generation.
 13. JEI support is an isolated `@JeiPlugin` class reusing the addon tooltip; JEI is never a hard dependency.
 14. Off-the-shelf radar mods (sonar style, satellites) were rejected in planning in favour of this custom mod.
 

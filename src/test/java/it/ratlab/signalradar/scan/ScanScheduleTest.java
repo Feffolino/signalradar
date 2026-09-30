@@ -61,4 +61,20 @@ class ScanScheduleTest {
         s.afterPaid(5000, CHARGE, 20, false);
         assertTrue(s.shouldPay(10, CHARGE));
     }
+
+    @Test
+    void pullForwardOnlyInsideAPaidPeriod() {
+        ScanSchedule s = new ScanSchedule();
+        s.due(0, "a");
+        s.afterPaid(0, CHARGE, 200, false);
+        s.pullForward(10, 5);
+        assertEquals(15, s.nextSend());
+        s.pullForward(10, 50); // never postpones
+        assertEquals(15, s.nextSend());
+        ScanSchedule u = new ScanSchedule();
+        u.due(0, "a");
+        u.afterPaid(0, CHARGE, 20, true);
+        u.pullForward(10, 5);
+        assertEquals(CHARGE, u.nextSend());
+    }
 }

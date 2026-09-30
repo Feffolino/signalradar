@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fixed: a Lootr chest you just opened stayed on the radar until the Loot addon refreshed (10 s). Opening or closing a Lootr
+  container now drops your cached Loot result and sends the next snapshot within a fraction of a second, at no extra energy.
+- New server config `addons.container.includeLootrContainers` (default true): when false the container addon skips Lootr
+  containers, so with the Loot addon a chest is not listed twice.
 - Higher tiers are more energy-efficient: new server config `scan.energyMultiplierByTier` (default 1.0, 0.85, 0.7, 0.55, 0.4;
   0.05..1.0). The FE charged per scan period is `ceil((scanCost + addon costs) * multiplier)`.
 - The screen shows `NO BATTERY` (calm dark screen with a battery outline, red blinking LED) when the radar has no energy;

@@ -53,6 +53,16 @@ public final class ScanSchedule {
         nextSend = now + sendTicks;
     }
 
+    /**
+     * Makes the next (free) snapshot come within {@code delayTicks}. Only inside a paid period: an unpaid period keeps
+     * waiting, and a paid one never sends past its next charge anyway, so this never causes an extra charge.
+     */
+    public void pullForward(long now, long delayTicks) {
+        if (paid && nextSend > now + delayTicks) {
+            nextSend = now + delayTicks;
+        }
+    }
+
     /** Records a NO SIGNAL snapshot inside a period that could not pay. */
     public void afterUnpaid(long now, long chargeTicks) {
         nextSend = now + chargeTicks;

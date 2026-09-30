@@ -46,6 +46,9 @@ public final class SignalRadar {
         it.ratlab.signalradar.scan.ScanHandler.register(NeoForge.EVENT_BUS);
         it.ratlab.signalradar.progress.FoundHandler.register(NeoForge.EVENT_BUS);
         NeoForge.EVENT_BUS.addListener(it.ratlab.signalradar.recipe.RadarUpgradeRecipe::onItemCrafted);
+        if (net.neoforged.fml.ModList.get().isLoaded("lootr")) {
+            it.ratlab.signalradar.compat.lootr.LootrEvents.register(NeoForge.EVENT_BUS);
+        }
         if (net.neoforged.fml.ModList.get().isLoaded("kubejs")) {
             it.ratlab.signalradar.progress.StageHelper.enableKubeJS();
             enableKubeJSEvents();

@@ -48,6 +48,14 @@ public final class AddonCache {
         return from.distanceToSqr(to) > limit * limit;
     }
 
+    /** Drops one addon's cached result of a player so the next scan recomputes it. */
+    public void invalidate(UUID player, ResourceLocation addon) {
+        Map<ResourceLocation, Entry> m = cache.get(player);
+        if (m != null) {
+            m.remove(addon);
+        }
+    }
+
     public void forget(UUID player) {
         cache.remove(player);
     }

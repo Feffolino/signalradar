@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.test.compat;
 
+import it.ratlab.signalradar.addon.AddonConfig;
 import it.ratlab.signalradar.addon.AddonRegistry;
+import it.ratlab.signalradar.addon.AddonSettings;
+import it.ratlab.signalradar.addon.detect.AddonCache;
+import it.ratlab.signalradar.addon.detect.Detectors;
+import it.ratlab.signalradar.compat.lootr.LootrEvents;
+import it.ratlab.signalradar.scan.BlockLocatorScan;
+import net.minecraft.world.phys.Vec3;
 import it.ratlab.signalradar.addon.detect.Hit;
 import it.ratlab.signalradar.test.CompatGameTests;
 import java.util.List;
@@ -44,5 +51,48 @@ public final class LootrChecks {
         // another player has not opened it
         ServerPlayer other = CompatGameTests.player(h);
         h.assertTrue(has(CompatGameTests.run(AddonRegistry.LOOT, other, h, 96), abs), "chest hidden from a player who did not open it");
+    }
+
+    /** Opening a Lootr container drops the player's cached Loot result (no waiting for the addon refresh). */
+    public static void cache(GameTestHelper h) {
+        ServerPlayer p = CompatGameTests.player(h);
+        Block chest = BuiltInRegistries.BLOCK.get(ResourceLocation.parse("lootr:lootr_chest"));
+        BlockPos rel = new BlockPos(3, 1, 1);
+        h.setBlock(rel, chest);
+        BlockPos abs = h.absolutePos(rel);
+        var addon = AddonSettings.defaults(AddonRegistry.get(AddonRegistry.LOOT).orElseThrow());
+        AddonCache cache = AddonCache.INSTANCE;
+        java.util.function.Supplier<List<Hit>> detect = () -> Detectors.run(addon, p, h.getLevel(), 96, BlockLocatorScan.Budget.unlimited(), 100);
+        Vec3 pos = p.position();
+        String dim = h.getLevel().dimension().location().toString();
+        List<Hit> first = cache.get(p.getUUID(), AddonRegistry.LOOT, 100, 200, 96, dim, pos, detect, () -> false);
+        h.assertTrue(has(first, abs), "unopened chest not detected");
+        ((ILootrBlockEntity) h.getLevel().getBlockEntity(abs)).addOpener(p);
+        h.assertTrue(has(cache.get(p.getUUID(), AddonRegistry.LOOT, 101, 200, 96, dim, pos, detect, () -> false), abs),
+                "expected the stale cached result before invalidation");
+        LootrEvents.refresh(p);
+        h.assertTrue(!has(cache.get(p.getUUID(), AddonRegistry.LOOT, 102, 200, 96, dim, pos, detect, () -> false), abs),
+                "opened chest still listed after invalidation");
+        cache.forget(p.getUUID());
+    }
+
+    /** {@code addons.container.includeLootrContainers}: the container addon lists Lootr chests only when true. */
+    public static void includeConfig(GameTestHelper h) {
+        ServerPlayer p = CompatGameTests.player(h);
+        Block chest = BuiltInRegistries.BLOCK.get(ResourceLocation.parse("lootr:lootr_chest"));
+        BlockPos rel = new BlockPos(3, 1, 1);
+        h.setBlock(rel, chest);
+        BlockPos abs = h.absolutePos(rel);
+        try {
+            AddonConfig.overrideIncludeLootrContainers(true);
+            h.assertTrue(has(CompatGameTests.run(AddonRegistry.CONTAINER, p, h, 96), abs), "container addon hides Lootr chest with true");
+            AddonConfig.overrideIncludeLootrContainers(false);
+            h.assertTrue(!has(CompatGameTests.run(AddonRegistry.CONTAINER, p, h, 96), abs), "container addon shows Lootr chest with false");
+            h.setBlock(new BlockPos(1, 1, 3), Blocks.CHEST);
+            h.assertTrue(has(CompatGameTests.run(AddonRegistry.CONTAINER, p, h, 96), h.absolutePos(new BlockPos(1, 1, 3))),
+                    "vanilla chest hidden with false");
+        } finally {
+            AddonConfig.overrideIncludeLootrContainers(null);
+        }
     }
 }
