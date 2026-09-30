@@ -50,7 +50,8 @@ public final class SignalRadarClient {
                 e.setCanceled(true);
                 double d = e.getScrollDeltaY();
                 if (d != 0) {
-                    RadarZoom.step(d > 0 ? -1 : 1);
+                    // Wheel up = larger range (zoom out), wheel down = smaller range (zoom in); play-test request.
+                    RadarZoom.step(d > 0 ? 1 : -1);
                 }
             }
         });
