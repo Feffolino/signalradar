@@ -78,6 +78,7 @@ otherwise the defaults are used and a warning is logged; slots 0..5).
 ### Addons (server config `addons.<name>.*`)
 Radius grows linearly from `radiusMin` (at `minTier`) to `radiusMax` (at tier 4). `radiusMin = radiusMax = 0` means "the
 radar's tier range". An addon whose `minTier` is above the radar tier cannot be installed (menu refuses, command reports).
+Addon screen (`client/AddonScreen`): `render` = `super.render` + `renderTooltip`; item tooltips come from vanilla, a refused carried addon shows its reason on the empty slot, a locked slot without a carried item shows the lock hint.
 
 | Addon (config section) | Registered | minTier | Radius min-max | Refresh s | FE/scan | Colour | Detects |
 |---|---|---|---|---|---|---|---|

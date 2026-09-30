@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: the addon screen showed no item tooltips on hover (refusal tooltips for locked or invalid slots still work).
 - Fixed: icons and height arrows flickered when two blips overlapped (z-fighting). Blips now have a stable draw order and
   their own depth slots; blips almost on the same spot merge into one icon with a count badge.
 - Fixed: the radar in the off hand faced away from the player (left-hand display transform was mirrored twice).

@@ -23,6 +23,16 @@ public class AddonScreen extends AbstractContainerScreen<AddonMenu> {
         this.inventoryLabelY = this.imageHeight - 94;
     }
 
+    /**
+     * Screen.render draws the background (dim, blur), then the container; vanilla container screens finish with the
+     * tooltip pass, which {@link AbstractContainerScreen} itself does not do.
+     */
+    @Override
+    public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
+        super.render(g, mouseX, mouseY, partial);
+        renderTooltip(g, mouseX, mouseY);
+    }
+
     @Override
     protected void renderBg(GuiGraphics g, float partial, int mouseX, int mouseY) {
         g.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight);
