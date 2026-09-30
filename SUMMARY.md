@@ -22,14 +22,21 @@ Their code lives in `compat/<mod>/` and is class-loaded only after a `ModList.is
 | `signalradar:radar` | Stack size 1. Energy capability `Capabilities.EnergyStorage.ITEM` (Mekanism chargers, etc.). Item bar = energy. Tooltip: tier, FE, addons. |
 | `signalradar:radar_module_1..4` | Stack size 16. Ingredient of the upgrade recipe. Tag `signalradar:radar_modules`. Default crafting recipes exist (see Default recipes). |
 | `signalradar:addon_container`, `_ore`, `_biosign`, `_structure`, `_motion` | Always registered. |
+| `signalradar:addon_battery` | Always registered. Stack size 8; the only **stackable** addon (`AddonDefinition.stackable`): a whole stack (1..8) sits in ONE addon slot. Detector `NONE` (no scan, no blips, energy cost 0, min tier 0). Each battery adds `addons.battery.capacityPerBattery` FE (default 10000). |
 | `signalradar:addon_manhole`, `_loot`, `_team` | Only registered when `manholes` / `lootr` / `ftbteams` is loaded. |
 | Custom addons | Registered by KubeJS startup scripts or other mods (see below). Tag `signalradar:addons` holds the built-in ones. |
 
 Data components on the radar (`registry/ModComponents`):
 - `signalradar:tier` int 0..4 (default 0)
-- `signalradar:energy` int FE
-- `signalradar:addons` `List<ResourceLocation>` (slot order, no gaps, each addon once per radar). An id list instead of a
-  list of stacks: stacks have no value equality and are mutable. Ids of removed mods are dropped when read.
+- `signalradar:energy` int FE, clamped to the radar's capacity
+- `signalradar:addons` `List<AddonEntry>` (id + count; slot order, no gaps, each addon once per radar; count > 1 only for the
+  battery). Persistent form: a plain id string for count 1 (exactly the old `List<ResourceLocation>` format, still read and
+  written, so old radars load as count 1) or `{"id": .., "count": n}`. Not stacks: stacks have no value equality and are
+  mutable. Ids of removed mods are dropped when read. `RadarItem.addons` still returns the id list; `addonEntries` the counts.
+- **Capacity** (`RadarItem.capacity(stack)`) = `energy.capacity + batteries * addons.battery.capacityPerBattery`, where batteries =
+  the battery entry's count when it is installed within the tier's slots, enabled and usable. Energy storage cap,
+  `RadarItem.energy/setEnergy` clamps, item bar, tooltip, snapshot capacity, LED / energy bar %, `/signalradar charge` use it.
+  Removing batteries (menu, command, API) clamps the stored energy to the new capacity: the FE above it is lost.
 
 Upgrade recipe `signalradar:radar_upgrade` (special recipe, needs a grid of 2+ cells): `radar + radar_module_N` gives a radar
 at tier N only when the current tier is N-1; every other component (energy, addons, name...) is preserved. Wrong module
@@ -51,6 +58,7 @@ file `config/signalradar-startup.toml`; restart after changing it). Compat addon
 | `default/radar_module_3` | `DAD` `AEA` `DAD` | D diamond, A amethyst shard, E ender eye |
 | `default/radar_module_4` | `ESE` `SNS` `ESE` | E echo shard, S sculk sensor, N netherite ingot |
 | `default/addon_*` | `NRN` `RXR` `NRN` | N iron nugget, R redstone, X = container: chest, ore: iron pickaxe, biosign: egg, structure: map, motion: sculk sensor, manhole: iron trapdoor (needs manholes), loot: ender chest (needs lootr), team: bell (needs ftbteams) |
+| `default/addon_battery` | `NRN` `RXR` `NRN` | N copper ingot, R redstone, X redstone block |
 
 Disable: set `recipes.enableDefaultRecipes = false`, or per recipe in KubeJS `event.remove({ id: /^signalradar:default\// })`
 (server script, `ServerEvents.recipes`), or override by id in a datapack.
@@ -65,7 +73,8 @@ Disable: set `recipes.enableDefaultRecipes = false`, or per recipe in KubeJS `ev
 | 4 | 4096 | 5 | 0 |
 
 All values are in the server config (`scan.rangeByTier`, `addons.slotsByTier`, `scan.fuzzByTier`; exactly 5 values each,
-otherwise the defaults are used and a warning is logged; slots 0..5).
+otherwise the defaults are used and a warning is logged; slots are clamped to 1..5 each and honoured by the menu, the scanner,
+the command and the battery count; the addon screen keeps its fixed 5-slot layout).
 
 - **Fuzz**: the server offsets each blip by up to `fuzz[tier] * clamp(dist / range, 0, 1)` blocks on x/z (uniform in a disc),
   deterministic per (player, blip id, 10 s time bucket) so blips wobble slowly. Near = sharp. Y is exact.
@@ -78,7 +87,11 @@ otherwise the defaults are used and a warning is logged; slots 0..5).
 ### Addons (server config `addons.<name>.*`)
 Radius grows linearly from `radiusMin` (at `minTier`) to `radiusMax` (at tier 4). `radiusMin = radiusMax = 0` means "the
 radar's tier range". An addon whose `minTier` is above the radar tier cannot be installed (menu refuses, command reports).
-Addon screen (`client/AddonScreen`): `render` = `super.render` + `renderTooltip`; item tooltips come from vanilla, a refused carried addon shows its reason on the empty slot, a locked slot without a carried item shows the lock hint.
+Addon screen (`client/AddonScreen`): background drawn in `renderBg` (called from `renderBackground`, after blur/dim) with
+the shader colour reset to white, blend and depth set explicitly, pending GUI batches flushed and the real sheet size (256x256)
+passed to `blit` (it used to rely on leaked global render state and the implicit-size overload). Battery slots accept a
+stack (slot max = item max stack size for stackable addons, shift-click merges), every other addon slot holds one.
+`render` = `super.render` + `renderTooltip`; item tooltips come from vanilla, a refused carried addon shows its reason on the empty slot, a locked slot without a carried item shows the lock hint.
 
 | Addon (config section) | Registered | minTier | Radius min-max | Refresh s | FE/scan | Colour | Detects |
 |---|---|---|---|---|---|---|---|
@@ -90,6 +103,7 @@ Addon screen (`client/AddonScreen`): `render` = `super.render` + `renderTooltip`
 | `manhole` | `manholes` loaded | 0 | 96-160 | 5 | 5 | `#C8A050` | Manhole Travel nodes the player's network has not opened yet. |
 | `loot` | `lootr` loaded | 2 | 48-96 | 10 | 10 | `#B060FF` | Lootr containers and carts the player has not opened yet. |
 | `team` | `ftbteams` loaded | 1 | whole dimension (100000) | 1 | 5 | `#40E0D0` | Online FTB Teams members (not yourself) in the same dimension. Normal fuzz applies. |
+| `battery` | always | 0 | - | - | 0 | - | Nothing (detector `NONE`). Up to 8 in one slot, +`capacityPerBattery` FE each. Config section has only `enabled`, `minTier`, `capacityPerBattery` (default 10000, 0..100000000). |
 
 Per addon config keys (`signalradar-server.toml`, section `[addons.<name>]`): `enabled` (true), `minTier`, `radiusMin`,
 `radiusMax`, `refreshSeconds` (1-3600), `color` (`#RRGGBB`), `energyCost` (0-1000000). `addons.ore.colorOverrides` is a
@@ -115,7 +129,7 @@ Custom addons use their definition values and have no config entries. Only the c
   | `block:<id>` | sprite of the model's NORTH face (else first quad, else particle sprite) as a textured quad, `RenderType.text(block atlas)` | ore, custom `block_tag` (the found block) |
   | `item:<id>` | the item model through `ItemRenderer.renderStatic(GUI)`, scaled to the square and flattened on z (scale 0.02) | container and loot (block item of the found block, fallback chest), structure (`minecraft:map`), narrative targets (default `minecraft:compass`), last death (`minecraft:skeleton_skull`) |
   | `texture:<rl>` | plain PNG quad; a missing `map_icon_<look>.png` falls back to `map_icon.png` of the same folder, else a dot | manholes: `manholes:textures/gui/map_icon_<look>.png` by node look (`home_manhole`, `city`, `grate`, `hatch`, `cave`, `ns:x` looks use their namespace) |
-  | `entity:<type id>` | the mob's own face: the head `ModelPart` of its renderer model (`HeadedModel.getHead()`, or the `head` child of a `HierarchicalModel`, e.g. creeper, spider) drawn from the front with the renderer's texture via `RenderType.text` (fullbright, like the sprites), pose neutralised, centred and scaled to the square from the bounds of its visible cubes/children, flattened on z like items. Fallbacks: vanilla mob head item (zombie, skeleton, wither skeleton, creeper, piglin, dragon), spawn egg, dot. A type whose face throws is logged once at debug and uses the fallback | motion, biosign, custom `entity_tag` |
+  | `entity:<type id>` | 1. the mob's own face: the head `ModelPart` of its renderer model (`HeadedModel.getHead()`; a `head` part anywhere in a `HierarchicalModel` tree; or a non-static `ModelPart` field named `head` of any `EntityModel`, e.g. MutantsZombies) drawn from the front with the renderer's texture via `RenderType.text` (fullbright), pose neutralised, centred and scaled from the bounds of its visible cubes, flattened on z. 2. a **full-body mini render** (`client/MobBodies`): the cached dummy entity drawn with its renderer's own `render(...)` (any `EntityRenderer`, GeckoLib included), yaw 0 (faces the viewer), tick 0, partial 0, fullbright, scaled to fit the square from its bounding box, flattened on z. 3. the vanilla mob head item (zombie, skeleton, wither skeleton, creeper, piglin, dragon). 4. a dot. **Never the spawn egg.** Each type logs once at INFO `Mob icon <type>: face/body/head/dot (reason)`; a body whose render throws is marked failed (logged once) and draws the head item or an empty frame. All per-type try/catch, cached, cleared on level change and logout | motion, biosign, custom `entity_tag` |
   | `player:<uuid>` | skin face + hat layer (tab list skin, default skin when unknown) | team |
   | empty | the old coloured dot | script blips added by other mods with an empty icon |
 
@@ -142,7 +156,7 @@ Custom addons use their definition values and have no config entries. Only the c
   **Zoom bands** (`RadarMath.peripheralRange/visibility`, only when a zoom is active, i.e. range < tier range): rim band beyond the
   zoom range for local blips: 4 -> 16, 8 -> 32, 16 -> 32, 32 -> 64, >= 64 -> none (a value between steps uses the step at or
   below; a non-step tier cap has no band). *Local* categories = container, loot, ore, biosign, motion, motion_still and custom addon categories
-  (everything not navigation): distance <= zoom range drawn normally, up to the band on the rim with an arrow, beyond it not drawn
+  (everything not navigation; distances are those of the drawn, glided position, `RadarMath.shownDistance`, never the new snapshot position): distance <= zoom range drawn normally, up to the band on the rim with an arrow, beyond it not drawn
   and not counted in BlipLayout groups/badges. *Navigation* categories = narrative, structure, manhole, team, last_death and
   `script` (KubeJS) keep the old rule: always drawn, on the rim with an arrow beyond the range. No zoom = unchanged.
   **Sounds follow the zoom**: the narrative/motion sweep tick and the motion beep only consider blips within the display range
@@ -246,8 +260,8 @@ Examples:
 ### `signalradar-server.toml` (per world: `<world>/serverconfig/`)
 | Key | Default | Notes |
 |---|---|---|
-| `energy.capacity` | 20000 | FE capacity of the radar. |
-| `energy.maxReceive` | 100 | FE per tick accepted from chargers. |
+| `energy.capacity` | 20000 | Base FE capacity of the radar (plus batteries). |
+| `energy.maxReceive` | 2147483647 | FE accepted per insert from chargers, 0..max. Default = no limit: accepted = min(offered, maxReceive, free space). Existing config files keep their old value (was 100) until edited. |
 | `scan.scanCost` | 50 | FE per base scan. |
 | `scan.scanRefreshSeconds` | 5 | Seconds between base scans. |
 | `scan.energyMultiplierByTier` | `[1.0, 0.85, 0.7, 0.55, 0.4]` | 5 values, 0.05..1.0 each (other length = defaults). Per-period charge = `ceil((scanCost + addon costs) * multiplier[tier])`. |
@@ -256,7 +270,8 @@ Examples:
 | `scan.structureLookupsPerTick` | 1 | 1..64. |
 | `scan.maxScannableStructures` | 16 | 1..256. |
 | `scan.maxBlockChecksPerScan` | 200000 | 4096..max. |
-| `addons.slotsByTier` | `[1, 2, 3, 4, 5]` | |
+| `addons.slotsByTier` | `[1, 2, 3, 4, 5]` | Each clamped to 1..5. |
+| `addons.battery.capacityPerBattery` | 10000 | FE per installed battery (0..100000000). |
 | `addons.<container/ore/biosign/structure/motion/manhole/loot/team>.{enabled,minTier,radiusMin,radiusMax,refreshSeconds,color,energyCost}` | see the addon table | |
 | `addons.motion.stationaryFromTier` | 3 | Radar tier (0-5) from which the motion tracker also shows stationary hostiles (`motion_still`); 5 = never. Read at scan time. |
 | `addons.container.includeLootrContainers` | `true` | When false the container addon skips Lootr block entities (use it with the Loot addon so chests are not listed twice). |
@@ -300,7 +315,7 @@ SignalRadarEvents.registerAddons(e => {
     .icon('minecraft:lava_bucket')   // optional blip icon, see "Blip icons"; bare id = item
 })
 ```
-Custom addon blip icons default by detector: `block_tag` the block face, `entity_tag` the mob head or spawn egg, `container`
+Custom addon blip icons default by detector: `block_tag` the block face, `entity_tag` the mob face (or body / head item), `container`
 the block item, `structure_tag` a map; `.icon('...')` replaces that for every blip of the addon (a bad spec is reported at
 startup and skips that addon). Custom addons without a model use the generic tinted model `signalradar:item/addon_custom` (tint = `.color`), without a lang entry
 the name "Radar Addon (Oil)". Ship `assets/<ns>/models/item/<path>.json` and lang entries (`kubejs/assets`) to override. A restart is
@@ -324,7 +339,7 @@ Rhino: use `let` (not `const`) inside loops, compare levels by dimension not `.e
 
 ## API for other mods (NeoForge)
 Package `it.ratlab.signalradar.api` (server side, all static, none starts a structure search or block scan):
-- `SignalRadarAPI`: `targetIds()`, `getTarget(id)`, `getTargetPos(level|player, id)`, `unlock/lock/isUnlocked/isFound/resetFound/
+- `SignalRadarAPI` (also `getCapacity(stack)`, `getAddonCount(stack, id)`): `targetIds()`, `getTarget(id)`, `getTargetPos(level|player, id)`, `unlock/lock/isUnlocked/isFound/resetFound/
   resetAllFound(player ...)`, `getLastDeath(player)`, `isRadar/getTier/setTier/getEnergy/setEnergy/getAddons/setAddons/hasAddon(stack ...)`.
 - Events on `NeoForge.EVENT_BUS`: `RadarScanEvent` (cancellable; mutable blip list, `addTarget`, `removeTarget`, `removeCategory`,
   `removeTargets(predicate)`), `RadarTargetFoundEvent`, `RadarUpgradedEvent`, `RadarAddonChangedEvent`.
@@ -368,10 +383,10 @@ Use `JAVA_HOME="/c/Program Files/Java/jdk-25"` on the dev machine.
 
 | Command | Needs | Result (1.0.0) |
 |---|---|---|
-| `./gradlew test` | nothing | 55 JUnit tests (pure logic: display, addon math, node filter, ore colours, scan schedule, icon specs and head mapping) |
-| `./gradlew runGameTestServer` | nothing | 83 game tests; optional-mod checks pass trivially without their mod |
-| `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | 83 game tests, the KubeJS ones run for real |
-| `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | 83 game tests, real compat detectors |
+| `./gradlew test` | nothing | JUnit tests (pure logic: display, addon math, node filter, ore colours, scan schedule, icon specs and head mapping) |
+| `./gradlew runGameTestServer` | nothing | game tests (`BatteryGameTests`: capacity math, stacking in the menu, unlimited maxReceive, old component format, slot config); optional-mod checks pass trivially without their mod |
+| `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | same game tests, the KubeJS ones run for real |
+| `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | same game tests, real compat detectors |
 | `./gradlew runClient` / `runClientKubeJS` | | dev client (the second with KubeJS and the example scripts) |
 
 Game tests register only with `-Dsignalradar.gametests=true` (set by the gameTestServer run configs); they ship inside the jar

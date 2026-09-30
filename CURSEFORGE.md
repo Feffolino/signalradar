@@ -19,8 +19,11 @@ you are looking at. It runs on Forge Energy, so keep it charged, or it shows **N
   - **Manhole** (with Manhole Travel): manholes your network has not opened yet.
   - **Loot** (with Lootr): Lootr containers you have not opened yet.
   - **Team** (with FTB Teams): online teammates in your dimension.
+  - **Battery**: detects nothing; up to 8 stack in one slot and each adds 10000 FE of capacity (configurable). Removing
+    batteries loses the energy above the new capacity.
 - **Last death marker** built into every radar.
-- **Energy**: every scan costs FE, and every addon adds to it. Any charger that supports Forge Energy items works.
+- **Energy**: every scan costs FE, and every addon adds to it. Any charger that supports Forge Energy items works, at its
+  full speed (no charging limit by default).
 - **Server-authoritative**: the server decides what you see. Distant blips wobble by a tier-dependent fuzz and show `???`
   until you get close.
 - **Cheap**: structures are searched one per tick and cached, block scans have a budget, nothing runs unless a radar is held.
