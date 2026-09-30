@@ -56,6 +56,7 @@ public final class SignalRadarClient {
                 }
             }
         });
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.GameShuttingDownEvent e) -> RadarZoom.flush());
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             ClientRadarState.clear();
             RadarIcons.clear();

@@ -20,6 +20,10 @@ final class RadarZoom {
     static final KeyMapping ZOOM_OUT = new KeyMapping("key.signalradar.zoom_out", -1, "key.categories.signalradar");
 
     private static int chosen = -1; // -1 = not read from the client config yet
+    /** Wall-clock ms of the last unsaved change, 0 = nothing to save. */
+    private static long dirtySince;
+    /** Save this long after the last zoom step (a crash then loses at most a few seconds of zooming). */
+    private static final long SAVE_DELAY_MS = 3000;
 
     private RadarZoom() {}
 
@@ -42,12 +46,15 @@ final class RadarZoom {
             return;
         }
         chosen = next >= cap ? 0 : next;
-        RadarClientConfig.setZoomRange(chosen);
+        dirtySince = System.currentTimeMillis();
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 1.4f, 0.35f));
     }
 
     /** Key mappings: work while holding a radar in either hand. */
     static void tick() {
+        if (dirtySince != 0 && System.currentTimeMillis() - dirtySince >= SAVE_DELAY_MS) {
+            flush();
+        }
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
         boolean holding = p != null && mc.screen == null && (p.getItemInHand(InteractionHand.MAIN_HAND).getItem() instanceof RadarItem
@@ -71,8 +78,17 @@ final class RadarZoom {
         return chosen;
     }
 
-    /** Logout / world change: re-read the saved choice (the config may have been edited meanwhile). */
+    /** Writes a pending change to the client config. Also called on logout and on game shutdown. */
+    static void flush() {
+        if (dirtySince != 0 && chosen >= 0) {
+            RadarClientConfig.saveZoomRange(chosen);
+        }
+        dirtySince = 0;
+    }
+
+    /** Logout / world change: save, then re-read the saved choice next time (the file may be edited meanwhile). */
     static void reset() {
+        flush();
         chosen = -1;
     }
 }

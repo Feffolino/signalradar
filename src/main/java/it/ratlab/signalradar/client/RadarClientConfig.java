@@ -38,8 +38,8 @@ public final class RadarClientConfig {
         return SPEC.isLoaded() ? ZOOM_RANGE.getAsInt() : ZOOM_RANGE.getDefault();
     }
 
-    /** Stores the zoom choice and writes the client config file. */
-    public static void setZoomRange(int range) {
+    /** Writes the zoom choice to the client config file (called debounced / on logout / on shutdown, not per step). */
+    public static void saveZoomRange(int range) {
         if (SPEC.isLoaded() && ZOOM_RANGE.getAsInt() != range) {
             ZOOM_RANGE.set(range);
             ZOOM_RANGE.save();
