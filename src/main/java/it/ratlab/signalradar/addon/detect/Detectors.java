@@ -98,6 +98,7 @@ public final class Detectors {
                         ? it.ratlab.signalradar.compat.manholes.ManholeDetector.run(player, level, radius) : List.<Hit>of();
                 case LOOT -> AddonRegistry.modPresent(def)
                         ? it.ratlab.signalradar.compat.lootr.LootrDetector.run(player, level, radius) : List.<Hit>of();
+                case NONE -> List.<Hit>of();
                 case TEAM -> AddonRegistry.modPresent(def)
                         ? it.ratlab.signalradar.compat.ftbteams.TeamDetector.run(player, level, radius) : List.<Hit>of();
             };

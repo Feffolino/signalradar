@@ -21,6 +21,11 @@ public final class AddonConfig {
     private static ModConfigSpec.ConfigValue<List<? extends String>> oreOverrides;
     private static ModConfigSpec.BooleanValue includeLootr;
     private static ModConfigSpec.IntValue stationaryFrom;
+    private static ModConfigSpec.IntValue batteryCapacity;
+    /** Default of {@code addons.battery.capacityPerBattery}. */
+    public static final int DEFAULT_BATTERY_CAPACITY = 10_000;
+    /** Game tests only: forces {@code capacityPerBattery} (-1 = follow the config). */
+    private static volatile int batteryOverride = -1;
     /** Game tests only: forces {@code stationaryFromTier} (-1 = follow the config). */
     private static volatile int stationaryOverride = -1;
     /** Game tests only: forces the value of {@code includeLootrContainers} (null = follow the config). */
@@ -33,6 +38,19 @@ public final class AddonConfig {
         for (AddonDefinition d : AddonRegistry.builtins()) {
             String name = d.id().getPath().replaceFirst("^addon_", "");
             b.push(name);
+            if (d.detector() == AddonDefinition.Detector.NONE) {
+                // Battery: no detection, so no radius / refresh / colour / energy keys.
+                ModConfigSpec.BooleanValue enabled = b.comment("Addon can be installed (disabled batteries add no capacity).").define("enabled", true);
+                ModConfigSpec.IntValue minTier = b.comment("Radar tier needed to install it (0-4).")
+                        .defineInRange("minTier", d.minTier(), 0, AddonMath.MAX_TIER);
+                batteryCapacity = b.comment("FE capacity each battery adds to the radar (a slot holds up to " + AddonRegistry.BATTERY_STACK + ").",
+                                "Radar capacity = energy.capacity + batteries * capacityPerBattery. Removing batteries clamps the stored",
+                                "energy to the new capacity (the extra FE is lost).")
+                        .defineInRange("capacityPerBattery", DEFAULT_BATTERY_CAPACITY, 0, 100_000_000);
+                b.pop();
+                VALUES.put(d.id(), new Values(enabled, minTier, null, null, null, null, null));
+                continue;
+            }
             ModConfigSpec.BooleanValue enabled = b.comment("Addon can be installed and scanned.").define("enabled", true);
             ModConfigSpec.IntValue minTier = b.comment("Radar tier needed to install it (0-4).")
                     .defineInRange("minTier", d.minTier(), 0, AddonMath.MAX_TIER);
@@ -95,10 +113,27 @@ public final class AddonConfig {
         lootrOverride = value;
     }
 
+    /** {@code addons.battery.capacityPerBattery}; {@value #DEFAULT_BATTERY_CAPACITY} before the config is loaded. */
+    public static int capacityPerBattery() {
+        if (batteryOverride >= 0) {
+            return batteryOverride;
+        }
+        return batteryCapacity == null || !SignalRadarConfig.SPEC.isLoaded() ? DEFAULT_BATTERY_CAPACITY : batteryCapacity.get();
+    }
+
+    public static void overrideCapacityPerBattery(int value) {
+        batteryOverride = value;
+    }
+
     public static AddonSettings settings(AddonDefinition def) {
         Values v = VALUES.get(def.id());
         if (v == null || !SignalRadarConfig.SPEC.isLoaded()) {
             return AddonSettings.defaults(def);
+        }
+        if (v.radiusMin == null) {
+            AddonSettings d = AddonSettings.defaults(def);
+            return new AddonSettings(def, v.enabled.get(), v.minTier.get(), d.radiusMin(), d.radiusMax(), d.refreshSeconds(), d.color(),
+                    d.energyCost());
         }
         int min = v.radiusMin.get();
         int max = Math.max(min, v.radiusMax.get());

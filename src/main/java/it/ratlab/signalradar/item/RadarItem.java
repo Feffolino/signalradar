@@ -2,10 +2,13 @@
 package it.ratlab.signalradar.item;
 
 import it.ratlab.signalradar.SignalRadarConfig;
+import it.ratlab.signalradar.addon.AddonConfig;
+import it.ratlab.signalradar.addon.AddonEntry;
 import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.addon.AddonRules;
 import it.ratlab.signalradar.addon.menu.AddonMenu;
 import it.ratlab.signalradar.registry.ModComponents;
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -39,23 +42,75 @@ public class RadarItem extends Item {
     }
 
     public static int energy(ItemStack stack) {
-        return Mth.clamp(stack.getOrDefault(ModComponents.ENERGY.get(), 0), 0, SignalRadarConfig.capacity());
+        return Mth.clamp(stack.getOrDefault(ModComponents.ENERGY.get(), 0), 0, capacity(stack));
     }
 
     public static void setEnergy(ItemStack stack, int fe) {
-        stack.set(ModComponents.ENERGY.get(), Mth.clamp(fe, 0, SignalRadarConfig.capacity()));
+        stack.set(ModComponents.ENERGY.get(), Mth.clamp(fe, 0, capacity(stack)));
+    }
+
+    /**
+     * FE capacity of this radar: {@code energy.capacity} plus {@code addons.battery.capacityPerBattery} for every
+     * battery counted by {@link AddonRules#batteries}. Everything that shows or clamps energy uses this.
+     */
+    public static int capacity(ItemStack stack) {
+        return capacity(SignalRadarConfig.capacity(), AddonRules.batteries(stack), AddonConfig.capacityPerBattery());
+    }
+
+    /** {@code base + batteries * perBattery}, at least 1, saturating at {@link Integer#MAX_VALUE}. */
+    public static int capacity(int base, int batteries, int perBattery) {
+        long c = (long) Math.max(0, base) + (long) Math.max(0, batteries) * Math.max(0, perBattery);
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(1, c));
     }
 
     /** Raw installed addon ids (slot order). */
     public static List<ResourceLocation> addons(ItemStack stack) {
+        List<AddonEntry> entries = addonEntries(stack);
+        List<ResourceLocation> ids = new ArrayList<>(entries.size());
+        for (AddonEntry e : entries) {
+            ids.add(e.id());
+        }
+        return ids;
+    }
+
+    /** Raw installed addons with their counts (slot order). */
+    public static List<AddonEntry> addonEntries(ItemStack stack) {
         return stack.getOrDefault(ModComponents.ADDONS.get(), List.of());
     }
 
+    /** Sets the installed ids; an id that is already installed keeps its count (batteries), new ones get count 1. */
     public static void setAddons(ItemStack stack, List<ResourceLocation> ids) {
-        if (ids.isEmpty()) {
+        List<AddonEntry> old = addonEntries(stack);
+        List<AddonEntry> out = new ArrayList<>(ids.size());
+        for (ResourceLocation id : ids) {
+            int count = 1;
+            for (AddonEntry e : old) {
+                if (e.id().equals(id)) {
+                    count = e.count();
+                    break;
+                }
+            }
+            out.add(new AddonEntry(id, count));
+        }
+        setAddonEntries(stack, out);
+    }
+
+    /**
+     * Sets the installed addons with counts. The stored energy is clamped to the resulting capacity: removing batteries
+     * loses the FE above the new capacity.
+     */
+    public static void setAddonEntries(ItemStack stack, List<AddonEntry> entries) {
+        if (entries.isEmpty()) {
             stack.remove(ModComponents.ADDONS.get());
         } else {
-            stack.set(ModComponents.ADDONS.get(), List.copyOf(ids));
+            stack.set(ModComponents.ADDONS.get(), List.copyOf(entries));
+        }
+        Integer raw = stack.get(ModComponents.ENERGY.get());
+        if (raw != null) {
+            int clamped = Mth.clamp(raw, 0, capacity(stack));
+            if (clamped != raw) {
+                stack.set(ModComponents.ENERGY.get(), clamped);
+            }
         }
     }
 
@@ -110,7 +165,7 @@ public class RadarItem extends Item {
 
     @Override
     public int getBarWidth(ItemStack stack) {
-        return Math.round(13f * energy(stack) / SignalRadarConfig.capacity());
+        return Math.round(13f * energy(stack) / capacity(stack));
     }
 
     @Override
@@ -121,13 +176,15 @@ public class RadarItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("tooltip.signalradar.tier", tier(stack), MAX_TIER).withStyle(ChatFormatting.GREEN));
-        tooltip.add(Component.translatable("tooltip.signalradar.energy", energy(stack), SignalRadarConfig.capacity())
+        tooltip.add(Component.translatable("tooltip.signalradar.energy", energy(stack), capacity(stack))
                 .withStyle(ChatFormatting.GRAY));
         List<ResourceLocation> ids = AddonRules.installed(stack);
         tooltip.add(Component.translatable("tooltip.signalradar.addons", ids.size(), slots(tier(stack))).withStyle(ChatFormatting.GRAY));
         for (ResourceLocation id : ids) {
-            tooltip.add(Component.literal(" ").append(AddonRegistry.item(id).map(i -> i.getDescription())
-                    .orElse(Component.literal(id.toString()))).withStyle(ChatFormatting.DARK_GREEN));
+            int count = AddonRules.count(stack, id);
+            Component name = AddonRegistry.item(id).map(i -> i.getDescription()).orElse(Component.literal(id.toString()));
+            tooltip.add(Component.literal(" ").append(name).append(count > 1 ? Component.literal(" x" + count) : Component.empty())
+                    .withStyle(ChatFormatting.DARK_GREEN));
         }
     }
 }

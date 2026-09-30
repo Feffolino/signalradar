@@ -139,6 +139,16 @@ public final class SignalRadarAPI {
         RadarItem.setEnergy(radar, fe);
     }
 
+    /** FE capacity of this radar (base capacity plus installed batteries). */
+    public static int getCapacity(ItemStack radar) {
+        return RadarItem.capacity(radar);
+    }
+
+    /** Items installed for addon {@code id} (battery stacks count up to 8), 0 when not installed. */
+    public static int getAddonCount(ItemStack radar, ResourceLocation id) {
+        return it.ratlab.signalradar.addon.AddonRules.count(radar, id);
+    }
+
     public static List<ResourceLocation> getAddons(ItemStack radar) {
         return RadarItem.addons(radar);
     }

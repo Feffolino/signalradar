@@ -78,6 +78,11 @@ public final class SignalRadarBindingJS {
     }
 
     /** Installed addon ids in slot order. */
+    /** FE capacity including batteries; 0 for non-radars. */
+    public int getCapacity(ItemStack radar) {
+        return radar(radar) ? SignalRadarAPI.getCapacity(radar) : 0;
+    }
+
     public List<String> getAddons(ItemStack radar) {
         List<String> out = new ArrayList<>();
         if (radar(radar)) {

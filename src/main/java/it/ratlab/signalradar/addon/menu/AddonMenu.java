@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.addon.menu;
 
+import it.ratlab.signalradar.addon.AddonDefinition;
+import it.ratlab.signalradar.addon.AddonEntry;
 import it.ratlab.signalradar.addon.AddonItem;
 import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.addon.AddonRules;
@@ -48,8 +50,8 @@ public class AddonMenu extends AbstractContainerMenu {
     /** Server only: the radar stack the menu was opened for. */
     @Nullable
     private final ItemStack radarRef;
-    /** Installed ids beyond the tier's slots (config lowered): kept untouched. */
-    private final List<ResourceLocation> overflow = new ArrayList<>();
+    /** Installed addons beyond the tier's slots (config lowered): kept untouched. */
+    private final List<AddonEntry> overflow = new ArrayList<>();
     private final int radarMenuSlot;
     /** Server only: addon id per container slot after the last write back (for {@link RadarAddonChangedEvent}). */
     private final ResourceLocation[] lastSlots = new ResourceLocation[MAX_SLOTS];
@@ -93,17 +95,21 @@ public class AddonMenu extends AbstractContainerMenu {
         if (radar != null) {
             List<ResourceLocation> installed = AddonRules.installed(radar);
             for (int i = 0; i < installed.size(); i++) {
+                ResourceLocation addonId = installed.get(i);
+                int count = Math.max(1, AddonRules.count(radar, addonId));
                 if (i < slotCount) {
-                    AddonRegistry.item(installed.get(i)).ifPresent(item -> {
+                    AddonRegistry.item(addonId).ifPresent(item -> {
                         for (int k = 0; k < slotCount; k++) {
                             if (container.getItem(k).isEmpty()) {
-                                container.setItem(k, new ItemStack(item));
+                                ItemStack s = new ItemStack(item);
+                                s.setCount(Math.min(count, maxInSlot(s)));
+                                container.setItem(k, s);
                                 return;
                             }
                         }
                     });
                 } else {
-                    overflow.add(installed.get(i));
+                    overflow.add(new AddonEntry(addonId, count));
                 }
             }
             for (int k = 0; k < slotCount; k++) {
@@ -157,18 +163,21 @@ public class AddonMenu extends AbstractContainerMenu {
             return;
         }
         List<ResourceLocation> ids = new ArrayList<>();
+        List<AddonEntry> entries = new ArrayList<>();
         for (int i = 0; i < slotCount; i++) {
             ItemStack s = container.getItem(i);
             if (!s.isEmpty() && s.getItem() instanceof AddonItem a && !ids.contains(a.defId())) {
                 ids.add(a.defId());
+                entries.add(new AddonEntry(a.defId(), Math.min(s.getCount(), maxInSlot(s))));
             }
         }
-        for (ResourceLocation o : overflow) {
-            if (!ids.contains(o)) {
-                ids.add(o);
+        for (AddonEntry o : overflow) {
+            if (!ids.contains(o.id())) {
+                ids.add(o.id());
+                entries.add(o);
             }
         }
-        RadarItem.setAddons(radar, ids);
+        RadarItem.setAddonEntries(radar, entries);
         if (player instanceof ServerPlayer sp) {
             for (int i = 0; i < slotCount; i++) {
                 ResourceLocation now = slotAddon(i);
@@ -179,6 +188,14 @@ public class AddonMenu extends AbstractContainerMenu {
                 }
             }
         }
+    }
+
+    /** Items of this stack one addon slot holds: the item's max stack size for a stackable addon (battery), else 1. */
+    public static int maxInSlot(ItemStack stack) {
+        if (stack.getItem() instanceof AddonItem a && a.definition().map(AddonDefinition::stackable).orElse(false)) {
+            return Math.max(1, stack.getMaxStackSize());
+        }
+        return 1;
     }
 
     @Nullable
@@ -270,7 +287,7 @@ public class AddonMenu extends AbstractContainerMenu {
         }
     }
 
-    /** An addon slot: accepts one allowed addon each. */
+    /** An addon slot: accepts one allowed addon each (a whole stack of a stackable addon: batteries, up to 8). */
     private final class AddonSlot extends Slot {
         private final int index;
 
@@ -287,6 +304,11 @@ public class AddonMenu extends AbstractContainerMenu {
         @Override
         public int getMaxStackSize() {
             return 1;
+        }
+
+        @Override
+        public int getMaxStackSize(ItemStack stack) {
+            return maxInSlot(stack);
         }
     }
 

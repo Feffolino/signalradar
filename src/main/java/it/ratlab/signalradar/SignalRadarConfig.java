@@ -32,7 +32,7 @@ public final class SignalRadarConfig {
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.push("energy");
-        CAPACITY = b.comment("FE the radar can store.").defineInRange("capacity", 20000, 1, Integer.MAX_VALUE);
+        CAPACITY = b.comment("FE the radar can store (each installed battery addon adds addons.battery.capacityPerBattery).").defineInRange("capacity", 20000, 1, Integer.MAX_VALUE);
         MAX_RECEIVE = b.comment("Max FE per tick the radar accepts from chargers.").defineInRange("maxReceive", 100, 0, Integer.MAX_VALUE);
         b.pop();
         b.push("scan");

@@ -58,6 +58,7 @@ public final class SignalRadar {
             it.ratlab.signalradar.test.RadarGameTests.register(modBus);
             it.ratlab.signalradar.test.ScanGameTests.register(modBus);
             it.ratlab.signalradar.test.AddonGameTests.register(modBus);
+            it.ratlab.signalradar.test.BatteryGameTests.register(modBus);
             it.ratlab.signalradar.test.ProgressGameTests.register(modBus);
             it.ratlab.signalradar.test.CompatGameTests.register(modBus);
             it.ratlab.signalradar.test.EventGameTests.register(modBus);

@@ -3,12 +3,12 @@ package it.ratlab.signalradar.registry;
 
 import com.mojang.serialization.Codec;
 import it.ratlab.signalradar.SignalRadar;
+import it.ratlab.signalradar.addon.AddonEntry;
 import java.util.List;
 import java.util.function.Supplier;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ModComponents {
@@ -23,12 +23,12 @@ public final class ModComponents {
             b -> b.persistent(Codec.INT).networkSynchronized(ByteBufCodecs.VAR_INT));
 
     /**
-     * Installed addon item ids, slot order, no gaps (immutable list: value equality, no aliasing between stack copies).
-     * Absent = none.
+     * Installed addons (id + count), slot order, no gaps, each id once (immutable list: value equality, no aliasing between
+     * stack copies). Absent = none. Reads the old plain id list as count 1 (see {@link AddonEntry}).
      */
-    public static final Supplier<DataComponentType<List<ResourceLocation>>> ADDONS = COMPONENTS.registerComponentType("addons",
-            b -> b.persistent(ResourceLocation.CODEC.listOf())
-                    .networkSynchronized(ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs.list(16))));
+    public static final Supplier<DataComponentType<List<AddonEntry>>> ADDONS = COMPONENTS.registerComponentType("addons",
+            b -> b.persistent(AddonEntry.LIST_CODEC)
+                    .networkSynchronized(AddonEntry.STREAM_CODEC.apply(ByteBufCodecs.list(16))));
 
     private ModComponents() {}
 }

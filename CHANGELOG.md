@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- New **Battery Addon** (`signalradar:addon_battery`, stacks to 8): a whole stack fits in ONE addon slot and each battery adds
+  `addons.battery.capacityPerBattery` FE (server config, default 10000) to the radar capacity
+  (`capacity = energy.capacity + batteries * capacityPerBattery`). Energy storage, item bar, tooltip, snapshot, LED and energy bar use
+  the per-radar capacity. Removing batteries clamps the stored energy to the new capacity (the extra FE is lost). Detects nothing,
+  costs no energy, every tier. Default recipe: copper ingots, redstone and a redstone block. Only the battery stacks; every
+  other addon still holds one item per slot.
+- The `signalradar:addons` component now stores counts: a plain id (count 1, the old format, still read and written) or
+  `{"id": .., "count": n}`. Old radars load unchanged. API: `SignalRadarAPI.getCapacity/getAddonCount`, KubeJS `SignalRadar.getCapacity`.
 - Fixed: the addon screen background could show broken or missing. It now resets the shader colour, blend and depth state
   before drawing and passes the real sheet size (256x256) to `blit`.
 - Zoom: the mouse wheel direction is inverted (wheel up = larger range, wheel down = smaller range). The zoom keys are unchanged.

@@ -104,6 +104,17 @@ public final class RadarCommands {
         ResourceLocation id = ResourceLocationArgument.getId(c, "addon");
         List<ResourceLocation> now = new ArrayList<>(AddonRules.installed(radar));
         int slot;
+        int have = now.contains(id) ? AddonRules.count(radar, id) : 0;
+        if (add && have > 0 && have < AddonRules.maxCount(id)) {
+            // stackable addon (battery) already installed: one more in its slot
+            List<it.ratlab.signalradar.addon.AddonEntry> entries = new ArrayList<>();
+            for (ResourceLocation r : now) {
+                entries.add(new it.ratlab.signalradar.addon.AddonEntry(r, r.equals(id) ? have + 1 : AddonRules.count(radar, r)));
+            }
+            RadarItem.setAddonEntries(radar, entries);
+            c.getSource().sendSuccess(() -> Component.translatable("command.signalradar.addon.added", id.toString(), p.getDisplayName()), true);
+            return now.size();
+        }
         if (add) {
             Optional<Component> refusal = AddonRules.installRefusal(radar, id);
             if (refusal.isPresent()) {
@@ -172,9 +183,10 @@ public final class RadarCommands {
     private static int charge(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
         ServerPlayer p = EntityArgument.getPlayer(c, "player");
         ItemStack radar = radarOf(p);
-        RadarItem.setEnergy(radar, SignalRadarConfig.capacity());
-        c.getSource().sendSuccess(() -> Component.translatable("command.signalradar.charge", p.getDisplayName(), SignalRadarConfig.capacity()), true);
-        return SignalRadarConfig.capacity();
+        int cap = RadarItem.capacity(radar);
+        RadarItem.setEnergy(radar, cap);
+        c.getSource().sendSuccess(() -> Component.translatable("command.signalradar.charge", p.getDisplayName(), cap), true);
+        return cap;
     }
 
     private static int targets(CommandContext<CommandSourceStack> c, ServerPlayer p) {

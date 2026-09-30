@@ -27,6 +27,7 @@ ACCENT = {  # addon -> accent colour
     "biosign": (76, 217, 100),
     "structure": (64, 192, 255),
     "motion": (255, 48, 48),
+    "battery": (240, 208, 64),
 }
 for name, col in ACCENT.items():
     out = TEX / f"addon_{name}.png"

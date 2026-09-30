@@ -1,0 +1,29 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "signalradar:default_recipes_enabled"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "NRN",
+    "RXR",
+    "NRN"
+  ],
+  "key": {
+    "N": {
+      "item": "minecraft:copper_ingot"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "X": {
+      "item": "minecraft:redstone_block"
+    }
+  },
+  "result": {
+    "id": "signalradar:addon_battery",
+    "count": 1
+  }
+}

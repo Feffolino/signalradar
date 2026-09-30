@@ -49,6 +49,17 @@ public class AddonItem extends Item {
         }
         AddonDefinition def = opt.get();
         AddonSettings s = AddonSettings.of(def);
+        if (def.detector() == AddonDefinition.Detector.NONE) {
+            // Battery: capacity instead of detection values.
+            tooltip.add(Component.translatable("tooltip.signalradar.addon.addon_battery", AddonConfig.capacityPerBattery(),
+                    stack.getMaxStackSize()).withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.translatable("tooltip.signalradar.addon.battery_note").withStyle(ChatFormatting.DARK_GREEN));
+            tooltip.add(Component.translatable("tooltip.signalradar.addon.min_tier", s.minTier()).withStyle(ChatFormatting.GREEN));
+            if (!s.enabled()) {
+                tooltip.add(Component.translatable("tooltip.signalradar.addon.disabled").withStyle(ChatFormatting.RED));
+            }
+            return;
+        }
         String specific = "tooltip." + defId.getNamespace() + ".addon." + defId.getPath();
         String detects = Language.getInstance().has(specific) ? specific : "tooltip.signalradar.detector." + def.detector().jsonName();
         tooltip.add(Component.translatable(detects).withStyle(ChatFormatting.GRAY));

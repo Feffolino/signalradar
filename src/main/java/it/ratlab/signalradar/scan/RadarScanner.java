@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.scan;
 
-import it.ratlab.signalradar.SignalRadarConfig;
 import it.ratlab.signalradar.addon.AddonRules;
 import it.ratlab.signalradar.addon.AddonSettings;
 import it.ratlab.signalradar.addon.detect.Hit;
@@ -61,7 +60,7 @@ public final class RadarScanner {
     /** The snapshot of a radar that cannot pay: no blips. Charges nothing. */
     public static ScanSnapshot noSignal(ItemStack radar, ScanSettings settings, long now, boolean charged) {
         int tier = RadarItem.tier(radar);
-        return new ScanSnapshot(tier, RadarItem.energy(radar), SignalRadarConfig.capacity(), settings.range(tier), settings.refreshSeconds(),
+        return new ScanSnapshot(tier, RadarItem.energy(radar), RadarItem.capacity(radar), settings.range(tier), settings.refreshSeconds(),
                 true, now, List.of(), charged);
     }
 
@@ -84,7 +83,7 @@ public final class RadarScanner {
                                     List<AddonSettings> addons, Function<AddonSettings, List<Hit>> detect, Charge charge,
                                     PlayerProgress progress) {
         int tier = RadarItem.tier(radar);
-        int capacity = SignalRadarConfig.capacity();
+        int capacity = RadarItem.capacity(radar);
         int energy = RadarItem.energy(radar);
         boolean paying = charge == Charge.PAY;
         if (paying) {

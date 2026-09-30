@@ -38,6 +38,50 @@ public final class AddonRules {
         return out;
     }
 
+    /** How many items of addon {@code id} one slot holds: {@link AddonRegistry#BATTERY_STACK} for stackable addons, else 1. */
+    public static int maxCount(ResourceLocation id) {
+        return AddonRegistry.get(id).map(d -> d.stackable() ? AddonRegistry.BATTERY_STACK : 1).orElse(1);
+    }
+
+    /** Count stored for an installed addon id (0 when not installed). */
+    public static int count(ItemStack radar, ResourceLocation id) {
+        for (AddonEntry e : RadarItem.addonEntries(radar)) {
+            if (e.id().equals(id)) {
+                return e.count();
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Batteries that add capacity: the battery entry's count when it is installed within the tier's slots and usable
+     * (enabled, tier high enough); 0 otherwise. Capped at the battery stack size.
+     */
+    public static int batteries(ItemStack radar) {
+        List<AddonEntry> entries = RadarItem.addonEntries(radar);
+        if (entries.isEmpty()) {
+            return 0;
+        }
+        int tier = RadarItem.tier(radar);
+        int slots = RadarItem.slots(tier);
+        int seen = 0;
+        List<ResourceLocation> ids = new ArrayList<>();
+        for (AddonEntry e : entries) {
+            Optional<AddonDefinition> def = AddonRegistry.get(e.id()).filter(AddonRegistry::isActive);
+            if (def.isEmpty() || ids.contains(e.id())) {
+                continue; // dropped like in installed()
+            }
+            ids.add(e.id());
+            if (seen++ >= slots) {
+                break;
+            }
+            if (e.id().equals(AddonRegistry.BATTERY)) {
+                return AddonSettings.of(def.get()).usableAt(tier) ? Math.min(e.count(), AddonRegistry.BATTERY_STACK) : 0;
+            }
+        }
+        return 0;
+    }
+
     /** Installed addons that are enabled and allowed at the radar's tier, limited to the slots the tier has. */
     public static List<AddonSettings> active(ItemStack radar) {
         int tier = RadarItem.tier(radar);

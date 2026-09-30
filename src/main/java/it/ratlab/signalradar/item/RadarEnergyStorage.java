@@ -19,7 +19,7 @@ public final class RadarEnergyStorage implements IEnergyStorage {
             return 0;
         }
         int stored = RadarItem.energy(stack);
-        int accepted = Math.min(Math.min(maxReceive, SignalRadarConfig.maxReceive()), SignalRadarConfig.capacity() - stored);
+        int accepted = Math.min(Math.min(maxReceive, SignalRadarConfig.maxReceive()), RadarItem.capacity(stack) - stored);
         if (accepted <= 0) {
             return 0;
         }
@@ -41,7 +41,7 @@ public final class RadarEnergyStorage implements IEnergyStorage {
 
     @Override
     public int getMaxEnergyStored() {
-        return SignalRadarConfig.capacity();
+        return RadarItem.capacity(stack);
     }
 
     @Override

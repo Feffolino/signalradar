@@ -22,10 +22,20 @@ import org.jetbrains.annotations.Nullable;
  * @param tag            block / entity / structure tag id for the tag based detectors (null = detector default)
  * @param useMapColor    block blips take the colour of their {@code c:ores/<material>} tag instead of {@code color} (ore)
  * @param icon           icon spec for every blip of this addon (custom addons, {@code .icon()}); null = the detector's own icon
+ * @param stackable      a whole stack of the item (up to its max stack size) fits in one addon slot and is stored with its
+ *                       count (battery); every other addon holds exactly one item per slot
  */
 public record AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
                               int color, int energyCost, String category, @Nullable String requiredModId,
-                              @Nullable ResourceLocation tag, boolean useMapColor, @Nullable String icon) {
+                              @Nullable ResourceLocation tag, boolean useMapColor, @Nullable String icon, boolean stackable) {
+
+    /** Definition without the stackable flag (every addon except the battery). */
+    public AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
+                           int color, int energyCost, String category, @Nullable String requiredModId,
+                           @Nullable ResourceLocation tag, boolean useMapColor, @Nullable String icon) {
+        this(id, detector, minTier, radiusMin, radiusMax, refreshSeconds, color, energyCost, category, requiredModId, tag, useMapColor,
+                icon, false);
+    }
 
     /** Built-in style definition without an icon override. */
     public AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
@@ -45,7 +55,9 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
         /** Compat detectors: need their mod, code lives in {@code compat/}. */
         MANHOLE("manhole", false),
         LOOT("loot", false),
-        TEAM("team", false);
+        TEAM("team", false),
+        /** Detects nothing (no hits, no blips); the addon does something else (battery: extra FE capacity). */
+        NONE("none", false);
 
         private final String jsonName;
         private final boolean publicType;

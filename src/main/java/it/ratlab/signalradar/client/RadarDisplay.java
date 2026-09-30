@@ -4,7 +4,6 @@ package it.ratlab.signalradar.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import it.ratlab.signalradar.SignalRadar;
-import it.ratlab.signalradar.SignalRadarConfig;
 import it.ratlab.signalradar.display.BlipLayout;
 import it.ratlab.signalradar.display.RadarMath;
 import it.ratlab.signalradar.display.ScreenLayout;
@@ -112,7 +111,7 @@ final class RadarDisplay {
         long nowMs = System.currentTimeMillis();
 
         int energy = RadarItem.energy(stack);
-        int capacity = Math.max(1, SignalRadarConfig.capacity());
+        int capacity = Math.max(1, RadarItem.capacity(stack));
         LocalPlayer player = mc.player;
         ScanSnapshot snap = mode == Mode.LIVE ? ClientRadarState.latest() : null;
         if (snap != null && RadarMath.stale(nowMs, ClientRadarState.receivedAtMillis(), snap.refreshSeconds())) {
