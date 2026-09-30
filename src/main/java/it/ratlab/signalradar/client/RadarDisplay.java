@@ -328,11 +328,17 @@ final class RadarDisplay {
                 pulse = 0.5 + 0.5 * Math.sin(ticks * 0.45);
                 glow = Math.max(glow, RadarColors.MOTION_PULSE_MIN + (1 - RadarColors.MOTION_PULSE_MIN) * pulse);
             }
-            int color = b.color() == 0 ? (motion ? RadarColors.MOTION : RadarColors.BLIP_DEFAULT) : b.color();
+            boolean still = RadarColors.MOTION_STILL_CATEGORY.equals(b.category());
+            if (still) {
+                // Still hostile: steady dim frame, no pulse.
+                glow = 0.7;
+            }
+            int color = b.color() == 0 ? (motion ? RadarColors.MOTION : still ? RadarColors.MOTION_STILL : RadarColors.BLIP_DEFAULT)
+                    : b.color();
             if (b.found()) {
                 color = RadarMath.mix(color, RadarColors.DISC, RadarColors.FOUND_DIM);
             }
-            int c = RadarMath.mix(RadarColors.DISC, color, asIcon && !motion ? Math.max(glow, ICON_FRAME_MIN) : glow);
+            int c = RadarMath.mix(RadarColors.DISC, color, asIcon && !motion && !still ? Math.max(glow, ICON_FRAME_MIN) : glow);
             double bx = cx + p.x();
             double by = cy + p.y();
             if (p.clamped()) {

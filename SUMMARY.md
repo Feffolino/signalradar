@@ -86,7 +86,7 @@ Addon screen (`client/AddonScreen`): `render` = `super.render` + `renderTooltip`
 | `ore` | always | 1 | 16-32 | 5 | 15 | `#B0B0B0` (fallback) | Blocks in tag `signalradar:ore_targets` (default `#c:ores`). Colour comes from the ore material (built-in table + `colorOverrides`); same-block neighbours within 2 blocks merge into one blip. |
 | `biosign` | always | 1 | 32-64 | 1 | 10 | `#4CD964` | Passive animals, villagers, plus entity tag `signalradar:biosign` (empty by default). |
 | `structure` | always | 1 | tier range (0-0) | 5 | 10 | `#40C0FF` | Nearest structure per entry of worldgen structure tag `signalradar:scannable_structures` (empty by default), from the structure cache. |
-| `motion` | always | 2 | 24-48 | 1 | 20 | `#FF3030` | Hostile mobs (`MobCategory.MONSTER` + entity tag `signalradar:trackable`) **that are moving** (over 0.1 block between samples); still mobs are invisible. Red pulsing blips plus a beep. |
+| `motion` | always | 2 | 24-48 | 1 | 20 | `#FF3030` | Hostile mobs (`MobCategory.MONSTER` + entity tag `signalradar:trackable`) **that are moving** (over 0.1 block between samples). Red pulsing blips plus a beep. With a held radar of tier >= `addons.motion.stationaryFromTier` (default 3, 5 = never) still hostiles in range are shown too: category `motion_still`, colour `#8A2020`, steady dim red frame, no pulse, no tick, no beep; moving hits are sorted first when `MAX_HITS` caps the list. |
 | `manhole` | `manholes` loaded | 0 | 96-160 | 5 | 5 | `#C8A050` | Manhole Travel nodes the player's network has not opened yet. |
 | `loot` | `lootr` loaded | 2 | 48-96 | 10 | 10 | `#B060FF` | Lootr containers and carts the player has not opened yet. |
 | `team` | `ftbteams` loaded | 1 | whole dimension (100000) | 1 | 5 | `#40E0D0` | Online FTB Teams members (not yourself) in the same dimension. Normal fuzz applies. |
@@ -141,7 +141,7 @@ Custom addons use their definition values and have no config entries. Only the c
   Quiet UI click on change. The server scan is unchanged.
   **Zoom bands** (`RadarMath.peripheralRange/visibility`, only when a zoom is active, i.e. range < tier range): rim band beyond the
   zoom range for local blips: 4 -> 16, 8 -> 32, 16 -> 32, 32 -> 64, >= 64 -> none (a value between steps uses the step at or
-  below; a non-step tier cap has no band). *Local* categories = container, loot, ore, biosign, motion and custom addon categories
+  below; a non-step tier cap has no band). *Local* categories = container, loot, ore, biosign, motion, motion_still and custom addon categories
   (everything not navigation): distance <= zoom range drawn normally, up to the band on the rim with an arrow, beyond it not drawn
   and not counted in BlipLayout groups/badges. *Navigation* categories = narrative, structure, manhole, team, last_death and
   `script` (KubeJS) keep the old rule: always drawn, on the rim with an arrow beyond the range. No zoom = unchanged.
@@ -258,6 +258,7 @@ Examples:
 | `scan.maxBlockChecksPerScan` | 200000 | 4096..max. |
 | `addons.slotsByTier` | `[1, 2, 3, 4, 5]` | |
 | `addons.<container/ore/biosign/structure/motion/manhole/loot/team>.{enabled,minTier,radiusMin,radiusMax,refreshSeconds,color,energyCost}` | see the addon table | |
+| `addons.motion.stationaryFromTier` | 3 | Radar tier (0-5) from which the motion tracker also shows stationary hostiles (`motion_still`); 5 = never. Read at scan time. |
 | `addons.container.includeLootrContainers` | `true` | When false the container addon skips Lootr block entities (use it with the Loot addon so chests are not listed twice). |
 | `addons.ore.colorOverrides` | `[]` | `"iron=#D8AF93"` style entries. |
 

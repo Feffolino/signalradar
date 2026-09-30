@@ -231,6 +231,8 @@ class RadarMathTest {
         assertEquals(RadarMath.HIDDEN, RadarMath.visibility("container", 17, 4, 128));
         assertEquals(RadarMath.HIDDEN, RadarMath.visibility("my_addon", 100, 4, 128));
         assertEquals(RadarMath.RIM, RadarMath.visibility("motion", 16, 4, 128));
+        assertEquals(RadarMath.RIM, RadarMath.visibility("motion_still", 16, 4, 128));
+        assertEquals(RadarMath.HIDDEN, RadarMath.visibility("motion_still", 100, 4, 128));
         for (String nav : new String[] {"narrative", "structure", "manhole", "team", "last_death", "script"}) {
             assertEquals(RadarMath.DRAW, RadarMath.visibility(nav, 4, 4, 128));
             assertEquals(RadarMath.RIM, RadarMath.visibility(nav, 5000, 4, 128));

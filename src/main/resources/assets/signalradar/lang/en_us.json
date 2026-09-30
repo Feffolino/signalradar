@@ -57,7 +57,7 @@
   "tooltip.signalradar.addon.addon_ore": "Detects ore veins, coloured by ore.",
   "tooltip.signalradar.addon.addon_biosign": "Detects animals and villagers.",
   "tooltip.signalradar.addon.addon_structure": "Detects the nearest known structures.",
-  "tooltip.signalradar.addon.addon_motion": "Detects moving hostile mobs. Still mobs stay invisible.",
+  "tooltip.signalradar.addon.addon_motion": "Detects moving hostile mobs. Tier 3+ radars also show stationary ones (dark red).",
   "tooltip.signalradar.addon.addon_manhole": "Detects manholes your network has not opened yet.",
   "tooltip.signalradar.addon.addon_loot": "Detects Lootr containers you have not opened yet.",
   "tooltip.signalradar.addon.addon_team": "Shows online teammates in this dimension.",

@@ -54,6 +54,9 @@ public final class RadarColors {
     public static final String MOTION_CATEGORY = "motion";
     public static final int MOTION = 0xFF3030;
     public static final double MOTION_PULSE_MIN = 0.35;
+    /** Still hostiles of the motion tracker (category {@code motion_still}): steady dim red, no pulse, no sound. */
+    public static final String MOTION_STILL_CATEGORY = "motion_still";
+    public static final int MOTION_STILL = 0x8A2020;
 
     /** Last death marker (category {@code last_death}); the server sends the same colour. */
     public static final String LAST_DEATH_CATEGORY = "last_death";

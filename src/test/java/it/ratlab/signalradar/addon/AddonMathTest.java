@@ -12,6 +12,15 @@ import org.junit.jupiter.api.Test;
 
 class AddonMathTest {
     @Test
+    void stationaryHostilesFromConfiguredTier() {
+        assertTrue(!AddonMath.showsStationary(2, 3));
+        assertTrue(AddonMath.showsStationary(3, 3));
+        assertTrue(AddonMath.showsStationary(4, 3));
+        assertTrue(AddonMath.showsStationary(0, 0));
+        assertTrue(!AddonMath.showsStationary(4, AddonMath.STATIONARY_NEVER));
+    }
+
+    @Test
     void radiusIsLinearFromMinTierToTierFour() {
         // container: tier 0, 24 -> 48
         assertEquals(24, AddonMath.radius(24, 48, 0, 0));

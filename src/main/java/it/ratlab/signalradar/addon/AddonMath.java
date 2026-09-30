@@ -98,6 +98,14 @@ public final class AddonMath {
         return sb.toString();
     }
 
+    /** Config value meaning "never" for {@code addons.motion.stationaryFromTier}. */
+    public static final int STATIONARY_NEVER = 5;
+
+    /** True when a radar of {@code tier} also shows still hostiles ({@code fromTier} 5 = never). */
+    public static boolean showsStationary(int tier, int fromTier) {
+        return fromTier < STATIONARY_NEVER && tier >= fromTier;
+    }
+
     /** Ticks between motion tracker beeps: 4 when on top of you, 40 at {@code reference} blocks or more. */
     public static int motionBeepTicks(double dist, double reference) {
         double f = reference <= 0 ? 1.0 : Math.max(0.0, Math.min(1.0, dist / reference));

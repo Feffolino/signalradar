@@ -3,13 +3,16 @@ package it.ratlab.signalradar.addon.detect;
 
 import it.ratlab.signalradar.SignalRadar;
 import it.ratlab.signalradar.SignalRadarConfig;
+import it.ratlab.signalradar.addon.AddonConfig;
 import it.ratlab.signalradar.addon.AddonDefinition;
 import it.ratlab.signalradar.addon.AddonMath;
 import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.addon.AddonSettings;
 import it.ratlab.signalradar.data.StructureCacheData;
 import it.ratlab.signalradar.icon.IconSpec;
+import it.ratlab.signalradar.item.RadarItem;
 import it.ratlab.signalradar.scan.BlockLocatorScan;
+import it.ratlab.signalradar.scan.ScanHandler;
 import it.ratlab.signalradar.scan.StructureLookupService;
 import it.ratlab.signalradar.target.Locator;
 import java.util.ArrayList;
@@ -38,6 +41,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.npc.AbstractVillager;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -57,6 +61,10 @@ public final class Detectors {
     public static final double VEIN_MERGE_DISTANCE = 2.0;
     /** Blocks an entity must have moved since the previous motion sample to be shown. */
     public static final double MOTION_MIN_MOVE = 0.1;
+    /** Blip category of still hostiles shown by the motion tracker from the configured radar tier. */
+    public static final String MOTION_STILL_CATEGORY = "motion_still";
+    /** Colour of still hostiles (dark red). */
+    public static final int MOTION_STILL_COLOR = 0x8A2020;
 
     private static boolean structureCapWarned;
 
@@ -254,7 +262,10 @@ public final class Detectors {
         return dx * dx + dz * dz;
     }
 
-    /** Hostile mobs (and the trackable tag) that moved since this player's previous motion sample. */
+    /**
+     * Hostile mobs (and the trackable tag) that moved since this player's previous motion sample; with a held radar of
+     * tier {@code stationaryFromTier} or more, still ones too (category {@code motion_still}, after the moving ones).
+     */
     private static List<Hit> motion(AddonSettings a, ServerPlayer player, ServerLevel level, int radius) {
         TagKey<EntityType<?>> tag = tagOf(Registries.ENTITY_TYPE, a.def());
         Vec3 c = player.position();
@@ -267,14 +278,23 @@ public final class Detectors {
             samples.add(new MotionTracker.Sample(e.getUUID(), e.getX(), e.getY(), e.getZ()));
         }
         Set<UUID> moving = MotionTracker.INSTANCE.update(player.getUUID(), samples, MOTION_MIN_MOVE);
-        candidates.removeIf(e -> !moving.contains(e.getUUID()));
-        candidates.sort(Comparator.comparingDouble((Entity e) -> horizontalSq(e, c)).thenComparing(Entity::getUUID));
+        ItemStack held = ScanHandler.heldRadar(player);
+        boolean withStill = !held.isEmpty()
+                && AddonMath.showsStationary(RadarItem.tier(held), AddonConfig.stationaryFromTier());
+        if (!withStill) {
+            candidates.removeIf(e -> !moving.contains(e.getUUID()));
+        }
+        // moving first, then still ones; each nearest first
+        candidates.sort(Comparator.comparingInt((Entity e) -> moving.contains(e.getUUID()) ? 0 : 1)
+                .thenComparingDouble(e -> horizontalSq(e, c)).thenComparing(Entity::getUUID));
         List<Hit> hits = new ArrayList<>();
         for (Entity e : candidates) {
             if (hits.size() >= MAX_HITS) {
                 break;
             }
-            hits.add(new Hit(e.getUUID().toString(), e.getName(), e.getX(), e.getY(), e.getZ(), 0, entityIcon(e)));
+            boolean isMoving = moving.contains(e.getUUID());
+            hits.add(new Hit(e.getUUID().toString(), e.getName(), e.getX(), e.getY(), e.getZ(), isMoving ? 0 : MOTION_STILL_COLOR,
+                    entityIcon(e), isMoving ? null : MOTION_STILL_CATEGORY));
         }
         return hits;
     }

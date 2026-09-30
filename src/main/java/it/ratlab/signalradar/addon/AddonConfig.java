@@ -20,6 +20,9 @@ public final class AddonConfig {
     private static final Map<ResourceLocation, Values> VALUES = new HashMap<>();
     private static ModConfigSpec.ConfigValue<List<? extends String>> oreOverrides;
     private static ModConfigSpec.BooleanValue includeLootr;
+    private static ModConfigSpec.IntValue stationaryFrom;
+    /** Game tests only: forces {@code stationaryFromTier} (-1 = follow the config). */
+    private static volatile int stationaryOverride = -1;
     /** Game tests only: forces the value of {@code includeLootrContainers} (null = follow the config). */
     private static volatile Boolean lootrOverride;
 
@@ -48,6 +51,11 @@ public final class AddonConfig {
                                 "Turn off when the Loot addon is used, so the container addon shows only ordinary containers.")
                         .define("includeLootrContainers", true);
             }
+            if (d.id().equals(AddonRegistry.MOTION)) {
+                stationaryFrom = b.comment("Radar tier from which the motion tracker also shows stationary hostiles (dark red, no pulse, no beep).",
+                                "5 = never: only moving hostiles are shown.")
+                        .defineInRange("stationaryFromTier", 3, 0, AddonMath.STATIONARY_NEVER);
+            }
             if (d.useMapColor()) {
                 oreOverrides = b.comment("Ore blip colours per material, applied over the built-in table: \"material=#RRGGBB\".",
                                 "The material is the name after c:ores/ in the block's tag (iron, gold, osmium, ...); unknown materials get a stable hash colour.")
@@ -69,6 +77,18 @@ public final class AddonConfig {
             return lootrOverride;
         }
         return includeLootr == null || !SignalRadarConfig.SPEC.isLoaded() || includeLootr.get();
+    }
+
+    /** {@code addons.motion.stationaryFromTier}; 3 before the config is loaded. */
+    public static int stationaryFromTier() {
+        if (stationaryOverride >= 0) {
+            return stationaryOverride;
+        }
+        return stationaryFrom == null || !SignalRadarConfig.SPEC.isLoaded() ? 3 : stationaryFrom.get();
+    }
+
+    public static void overrideStationaryFromTier(int value) {
+        stationaryOverride = value;
     }
 
     public static void overrideIncludeLootrContainers(Boolean value) {

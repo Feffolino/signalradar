@@ -3,6 +3,7 @@ package it.ratlab.signalradar.test;
 
 import it.ratlab.signalradar.SignalRadar;
 import it.ratlab.signalradar.SignalRadarConfig;
+import it.ratlab.signalradar.addon.AddonConfig;
 import it.ratlab.signalradar.addon.AddonDefinition;
 import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.addon.AddonRules;
@@ -725,6 +726,55 @@ public final class AddonGameTests {
         walker.discard();
         still.discard();
         MotionTracker.INSTANCE.forget(p.getUUID());
+        h.succeed();
+    }
+
+    private static String categoryOf(List<Hit> hits, Entity e) {
+        for (Hit hit : hits) {
+            if (hit.key().equals(e.getUUID().toString())) {
+                return hit.category();
+            }
+        }
+        return "absent";
+    }
+
+    /** Runs two motion samples with {@code walker} moving and {@code still} standing, the player holding a radar of {@code tier}. */
+    private static List<Hit> motionSecondSample(GameTestHelper h, ServerPlayer p, int tier, Mob walker) {
+        p.setItemInHand(InteractionHand.MAIN_HAND, radar(tier, 500));
+        MotionTracker.INSTANCE.forget(p.getUUID());
+        AddonSettings motion = settings(AddonRegistry.MOTION);
+        Detectors.run(motion, p, h.getLevel(), 48, BlockLocatorScan.Budget.unlimited(), 100);
+        walker.setPos(walker.getX() + 2, walker.getY(), walker.getZ());
+        return Detectors.run(motion, p, h.getLevel(), 48, BlockLocatorScan.Budget.unlimited(), 120);
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void motionStationaryHostilesFromConfiguredTier(GameTestHelper h) {
+        ServerPlayer p = player(h);
+        Mob walker = spawnStill(h, EntityType.ZOMBIE, new BlockPos(3, 1, 1));
+        Mob still = spawnStill(h, EntityType.ZOMBIE, new BlockPos(-3, 1, 1));
+        AddonConfig.overrideStationaryFromTier(3);
+        try {
+            List<Hit> t2 = motionSecondSample(h, p, 2, walker);
+            h.assertTrue(hasEntity(t2, walker) && categoryOf(t2, walker) == null, "tier 2: moving zombie must keep the addon category");
+            h.assertTrue(!hasEntity(t2, still), "tier 2 showed a still zombie");
+            walker.setPos(walker.getX() - 2, walker.getY(), walker.getZ());
+            List<Hit> t3 = motionSecondSample(h, p, 3, walker);
+            h.assertTrue(hasEntity(t3, still), "tier 3 missed the still zombie");
+            h.assertTrue(Detectors.MOTION_STILL_CATEGORY.equals(categoryOf(t3, still)), "still category " + categoryOf(t3, still));
+            h.assertTrue(categoryOf(t3, walker) == null, "moving zombie category " + categoryOf(t3, walker));
+            h.assertTrue(hasEntity(t3, walker) && t3.indexOf(t3.stream().filter(x -> x.key().equals(walker.getUUID().toString())).findFirst().get())
+                    < t3.indexOf(t3.stream().filter(x -> x.key().equals(still.getUUID().toString())).findFirst().get()), "moving not sorted first");
+            AddonConfig.overrideStationaryFromTier(5);
+            walker.setPos(walker.getX() - 2, walker.getY(), walker.getZ());
+            List<Hit> never = motionSecondSample(h, p, 4, walker);
+            h.assertTrue(hasEntity(never, walker) && !hasEntity(never, still), "config 5 (never) must hide still zombies at tier 4");
+        } finally {
+            AddonConfig.overrideStationaryFromTier(-1);
+            walker.discard();
+            still.discard();
+            MotionTracker.INSTANCE.forget(p.getUUID());
+        }
         h.succeed();
     }
 

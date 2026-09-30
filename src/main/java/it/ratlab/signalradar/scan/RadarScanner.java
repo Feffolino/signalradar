@@ -132,7 +132,8 @@ public final class RadarScanner {
                 Vec3 shown = ScanMath.fuzz(player, id, now, real, ScanMath.fuzzMagnitude(maxFuzz, dist, range));
                 int color = hit.color() != 0 ? hit.color() : addon.color();
                 String icon = addon.def().icon() != null ? addon.def().icon() : hit.icon();
-                blips.add(new Blip(id, category, color, shown.x, shown.y, shown.z, hit.name(), dist > range, false, icon));
+                blips.add(new Blip(id, hit.category() != null ? hit.category() : category, color, shown.x, shown.y, shown.z, hit.name(), dist > range,
+                        false, icon));
             }
         }
         int motionRadius = 0;

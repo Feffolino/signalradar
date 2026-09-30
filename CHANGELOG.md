@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Motion tracker: from radar tier 3 it also shows stationary hostiles (new category `motion_still`: entity face icon in a steady dim red
+  frame, no pulse, no beep; moving ones still pulse and beep). Config `addons.motion.stationaryFromTier` (0-5, default 3, 5 = never).
+  `Hit` gained an optional per-hit category override. Addon tooltip updated.
+
 - Zoom-aware display and sounds: with a zoom active, local blips (containers, loot, ore, biosigns, motion, custom addons) show on
   the rim only up to a peripheral band (4 m -> 16, 8/16 m -> 32, 32 m -> 64, none from 64 m) and vanish beyond it; navigation
   blips (narrative, structure, manhole, team, last death, script) still always show. The narrative/motion tick and the motion
