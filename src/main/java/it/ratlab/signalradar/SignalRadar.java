@@ -43,8 +43,10 @@ public final class SignalRadar {
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent e) -> it.ratlab.signalradar.scan.ScanHandler.reset());
         it.ratlab.signalradar.scan.ScanHandler.register(NeoForge.EVENT_BUS);
         it.ratlab.signalradar.progress.FoundHandler.register(NeoForge.EVENT_BUS);
+        NeoForge.EVENT_BUS.addListener(it.ratlab.signalradar.recipe.RadarUpgradeRecipe::onItemCrafted);
         if (net.neoforged.fml.ModList.get().isLoaded("kubejs")) {
             it.ratlab.signalradar.progress.StageHelper.enableKubeJS();
+            enableKubeJSEvents();
         }
 
         if (Boolean.getBoolean("signalradar.gametests")) {
@@ -57,6 +59,15 @@ public final class SignalRadar {
 
         if (FMLEnvironment.dist.isClient()) {
             it.ratlab.signalradar.client.SignalRadarClient.init(modBus, container);
+        }
+    }
+
+    /** KubeJS events, binding bridge and startup addon registration; classes only touched when KubeJS is loaded. */
+    private static void enableKubeJSEvents() {
+        try {
+            it.ratlab.signalradar.compat.kubejs.KubeJSCompat.init();
+        } catch (Throwable t) {
+            LOGGER.error("KubeJS event integration failed to load", t);
         }
     }
 
