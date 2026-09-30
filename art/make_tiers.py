@@ -51,11 +51,28 @@ def body(tier):
     return m
 
 
+# Hand poses. Tune here (the Blockbench display tab is overridden for the hand entries).
+# FP_LIFT_Y: extra first-person translation y (display units, 1/16 block) so the device sits higher in both hands.
+FP_LIFT_Y = 0
+
+
+def hand_display(display):
+    """Vanilla ItemTransform.apply(leftHand, ...) already mirrors the left hand (negates translation x and rotation
+    y/z), so the left entries must carry the SAME numbers as the right ones; writing them pre-mirrored mirrors twice
+    and turns the screen away from the camera."""
+    d = copy.deepcopy(display)
+    fp = d["firstperson_righthand"]
+    fp["translation"][1] += FP_LIFT_Y
+    d["firstperson_lefthand"] = copy.deepcopy(fp)
+    d["thirdperson_lefthand"] = copy.deepcopy(d["thirdperson_righthand"])
+    return d
+
+
 def item_model():
     return {
         "parent": "builtin/entity",
         "textures": {"particle": base["textures"].get("particle", base["textures"]["0"])},
-        "display": base["display"],
+        "display": hand_display(base["display"]),
     }
 
 

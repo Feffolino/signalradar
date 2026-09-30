@@ -3,6 +3,7 @@ package it.ratlab.signalradar.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import it.ratlab.signalradar.display.HandMath;
 import it.ratlab.signalradar.item.RadarItem;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
@@ -48,10 +49,10 @@ public final class RadarClientExtensions implements IClientItemExtensions {
         if (t <= 0f) {
             return false;
         }
-        int side = arm == HumanoidArm.RIGHT ? 1 : -1;
+        int side = HandMath.side(arm == HumanoidArm.LEFT);
         float restY = REST_Y + equipProcess * -0.6f;
-        ps.translate(side * (REST_X + (RAISED_X - REST_X) * t), restY + (RAISED_Y - restY) * t, REST_Z + (RAISED_Z - REST_Z) * t);
-        ps.mulPose(Axis.YP.rotationDegrees(side * RAISED_YAW * t));
+        ps.translate(HandMath.raisedX(side, REST_X, RAISED_X, t), restY + (RAISED_Y - restY) * t, REST_Z + (RAISED_Z - REST_Z) * t);
+        ps.mulPose(Axis.YP.rotationDegrees(HandMath.raisedYaw(side, RAISED_YAW, t)));
         ps.mulPose(Axis.XP.rotationDegrees(RAISED_PITCH * t));
         float s = 1f + (RAISED_SCALE - 1f) * t;
         ps.scale(s, s, s);
