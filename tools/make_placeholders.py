@@ -43,6 +43,25 @@ for name, col in ACCENT.items():
     img.save(out)
     print("made", out.name)
 
+# ---- phase 7: generic icon of custom (KubeJS) addons without their own model: body + a white light tinted by the
+# addon colour (tint index 1) ----
+for name, light in (("addon_custom", False), ("addon_custom_light", True)):
+    out = TEX / f"{name}.png"
+    if out.exists():
+        print("keep", out.name)
+        continue
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    if light:
+        d.rectangle([6, 5, 9, 8], fill=(255, 255, 255, 255))
+    else:
+        d.rectangle([3, 2, 12, 13], fill=(44, 48, 52, 255), outline=(20, 22, 24, 255))
+        d.rectangle([5, 4, 10, 9], fill=(11, 26, 14, 255))
+        for x in (5, 7, 9):
+            d.line([x, 11, x, 12], fill=(176, 141, 79, 255))
+    img.save(out)
+    print("made", out.name)
+
 GUI = Path(__file__).resolve().parent.parent / "src/main/resources/assets/signalradar/textures/gui"
 GUI.mkdir(parents=True, exist_ok=True)
 gui_out = GUI / "addon_slots.png"

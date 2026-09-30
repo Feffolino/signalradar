@@ -5,6 +5,7 @@ import it.ratlab.signalradar.addon.AddonItem;
 import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.addon.AddonRules;
 import it.ratlab.signalradar.addon.AddonSettings;
+import it.ratlab.signalradar.api.RadarAddonChangedEvent;
 import it.ratlab.signalradar.item.RadarItem;
 import it.ratlab.signalradar.registry.ModMenus;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -49,6 +51,8 @@ public class AddonMenu extends AbstractContainerMenu {
     /** Installed ids beyond the tier's slots (config lowered): kept untouched. */
     private final List<ResourceLocation> overflow = new ArrayList<>();
     private final int radarMenuSlot;
+    /** Server only: addon id per container slot after the last write back (for {@link RadarAddonChangedEvent}). */
+    private final ResourceLocation[] lastSlots = new ResourceLocation[MAX_SLOTS];
 
     /** Client side (from the open packet): hand, tier, slot count. */
     public AddonMenu(int id, Inventory inv, RegistryFriendlyByteBuf buf) {
@@ -101,6 +105,9 @@ public class AddonMenu extends AbstractContainerMenu {
                 } else {
                     overflow.add(installed.get(i));
                 }
+            }
+            for (int k = 0; k < slotCount; k++) {
+                lastSlots[k] = slotAddon(k);
             }
             container.addListener(c -> writeBack());
         }
@@ -162,6 +169,22 @@ public class AddonMenu extends AbstractContainerMenu {
             }
         }
         RadarItem.setAddons(radar, ids);
+        if (player instanceof ServerPlayer sp) {
+            for (int i = 0; i < slotCount; i++) {
+                ResourceLocation now = slotAddon(i);
+                ResourceLocation before = lastSlots[i];
+                lastSlots[i] = now;
+                if (!java.util.Objects.equals(before, now)) {
+                    NeoForge.EVENT_BUS.post(new RadarAddonChangedEvent(sp, radar, i, before, now));
+                }
+            }
+        }
+    }
+
+    @Nullable
+    private ResourceLocation slotAddon(int slot) {
+        ItemStack s = container.getItem(slot);
+        return !s.isEmpty() && s.getItem() instanceof AddonItem a ? a.defId() : null;
     }
 
     /** Why {@code stack} cannot go into addon slot {@code index}; empty when it fits. */

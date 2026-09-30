@@ -38,6 +38,7 @@ public final class AddonRegistry {
     private static final Map<ResourceLocation, AddonDefinition> DEFS = new LinkedHashMap<>();
     private static final List<AddonDefinition> BUILTINS = new ArrayList<>();
     private static boolean frozen;
+    private static final List<Runnable> PROVIDERS = new ArrayList<>();
 
     static {
         builtin(new AddonDefinition(CONTAINER, Detector.CONTAINER, 0, 24, 48, 10, 0xE0A040, 10, "container", null,
@@ -82,6 +83,20 @@ public final class AddonRegistry {
         }
         DEFS.put(def.id(), def);
         return true;
+    }
+
+    /**
+     * Adds a provider that is run once, inside this mod's item {@link RegisterEvent}, right before the registry freezes:
+     * the last point where {@link #registerCustom} works. Used by the KubeJS integration to post the startup event
+     * {@code SignalRadarEvents.registerAddons}; other mods can use it when their definitions are only known late.
+     * Exceptions of a provider are logged, never thrown.
+     */
+    public static synchronized void addProvider(Runnable provider) {
+        if (frozen) {
+            SignalRadar.LOGGER.error("Addon provider added after item registration; ignored");
+            return;
+        }
+        PROVIDERS.add(provider);
     }
 
     public static synchronized boolean isFrozen() {
@@ -139,6 +154,17 @@ public final class AddonRegistry {
     public static void onRegister(RegisterEvent event) {
         if (!event.getRegistryKey().equals(Registries.ITEM)) {
             return;
+        }
+        List<Runnable> providers;
+        synchronized (AddonRegistry.class) {
+            providers = List.copyOf(PROVIDERS);
+        }
+        for (Runnable provider : providers) {
+            try {
+                provider.run();
+            } catch (RuntimeException e) {
+                SignalRadar.LOGGER.error("Addon provider failed", e);
+            }
         }
         List<AddonDefinition> defs;
         synchronized (AddonRegistry.class) {

@@ -28,6 +28,19 @@ public class AddonItem extends Item {
         return AddonRegistry.get(defId);
     }
 
+    /**
+     * Custom addons without a lang entry show "Radar Addon (&lt;category&gt;)" instead of the raw key (resolved on the
+     * client, so a KubeJS / resource pack translation wins).
+     */
+    @Override
+    public Component getName(ItemStack stack) {
+        Optional<AddonDefinition> def = definition();
+        if (def.isPresent() && !AddonRegistry.isBuiltin(def.get())) {
+            return Component.translatableWithFallback(getDescriptionId(stack), "Radar Addon (" + def.get().category() + ")");
+        }
+        return super.getName(stack);
+    }
+
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         Optional<AddonDefinition> opt = definition();

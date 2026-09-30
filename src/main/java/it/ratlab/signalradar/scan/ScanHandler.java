@@ -2,6 +2,7 @@
 package it.ratlab.signalradar.scan;
 
 import it.ratlab.signalradar.addon.AddonRules;
+import it.ratlab.signalradar.api.RadarScanEvent;
 import it.ratlab.signalradar.addon.AddonSettings;
 import it.ratlab.signalradar.addon.detect.AddonCache;
 import it.ratlab.signalradar.addon.detect.Detectors;
@@ -23,6 +24,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -105,8 +107,26 @@ public final class ScanHandler {
         };
         ScanSnapshot snapshot = RadarScanner.scan(radar, player.getUUID(), player.position(), now, settings, TargetManager.all(),
                 def -> Locators.locate(player, def, range, level, now, budget), addons, detect, charge, PlayerProgress.of(player));
+        snapshot = postScanEvent(player, radar, range, snapshot);
         PacketDistributor.sendToPlayer(player, new SnapshotPayload(snapshot));
         return snapshot;
+    }
+
+    /** Posts {@link RadarScanEvent} for a scan with signal: cancelled = NO SIGNAL, edited blips replace the computed ones. */
+    static ScanSnapshot postScanEvent(ServerPlayer player, ItemStack radar, int range, ScanSnapshot s) {
+        if (s.noSignal()) {
+            return s;
+        }
+        RadarScanEvent event = NeoForge.EVENT_BUS.post(new RadarScanEvent(player, radar, range, s.blips()));
+        if (event.isCanceled()) {
+            return new ScanSnapshot(s.tier(), s.energy(), s.capacity(), s.range(), s.refreshSeconds(), true, s.gameTime(), List.of(),
+                    s.charged(), 0);
+        }
+        if (event.targetsChanged(s.blips())) {
+            return new ScanSnapshot(s.tier(), s.energy(), s.capacity(), s.range(), s.refreshSeconds(), false, s.gameTime(),
+                    event.getTargets(), s.charged(), s.motionRadius());
+        }
+        return s;
     }
 
     private static void onServerTick(ServerTickEvent.Post event) {

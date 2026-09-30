@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "signalradar:item/addon_custom",
+    "layer1": "signalradar:item/addon_custom_light"
+  }
+}

@@ -103,16 +103,24 @@ public final class RadarCommands {
         }
         ResourceLocation id = ResourceLocationArgument.getId(c, "addon");
         List<ResourceLocation> now = new ArrayList<>(AddonRules.installed(radar));
+        int slot;
         if (add) {
             Optional<Component> refusal = AddonRules.installRefusal(radar, id);
             if (refusal.isPresent()) {
                 throw new SimpleCommandExceptionType(refusal.get()).create();
             }
             now.add(id);
-        } else if (!now.remove(id)) {
-            throw new SimpleCommandExceptionType(Component.translatable("command.signalradar.addon.not_installed", id.toString())).create();
+            slot = now.size() - 1;
+        } else {
+            slot = now.indexOf(id);
+            if (slot < 0) {
+                throw new SimpleCommandExceptionType(Component.translatable("command.signalradar.addon.not_installed", id.toString())).create();
+            }
+            now.remove(slot);
         }
         RadarItem.setAddons(radar, now);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new it.ratlab.signalradar.api.RadarAddonChangedEvent(p, radar, slot,
+                add ? null : id, add ? id : null));
         c.getSource().sendSuccess(() -> Component.translatable(add ? "command.signalradar.addon.added" : "command.signalradar.addon.removed",
                 id.toString(), p.getDisplayName()), true);
         return now.size();
