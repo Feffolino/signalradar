@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.client;
 
+import it.ratlab.signalradar.SignalRadar;
 import it.ratlab.signalradar.icon.IconSpec;
 import java.util.HashMap;
 import java.util.List;
@@ -36,27 +37,41 @@ import org.jetbrains.annotations.Nullable;
  */
 final class RadarIcons {
     /** What to draw: nothing special (a dot), textured layers, or an item model. */
-    enum Kind { DOT, SPRITE, ITEM }
+    enum Kind { DOT, SPRITE, ITEM, HEAD }
 
     /** A textured rectangle: the sprite region {@code u0..u1 x v0..v1} of the texture of {@code type}. */
     record Layer(RenderType type, float u0, float v0, float u1, float v1) {}
 
-    record Icon(Kind kind, Layer[] layers, @Nullable ItemStack stack) {
-        static final Icon DOT = new Icon(Kind.DOT, new Layer[0], null);
+    record Icon(Kind kind, Layer[] layers, @Nullable ItemStack stack, @Nullable MobFaces.Head head) {
+        static final Icon DOT = new Icon(Kind.DOT, new Layer[0], null, null);
+
+        Icon(Kind kind, Layer[] layers, @Nullable ItemStack stack) {
+            this(kind, layers, stack, null);
+        }
 
         /** Groups icons sharing a texture so texture switches (and so batch flushes) are few. */
         int sortKey() {
-            return kind == Kind.SPRITE ? System.identityHashCode(layers[0].type()) : kind.ordinal();
+            return kind == Kind.SPRITE ? System.identityHashCode(layers[0].type())
+                    : kind == Kind.HEAD && head != null ? System.identityHashCode(head.type()) : kind.ordinal();
         }
     }
 
     private static final Map<String, Icon> CACHE = new HashMap<>();
+    private static net.minecraft.client.multiplayer.ClientLevel faceLevel;
     private static final RandomSource RANDOM = RandomSource.create(42L);
 
     private RadarIcons() {}
 
     /** The icon of a spec string (never null; {@link Icon#DOT} when it cannot be drawn). */
     static Icon get(String spec) {
+        // Faces hold model parts of the current renderers: drop them with the level they were made in.
+        var level = Minecraft.getInstance().level;
+        if (level != faceLevel) {
+            if (level != null && faceLevel != null) {
+                CACHE.clear();
+            }
+            faceLevel = level;
+        }
         Icon c = CACHE.get(spec);
         if (c != null) {
             return c;
@@ -64,7 +79,10 @@ final class RadarIcons {
         IconSpec parsed = IconSpec.parse(spec);
         Icon icon = resolve(parsed);
         // Skins of players not (yet) in the tab list are not cached, so the real face shows up once they are.
-        if (!(parsed.kind() == IconSpec.Kind.PLAYER && icon.kind() == Kind.SPRITE && !knownPlayer(parsed.value()))) {
+        // Mob faces need a level (dummy entity), so they are retried until there is one.
+        boolean retry = parsed.kind() == IconSpec.Kind.PLAYER && icon.kind() == Kind.SPRITE && !knownPlayer(parsed.value())
+                || parsed.kind() == IconSpec.Kind.ENTITY && Minecraft.getInstance().level == null;
+        if (!retry) {
             CACHE.put(spec, icon);
         }
         return icon;
@@ -72,6 +90,7 @@ final class RadarIcons {
 
     static void clear() {
         CACHE.clear();
+        faceLevel = null;
     }
 
     private static Icon resolve(IconSpec s) {
@@ -138,13 +157,20 @@ final class RadarIcons {
         return new Icon(Kind.SPRITE, new Layer[] {new Layer(RenderType.text(tex), 0f, 0f, 1f, 1f)}, null);
     }
 
-    /** Mob head item when vanilla has one, else the spawn egg, else a dot. */
+    /** The mob's own face (head model part), else the vanilla mob head item, else the spawn egg, else a dot. */
     private static Icon entity(String typeId) {
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(typeId)).orElse(null);
+        if (type != null) {
+            MobFaces.Head face = MobFaces.create(type);
+            if (face != null) {
+                return new Icon(Kind.HEAD, new Layer[0], null, face);
+            }
+            SignalRadar.LOGGER.debug("Mob face unavailable for {}, using the fallback icon", typeId);
+        }
         String head = IconSpec.headItemFor(typeId);
         if (head != null) {
             return item(ResourceLocation.parse(head));
         }
-        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(typeId)).orElse(null);
         SpawnEggItem egg = type == null ? null : SpawnEggItem.byId(type);
         return itemIcon(egg);
     }

@@ -450,6 +450,13 @@ final class RadarDisplay {
                     c.addVertex(matrix, x0, y1, layerZ).setColor(argb).setUv(l.u0(), l.v0()).setLight(LIGHT);
                     layerZ += d.sub() * 0.6f; // hat layer of skins sits just in front of the face
                 }
+            } else if (icon.kind() == RadarIcons.Kind.HEAD && icon.head() != null) {
+                int v = Math.round(255f * bright * (d.found() ? 0.4f : 1f));
+                ps.pushPose();
+                ps.translate(d.cx(), d.cy(), zz);
+                MobFaces.draw(icon.head(), ps, buffers.getBuffer(icon.head().type()), (float) (d.half() * 2), d.sub() * ITEM_DEPTH,
+                        0xFF000000 | (v << 16) | (v << 8) | v, LIGHT);
+                ps.popPose();
             } else if (icon.kind() == RadarIcons.Kind.ITEM && icon.stack() != null) {
                 float side = (float) (d.half() * 2);
                 ps.pushPose();

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Mob icons (motion, biosign, entity targets) show the mob's face: the head model of the mob's own renderer with its texture,
+  drawn flat from the front (villager nose, pig snout, ...), instead of the spawn egg. Mobs without a head model fall back to the
+  vanilla mob head item, then the spawn egg. Client only; uses an access transformer on `ModelPart.cubes/children`.
 - Fixed: a Lootr chest you just opened stayed on the radar until the Loot addon refreshed (10 s). Opening or closing a Lootr
   container now drops your cached Loot result and sends the next snapshot within a fraction of a second, at no extra energy.
 - New server config `addons.container.includeLootrContainers` (default true): when false the container addon skips Lootr

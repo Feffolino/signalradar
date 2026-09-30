@@ -115,7 +115,7 @@ Custom addons use their definition values and have no config entries. Only the c
   | `block:<id>` | sprite of the model's NORTH face (else first quad, else particle sprite) as a textured quad, `RenderType.text(block atlas)` | ore, custom `block_tag` (the found block) |
   | `item:<id>` | the item model through `ItemRenderer.renderStatic(GUI)`, scaled to the square and flattened on z (scale 0.02) | container and loot (block item of the found block, fallback chest), structure (`minecraft:map`), narrative targets (default `minecraft:compass`), last death (`minecraft:skeleton_skull`) |
   | `texture:<rl>` | plain PNG quad; a missing `map_icon_<look>.png` falls back to `map_icon.png` of the same folder, else a dot | manholes: `manholes:textures/gui/map_icon_<look>.png` by node look (`home_manhole`, `city`, `grate`, `hatch`, `cave`, `ns:x` looks use their namespace) |
-  | `entity:<type id>` | vanilla mob head item (zombie, skeleton, wither skeleton, creeper, piglin and zombified piglin, ender dragon), else the spawn egg, else a dot | motion, biosign, custom `entity_tag` |
+  | `entity:<type id>` | the mob's own face: the head `ModelPart` of its renderer model (`HeadedModel.getHead()`, or the `head` child of a `HierarchicalModel`, e.g. creeper, spider) drawn from the front with the renderer's texture via `RenderType.text` (fullbright, like the sprites), pose neutralised, centred and scaled to the square from the bounds of its visible cubes/children, flattened on z like items. Fallbacks: vanilla mob head item (zombie, skeleton, wither skeleton, creeper, piglin, dragon), spawn egg, dot. A type whose face throws is logged once at debug and uses the fallback | motion, biosign, custom `entity_tag` |
   | `player:<uuid>` | skin face + hat layer (tab list skin, default skin when unknown) | team |
   | empty | the old coloured dot | script blips added by other mods with an empty icon |
 
@@ -358,7 +358,7 @@ Use `JAVA_HOME="/c/Program Files/Java/jdk-25"` on the dev machine.
 
 | Command | Needs | Result (1.0.0) |
 |---|---|---|
-| `./gradlew test` | nothing | 39 JUnit tests (pure logic: display, addon math, node filter, ore colours, scan schedule, icon specs and head mapping) |
+| `./gradlew test` | nothing | 55 JUnit tests (pure logic: display, addon math, node filter, ore colours, scan schedule, icon specs and head mapping) |
 | `./gradlew runGameTestServer` | nothing | 83 game tests; optional-mod checks pass trivially without their mod |
 | `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | 83 game tests, the KubeJS ones run for real |
 | `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | 83 game tests, real compat detectors |
