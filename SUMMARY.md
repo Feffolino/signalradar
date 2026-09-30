@@ -124,12 +124,12 @@ Custom addons use their definition values and have no config entries. Only the c
   0.0004 each so overlapping icons do not z-fight. Icon content is drawn after all other quads (each new texture ends the
   vertex batch), still fullbright (items get a low light only when found). Cosmetic mode draws no blips and so no icons.
 - **Hold right-click** raises the device to the face (eased client pose via `applyForgeHandTransform`, not the spyglass
-  animation) and shows a text line for the blip closest to the crosshair direction: name, distance in metres, compass. An offhand
+  animation; RAISED_Y -0.28, first-person display translation y +2 px, both set in code / `art/make_tiers.py`) and shows a text line for the blip closest to the crosshair direction: name, distance in metres, compass. An offhand
   radar only raises when the main-hand item has no use action of its own (vanilla priority).
 - **Sneak + right-click** opens the addon menu (slots = the tier's slot count, locked slots crossed out).
 - Live data only in first person for the owner. Third person, other players, item frames, ground: cosmetic sweep with no blips.
   GUI icon: static screen.
-- Sounds (`sounds.json`, mapped to vanilla placeholders): scan ping (charged scans only), blip tick (narrative category only),
+- Sounds (`sounds.json`, custom mono 44.1 kHz OGGs synthesized by `tools/make_sounds.py`, never overwrites without `--force`): scan ping (charged scans only), blip tick (narrative category only),
   target found, motion beep (rate rising with proximity).
 - Screen and LED rectangles come from `assets/signalradar/radar_screen.json`; resource packs can override it.
 
@@ -384,3 +384,7 @@ KubeJS scripts; see its README. `libs/` is gitignored: `manholes-1.7.0.jar`, `lo
 12. The manhole addon reads the node registry (no block scan) and hides nodes the network opened; the Lootr addon avoids loot generation.
 13. JEI support is an isolated `@JeiPlugin` class reusing the addon tooltip; JEI is never a hard dependency.
 14. Off-the-shelf radar mods (sonar style, satellites) were rejected in planning in favour of this custom mod.
+
+Hand transforms note: vanilla `ItemTransform.apply(leftHand)` mirrors the left hand itself (negates translation x, rotation y/z), so
+`firstperson_lefthand` and `thirdperson_lefthand` hold the same numbers as the right entries (enforced by `art/make_tiers.py`,
+math in `display/HandMath`). A pre-mirrored left entry is mirrored twice and the screen turns away.

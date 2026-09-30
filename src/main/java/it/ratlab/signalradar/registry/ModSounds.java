@@ -7,7 +7,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-/** Sound events; {@code assets/signalradar/sounds.json} maps them to vanilla placeholder sounds. */
+/** Sound events; {@code assets/signalradar/sounds.json} maps them to the synthesized OGGs (tools/make_sounds.py). */
 public final class ModSounds {
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(Registries.SOUND_EVENT, SignalRadar.MOD_ID);
 

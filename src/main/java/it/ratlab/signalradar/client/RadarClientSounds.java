@@ -73,7 +73,7 @@ public final class RadarClientSounds {
             Vec3d wp = ClientRadarState.position(b, nowMs);
             Vec2 rel = RadarMath.relative(wp.x() - p.getX(), wp.z() - p.getZ(), p.getViewYRot(1f));
             if (RadarMath.sweepCrossed(prev, cur, RadarMath.displayAngle(rel.x(), rel.y()))) {
-                play(p, ModSounds.BLIP.get(), 1f, b.outOfRange() ? 0.8f : 1f);
+                play(p, ModSounds.BLIP.get(), 1f, b.outOfRange() ? 0.9f : 1f);
                 return; // one tick per client tick is plenty
             }
         }
@@ -100,7 +100,7 @@ public final class RadarClientSounds {
         }
         double reference = snap.motionRadius() > 0 ? snap.motionRadius() : BEEP_REFERENCE_FALLBACK;
         if (--beepCooldown <= 0) {
-            float pitch = (float) (1.6 - 0.7 * Math.min(1.0, nearest / reference));
+            float pitch = (float) (1.25 - 0.35 * Math.min(1.0, nearest / reference));
             play(p, ModSounds.MOTION_BEEP.get(), 0.7f, pitch);
             beepCooldown = AddonMath.motionBeepTicks(nearest, reference);
         }

@@ -1,18 +1,18 @@
 {
   "scan_ping": {
     "subtitle": "subtitles.signalradar.scan_ping",
-    "sounds": [{ "name": "minecraft:block.note_block.chime", "type": "event", "volume": 0.35, "pitch": 1.6 }]
+    "sounds": [{ "name": "signalradar:scan_ping", "volume": 0.6 }]
   },
   "blip": {
     "subtitle": "subtitles.signalradar.blip",
-    "sounds": [{ "name": "minecraft:block.note_block.hat", "type": "event", "volume": 0.4, "pitch": 1.8 }]
+    "sounds": [{ "name": "signalradar:blip", "volume": 0.6 }]
   },
   "target_found": {
     "subtitle": "subtitles.signalradar.target_found",
-    "sounds": [{ "name": "minecraft:block.note_block.bell", "type": "event", "volume": 0.8, "pitch": 1.2 }]
+    "sounds": [{ "name": "signalradar:target_found", "volume": 0.8 }]
   },
   "motion_beep": {
     "subtitle": "subtitles.signalradar.motion_beep",
-    "sounds": [{ "name": "minecraft:block.note_block.bit", "type": "event", "volume": 0.5, "pitch": 1.4 }]
+    "sounds": [{ "name": "signalradar:motion_beep", "volume": 0.6 }]
   }
 }
