@@ -3,7 +3,7 @@
 Outputs (written straight into the mod resources, see art/README.md):
   models/item/radar.json             builtin/entity item model: display transforms + particle only. The item is drawn
                                      by the BEWLR (RadarItemRenderer), which picks the body model by tier.
-  models/item/radar_body_t0..t4.json geometry per tier (antenna mast grows one segment per tier); loaded as standalone
+  models/item/radar_body_t0..t4.json geometry per tier (antenna more articulated per tier, see antenna()); loaded as standalone
                                      models (ModelEvent.RegisterAdditional).
 Run from anywhere:  python art/make_tiers.py
 """
@@ -16,35 +16,95 @@ OUT = os.path.join(HERE, "..", "src", "main", "resources", "assets", "signalrada
 
 base = json.load(open(os.path.join(HERE, "radar.json")))
 els = base["elements"]
-mast = next(e for e in els if e["name"] == "antenna")
-tip = next(e for e in els if e["name"] == "antenna_tip")
-rest = [e for e in els if e["name"] not in ("antenna", "antenna_tip")]
-SEG = 1.75  # height of one mast segment
-Y0 = 16.0
+BY_NAME = {e["name"]: e for e in els}
+MAST, TIP, BASE, BRASS = BY_NAME["antenna"], BY_NAME["antenna_tip"], BY_NAME["antenna_base"], BY_NAME["dial"]
+ANTENNA_PARTS = ("antenna", "antenna_tip")
+
+# Geometry fixes applied on top of the Blockbench export (kept here so a re-export doesn't bring bugs back).
+# bezel_bottom used to span x 1.5..14.5 and shared the front plane z=10.75 with the corner bumpers -> z-fighting.
+FIXUPS = {
+    "bezel_bottom": {"from": [2.5, 3.5, 10], "to": [13.5, 5, 10.75]},
+    "bumper_bl": {"to": [2.5, 4.5, 10.95]},
+    "bumper_br": {"to": [15.5, 4.5, 10.95]},
+}
+
+CX, CZ = 12.75, 7.75   # main mast axis (centre of antenna_base)
+SX, SZ = 3.25, 7.75    # secondary antenna axis (left side of the hood), tiers 3-4
+
+
+def box(name, src, frm, to, rotation=None):
+    e = copy.deepcopy(src)
+    e["name"] = name
+    e["from"] = [round(v, 4) for v in frm]
+    e["to"] = [round(v, 4) for v in to]
+    e.pop("rotation", None)
+    if rotation:
+        e["rotation"] = rotation
+    return e
+
+
+def mast(name, x, z, y0, y1, w, src=None):
+    return box(name, src or MAST, [x - w, y0, z - w], [x + w, y1, z + w])
+
+
+def crossbar(name, y, half, t=0.15):
+    return box(name, MAST, [CX - half, y, CZ - t], [CX + half, y + 2 * t, CZ + t])
+
+
+def tip(name, x, z, y, r=0.45):
+    return box(name, TIP, [x - r, y, z - r], [x + r, y + 2 * r, z + r])
+
+
+def antenna(tier):
+    """Antenna gets more articulated per tier:
+    t0 short whip | t1 + brass loading coil, longer whip | t2 telescopic mast + crossbar |
+    t3 + Yagi crossbars (3) + secondary whip on the left | t4 + third mast section, 4 crossbars, dish on the left."""
+    out = []
+    if tier == 0:
+        out.append(mast("antenna_0", CX, CZ, 16, 19, 0.4))
+        out.append(tip("antenna_tip", CX, CZ, 19, 0.4))
+        return out
+    out.append(mast("antenna_coil", CX, CZ, 16, 17.2, 0.6, BRASS))
+    if tier == 1:
+        out.append(mast("antenna_0", CX, CZ, 17.2, 21, 0.35))
+        out.append(tip("antenna_tip", CX, CZ, 21, 0.4))
+        return out
+    top = 23.4 if tier == 2 else 23.4 if tier == 3 else 25.2
+    out.append(mast("antenna_0", CX, CZ, 17.2, 20.2, 0.4))
+    out.append(mast("antenna_joint_0", CX, CZ, 20.0, 20.4, 0.55, BASE))
+    out.append(mast("antenna_1", CX, CZ, 20.2, 23.4 if tier < 4 else 22.6, 0.3))
+    if tier == 4:
+        out.append(mast("antenna_joint_1", CX, CZ, 22.4, 22.8, 0.42, BASE))
+        out.append(mast("antenna_2", CX, CZ, 22.6, 25.2, 0.22))
+    bars = {2: [(22.2, 2.0)],
+            3: [(20.9, 2.5), (21.9, 2.0), (22.9, 1.5)],
+            4: [(20.9, 2.75), (21.8, 2.25), (23.3, 1.75), (24.3, 1.25)]}[tier]
+    for i, (y, half) in enumerate(bars):
+        out.append(crossbar(f"antenna_bar_{i}", y, half))
+    out.append(tip("antenna_tip", CX, CZ, top, 0.45))
+    if tier >= 3:  # secondary antenna on the left of the hood
+        out.append(box("aux_base", BASE, [SX - 0.5, 15, SZ - 0.5], [SX + 0.5, 15.8, SZ + 0.5]))
+        if tier == 3:
+            out.append(mast("aux_whip", SX, SZ, 15.8, 19.5, 0.25))
+            out.append(tip("aux_tip", SX, SZ, 19.5, 0.3))
+        else:  # small dish tilted up/back with a feed horn
+            out.append(mast("aux_stem", SX, SZ, 15.8, 17.6, 0.25))
+            out.append(box("aux_dish", BASE, [SX - 1.6, 17.6, SZ - 1.6], [SX + 1.6, 17.9, SZ + 1.6],
+                           {"angle": -22.5, "axis": "x", "origin": [SX, 17.75, SZ]}))
+            out.append(mast("aux_feed", SX, SZ, 17.9, 19.1, 0.12))
+            out.append(tip("aux_tip", SX, SZ, 19.1, 0.25))
+    return out
 
 
 def body(tier):
-    out = list(rest)
-    y = Y0
-    for i in range(tier + 1):
-        s = copy.deepcopy(mast)
-        s["name"] = f"antenna_{i}"
-        w = 0.4 - 0.05 * i  # segments get thinner going up
-        cx, cz = 12.75, 7.75
-        s["from"] = [cx - w, y, cz - w]
-        s["to"] = [cx + w, y + SEG, cz + w]
-        out.append(s)
-        if i < tier:  # joint ring between segments
-            r = copy.deepcopy(mast)
-            r["name"] = f"antenna_joint_{i}"
-            r["from"] = [cx - w - 0.15, y + SEG - 0.25, cz - w - 0.15]
-            r["to"] = [cx + w + 0.15, y + SEG + 0.25, cz + w + 0.15]
-            out.append(r)
-        y += SEG
-    t = copy.deepcopy(tip)
-    t["from"] = [12.15, y, 7.15]
-    t["to"] = [13.35, y + 1, 8.35]
-    out.append(t)
+    out = []
+    for e in els:
+        if e["name"] in ANTENNA_PARTS:
+            continue
+        e = copy.deepcopy(e)
+        e.update(copy.deepcopy(FIXUPS.get(e["name"], {})))
+        out.append(e)
+    out += antenna(tier)
     # Geometry only: display transforms live on the item model (the BEWLR draws this in model space).
     m = {k: v for k, v in base.items() if k not in ("elements", "display", "overrides")}
     m["elements"] = out
@@ -87,4 +147,5 @@ print("radar.json (builtin/entity)")
 for t in range(5):
     m = body(t)
     write(f"radar_body_t{t}.json", m)
-    print(f"radar_body_t{t}.json", len(m["elements"]), "elements, antenna top", round(Y0 + (t + 1) * SEG + 1, 2))
+    top = max(e["to"][1] for e in m["elements"])
+    print(f"radar_body_t{t}.json", len(m["elements"]), "elements, top y", top)
