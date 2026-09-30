@@ -59,7 +59,7 @@ public final class SignalRadarConfig {
                 .defineInRange("maxBlockChecksPerScan", 200000, 4096, Integer.MAX_VALUE);
         b.pop();
         b.push("addons");
-        SLOTS_BY_TIER = b.comment("Addon slots for tiers 0-4 (exactly 5 values, 0-5 each, otherwise the defaults are used).")
+        SLOTS_BY_TIER = b.comment("Addon slots for tiers 0-4 (exactly 5 values, otherwise the defaults are used; each clamped to 1-5).")
                 .defineList("slotsByTier", DEFAULT_SLOTS, () -> 1, o -> o instanceof Integer);
         it.ratlab.signalradar.addon.AddonConfig.define(b);
         b.pop();
@@ -144,13 +144,25 @@ public final class SignalRadarConfig {
 
     private static boolean warnedMultiplier;
 
-    /** Addon slots per tier, each clamped to 0..{@link #MAX_ADDON_SLOTS}. */
+    /** Game tests only: forces the slot list (null = follow the config). */
+    private static volatile int[] slotsOverride;
+
+    /** Addon slots per tier, each clamped to 1..{@link #MAX_ADDON_SLOTS}. */
     public static int[] slotsByTier() {
-        int[] v = tierList(SLOTS_BY_TIER, DEFAULT_SLOTS, "slotsByTier");
+        int[] o = slotsOverride;
+        return clampSlots(o != null ? o.clone() : tierList(SLOTS_BY_TIER, DEFAULT_SLOTS, "slotsByTier"));
+    }
+
+    /** Clamps every value to 1..{@link #MAX_ADDON_SLOTS} (in place). */
+    public static int[] clampSlots(int[] v) {
         for (int i = 0; i < v.length; i++) {
-            v[i] = Math.min(v[i], MAX_ADDON_SLOTS);
+            v[i] = Mth.clamp(v[i], 1, MAX_ADDON_SLOTS);
         }
         return v;
+    }
+
+    public static void overrideSlotsByTier(int[] slots) {
+        slotsOverride = slots == null ? null : slots.clone();
     }
 
     private static boolean warned;

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `addons.slotsByTier` values are clamped to 1..5 (0 is no longer accepted; the addon screen keeps its 5-slot layout).
 - Charging limit removed: `energy.maxReceive` now defaults to 2147483647 (no limit; the key stays, 0..max). A charger fills
   the radar as fast as it pushes: accepted = min(offered, maxReceive, free space). Existing config files keep their old value
   (100) until edited.

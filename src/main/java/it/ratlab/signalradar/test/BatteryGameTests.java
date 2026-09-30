@@ -229,4 +229,26 @@ public final class BatteryGameTests {
                 "stack round trip " + RadarItem.addonEntries(back));
         h.succeed();
     }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void slotCountFollowsConfig(GameTestHelper h) {
+        try {
+            SignalRadarConfig.overrideSlotsByTier(new int[] {2, 0, 3, 5, 9});
+            h.assertTrue(RadarItem.slots(0) == 2 && RadarItem.slots(1) == 1 && RadarItem.slots(2) == 3 && RadarItem.slots(3) == 5
+                    && RadarItem.slots(4) == 5, "slots follow the config clamped to 1..5");
+            ServerPlayer p = player(h);
+            ItemStack radar = radar(0);
+            p.setItemInHand(InteractionHand.MAIN_HAND, radar);
+            AddonMenu menu = AddonMenu.create(1, p.getInventory(), InteractionHand.MAIN_HAND, radar);
+            h.assertTrue(menu.slotCount() == 2 && !(menu.getSlot(1) instanceof AddonMenu.LockedSlot)
+                    && menu.getSlot(2) instanceof AddonMenu.LockedSlot, "menu slots at tier 0 = 2");
+            RadarItem.setAddons(radar, List.of(AddonRegistry.CONTAINER, AddonRegistry.BATTERY));
+            h.assertTrue(AddonRules.batteries(radar) == 1, "battery in the configured second slot counts");
+            p.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        } finally {
+            SignalRadarConfig.overrideSlotsByTier(null);
+        }
+        h.assertTrue(RadarItem.slots(0) == 1, "override cleared");
+        h.succeed();
+    }
 }

@@ -114,7 +114,7 @@ public class RadarItem extends Item {
         }
     }
 
-    /** Addon slots of a radar of this tier ({@code slotsByTier} config, default tier + 1, max 5). */
+    /** Addon slots of a radar of this tier ({@code slotsByTier} config, default tier + 1, each clamped to 1..5). */
     public static int slots(int tier) {
         return SignalRadarConfig.slotsByTier()[Mth.clamp(tier, 0, MAX_TIER)];
     }
