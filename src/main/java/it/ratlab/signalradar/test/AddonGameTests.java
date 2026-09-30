@@ -511,6 +511,38 @@ public final class AddonGameTests {
     }
 
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void higherTiersChargeLessEnergyPerScan(GameTestHelper h) {
+        ScanSettings tiered = new ScanSettings(DEFAULTS.rangeByTier(), DEFAULTS.fuzzByTier(), 50, 5,
+                SignalRadarConfig.sanitizeMultipliers(SignalRadarConfig.DEFAULT_ENERGY_MULTIPLIER));
+        UUID id = new UUID(3, 4);
+        ItemStack t0 = radar(0, 1000);
+        ItemStack t4 = radar(4, 1000);
+        RadarItem.setAddons(t0, ids(AddonRegistry.CONTAINER));
+        RadarItem.setAddons(t4, ids(AddonRegistry.CONTAINER));
+        RadarScanner.scan(t0, id, Vec3.ZERO, 100, tiered, List.of(), d -> java.util.Optional.empty(), AddonRules.active(t0), a -> List.of(),
+                RadarScanner.Charge.PAY);
+        RadarScanner.scan(t4, id, Vec3.ZERO, 100, tiered, List.of(), d -> java.util.Optional.empty(), AddonRules.active(t4), a -> List.of(),
+                RadarScanner.Charge.PAY);
+        int paid0 = 1000 - RadarItem.energy(t0);
+        int paid4 = 1000 - RadarItem.energy(t4);
+        h.assertTrue(paid0 == 60, "tier 0 pays scan 50 + container 10, got " + paid0);
+        h.assertTrue(paid4 == 24, "tier 4 pays 40% of 60 = 24, got " + paid4);
+        // rounding goes up, and binary floating point must not add an extra FE (100 * 0.85 is 85)
+        h.assertTrue(ScanSettings.chargeFor(100, 0.85) == 85 && ScanSettings.chargeFor(61, 0.4) == 25 && ScanSettings.chargeFor(0, 0.4) == 0,
+                "ceil rounding");
+        // 23 FE cannot pay tier 4's 24: NO SIGNAL, nothing taken
+        RadarItem.setEnergy(t4, 23);
+        ScanSnapshot broke = RadarScanner.scan(t4, id, Vec3.ZERO, 200, tiered, List.of(), d -> java.util.Optional.empty(), AddonRules.active(t4),
+                a -> List.of(), RadarScanner.Charge.PAY);
+        h.assertTrue(broke.noSignal() && RadarItem.energy(t4) == 23, "tier 4 with 23 FE");
+        // invalid config lists fall back to the defaults, values are clamped
+        double[] bad = SignalRadarConfig.sanitizeMultipliers(List.of(1.0, 0.5));
+        double[] clamped = SignalRadarConfig.sanitizeMultipliers(List.of(2.0, 0.0, 0.5, 1, 0.05));
+        h.assertTrue(bad.length == 5 && bad[4] == 0.4 && clamped[0] == 1.0 && clamped[1] == 0.05 && clamped[3] == 1.0, "config sanitizing");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void addonBlipsUseAddonCategoryNameAndFuzz(GameTestHelper h) {
         UUID id = new UUID(5, 6);
         Component name = Component.literal("Chest");

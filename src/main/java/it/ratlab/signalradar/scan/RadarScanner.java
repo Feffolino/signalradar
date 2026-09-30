@@ -66,7 +66,7 @@ public final class RadarScanner {
     }
 
     /**
-     * With {@link Charge#PAY}, charges {@code scanCost + sum of the addons' energyCost}. If it cannot pay, nothing is
+     * With {@link Charge#PAY}, charges {@code ceil((scanCost + sum of the addons' energyCost) * energyMultiplier[tier])}. If it cannot pay, nothing is
      * charged and a NO SIGNAL snapshot (no blips) is returned. Otherwise every target with {@code minTier <= tier} that
      * the locator can place becomes a blip (out-of-range targets are included, flagged, fuzzed with the maximum
      * magnitude, names hidden past their reveal distance), followed by the blips of the addons' detections
@@ -88,7 +88,7 @@ public final class RadarScanner {
         int energy = RadarItem.energy(radar);
         boolean paying = charge == Charge.PAY;
         if (paying) {
-            long cost = (long) settings.scanCost() + AddonRules.energyCost(addons);
+            long cost = settings.charge(tier, AddonRules.energyCost(addons));
             if (energy < cost) {
                 return noSignal(radar, settings, now, true);
             }

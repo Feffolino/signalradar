@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Higher tiers are more energy-efficient: new server config `scan.energyMultiplierByTier` (default 1.0, 0.85, 0.7, 0.55, 0.4;
+  0.05..1.0). The FE charged per scan period is `ceil((scanCost + addon costs) * multiplier)`.
 - The screen shows `NO BATTERY` (calm dark screen with a battery outline, red blinking LED) when the radar has no energy;
   `NO SIGNAL` with static stays for a scan cancelled by a script.
 - Zoom: while the radar is raised (holding right-click) the mouse wheel changes the display range in steps of 16, 32, 64,

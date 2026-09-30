@@ -72,7 +72,7 @@
   "tooltip.signalradar.addon.range_tier": "Range: the radar's tier range",
   "tooltip.signalradar.addon.range_dimension": "Range: the whole dimension",
   "tooltip.signalradar.addon.refresh": "Refresh every %s s",
-  "tooltip.signalradar.addon.energy": "Uses %s FE per scan",
+  "tooltip.signalradar.addon.energy": "Uses %s FE per scan (less on higher radar tiers)",
   "tooltip.signalradar.addon.disabled": "Disabled by the server config",
   "gui.signalradar.addons.title": "Radar Addons",
   "gui.signalradar.addons.locked_slot": "Locked: a higher radar tier unlocks more slots",

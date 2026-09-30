@@ -147,8 +147,9 @@ Custom addons use their definition values and have no config entries. Only the c
 
 ### Scan architecture (server-authoritative)
 - Only players holding a radar are processed (`ScanHandler` exits early otherwise).
-- **Energy**: every `scan.scanRefreshSeconds` (default 5) of holding, the radar pays `scanCost` (default 50 FE) plus the
-  `energyCost` of every installed, enabled addon. Not enough FE = a `NO SIGNAL` snapshot and nothing is charged. The first scan
+- **Energy**: every `scan.scanRefreshSeconds` (default 5) of holding, the radar pays `ceil((scanCost (default 50 FE) + the
+  `energyCost` of every installed, enabled addon) * energyMultiplierByTier[tier])` (default multipliers 1.0, 0.85, 0.7, 0.55, 0.4:
+  higher tiers are more efficient; the addon tooltip shows the base cost). Not enough FE = a `NO SIGNAL` snapshot and nothing is charged. The first scan
   happens as soon as the radar is held.
 - Snapshots are sent at min(base period, shortest addon refresh); scans between charges are free (cached results). The snapshot
   carries a `charged` flag (only charged scans ping).
@@ -240,6 +241,7 @@ Examples:
 | `energy.maxReceive` | 100 | FE per tick accepted from chargers. |
 | `scan.scanCost` | 50 | FE per base scan. |
 | `scan.scanRefreshSeconds` | 5 | Seconds between base scans. |
+| `scan.energyMultiplierByTier` | `[1.0, 0.85, 0.7, 0.55, 0.4]` | 5 values, 0.05..1.0 each (other length = defaults). Per-period charge = `ceil((scanCost + addon costs) * multiplier[tier])`. |
 | `scan.rangeByTier` | `[256, 512, 1024, 2048, 4096]` | |
 | `scan.fuzzByTier` | `[64, 32, 16, 6, 0]` | |
 | `scan.structureLookupsPerTick` | 1 | 1..64. |
