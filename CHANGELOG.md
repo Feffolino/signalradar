@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Zoom choice is saved in the client config (`zoomRange`) and survives restarts; a lower-tier radar shows its own cap without
+  forgetting it.
 
 - Changed: the Loot addon is now the Lootr addon: item `signalradar:addon_loot` became `signalradar:addon_lootr` (name "Lootr Addon"),
   category `loot` became `lootr`, config section `[addons.loot]` became `[addons.lootr]` (old values are not migrated: copy them by

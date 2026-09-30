@@ -13,22 +13,20 @@ import net.minecraft.world.InteractionHand;
 
 /**
  * Client-side display range (zoom). The server still scans the whole tier range; this only changes how much of it the
- * display shows. Remembered for the session (static); 0 = follow the tier range.
+ * display shows. Saved in the client config ({@code zoomRange}) so it survives restarts; 0 = follow the tier range.
  */
 final class RadarZoom {
     static final KeyMapping ZOOM_IN = new KeyMapping("key.signalradar.zoom_in", -1, "key.categories.signalradar");
     static final KeyMapping ZOOM_OUT = new KeyMapping("key.signalradar.zoom_out", -1, "key.categories.signalradar");
 
-    private static int chosen;
+    private static int chosen = -1; // -1 = not read from the client config yet
 
     private RadarZoom() {}
 
     /** Range to display for a tier range {@code cap}; forgets a choice the tier can no longer reach. */
     static int range(int cap) {
-        if (chosen > cap) {
-            chosen = 0;
-        }
-        return RadarMath.effectiveRange(chosen, cap);
+        // A choice above this tier's cap only shows the cap; the saved choice is kept for stronger radars.
+        return RadarMath.effectiveRange(chosen(), cap);
     }
 
     /** One step: +1 larger range (zoom out), -1 smaller (zoom in). Needs a snapshot (its range is the tier cap). */
@@ -44,6 +42,7 @@ final class RadarZoom {
             return;
         }
         chosen = next >= cap ? 0 : next;
+        RadarClientConfig.setZoomRange(chosen);
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 1.4f, 0.35f));
     }
 
@@ -65,7 +64,15 @@ final class RadarZoom {
         }
     }
 
+    private static int chosen() {
+        if (chosen < 0) {
+            chosen = RadarClientConfig.zoomRange();
+        }
+        return chosen;
+    }
+
+    /** Logout / world change: re-read the saved choice (the config may have been edited meanwhile). */
     static void reset() {
-        chosen = 0;
+        chosen = -1;
     }
 }

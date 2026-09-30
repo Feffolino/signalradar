@@ -27,7 +27,24 @@ public final class RadarClientConfig {
             .comment("At most this many of the nearest blips are drawn as icons, the rest as plain dots (0 = dots only).")
             .defineInRange("maxIcons", 48, 0, 256);
 
+    private static final ModConfigSpec.IntValue ZOOM_RANGE = B
+            .comment("Last display range chosen with the zoom (metres), saved across restarts. 0 = follow the tier range.",
+                    "A radar whose tier can't reach it shows its own tier range; the saved value is kept.")
+            .defineInRange("zoomRange", 0, 0, 1 << 20);
+
     public static final ModConfigSpec SPEC = B.build();
+
+    public static int zoomRange() {
+        return SPEC.isLoaded() ? ZOOM_RANGE.getAsInt() : ZOOM_RANGE.getDefault();
+    }
+
+    /** Stores the zoom choice and writes the client config file. */
+    public static void setZoomRange(int range) {
+        if (SPEC.isLoaded() && ZOOM_RANGE.getAsInt() != range) {
+            ZOOM_RANGE.set(range);
+            ZOOM_RANGE.save();
+        }
+    }
 
     private RadarClientConfig() {}
 

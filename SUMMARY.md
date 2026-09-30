@@ -151,8 +151,8 @@ Custom addons use their definition values and have no config entries. Only the c
   wheel (`InputEvent.MouseScrollingEvent`, cancelled so the hotbar stays put) steps the display range through 4, 8, 16, 32, 64, 128,
   256, 512, 1024, 2048, 4096 m, at most the tier range (`snap.range()`, which is also the default; a non-step cap is offered
   as the last option). Wheel up = larger range (zoom out), wheel down = smaller range (zoom in); the keys keep zoom in = smaller range. Blips beyond the chosen range use the rim arrow like out-of-range ones; the
-  range label shows the chosen range. The choice is a client static for the session (0 = follow tier), forgotten when the tier
-  cap drops below it. Key mappings "Radar zoom in / out" (unbound, category "Signal Radar") work while a radar is in a hand.
+  range label shows the chosen range. The choice is saved in the client config (`zoomRange`, 0 = follow tier) and survives
+  restarts; a radar whose tier can't reach it shows its tier range while the saved choice is kept. Key mappings "Radar zoom in / out" (unbound, category "Signal Radar") work while a radar is in a hand.
   Quiet UI click on change. The server scan is unchanged.
   **Zoom bands** (`RadarMath.peripheralRange/visibility`, only when a zoom is active, i.e. range < tier range): rim band beyond the
   zoom range for local blips: 4 -> 16, 8 -> 32, 16 -> 32, 32 -> 64, >= 64 -> none (a value between steps uses the step at or
