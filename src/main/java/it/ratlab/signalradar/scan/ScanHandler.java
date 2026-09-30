@@ -91,8 +91,23 @@ public final class ScanHandler {
         return sendScan(player, radar, settings, now, AddonRules.active(radar), RadarScanner.Charge.PAY);
     }
 
+    /**
+     * Runs one charged scan now and returns the snapshot (after {@link RadarScanEvent}) without sending it. For tests
+     * and callers with their own delivery.
+     */
+    public static ScanSnapshot computeScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now) {
+        return computeScan(player, radar, settings, now, AddonRules.active(radar), RadarScanner.Charge.PAY);
+    }
+
     private static ScanSnapshot sendScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now,
                                          List<AddonSettings> addons, RadarScanner.Charge charge) {
+        ScanSnapshot snapshot = computeScan(player, radar, settings, now, addons, charge);
+        PacketDistributor.sendToPlayer(player, new SnapshotPayload(snapshot));
+        return snapshot;
+    }
+
+    private static ScanSnapshot computeScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now,
+                                            List<AddonSettings> addons, RadarScanner.Charge charge) {
         ServerLevel level = player.serverLevel();
         int tier = RadarItem.tier(radar);
         int range = settings.range(tier);
@@ -107,9 +122,7 @@ public final class ScanHandler {
         };
         ScanSnapshot snapshot = RadarScanner.scan(radar, player.getUUID(), player.position(), now, settings, TargetManager.all(),
                 def -> Locators.locate(player, def, range, level, now, budget), addons, detect, charge, PlayerProgress.of(player));
-        snapshot = postScanEvent(player, radar, range, snapshot);
-        PacketDistributor.sendToPlayer(player, new SnapshotPayload(snapshot));
-        return snapshot;
+        return postScanEvent(player, radar, range, snapshot);
     }
 
     /** Posts {@link RadarScanEvent} for a scan with signal: cancelled = NO SIGNAL, edited blips replace the computed ones. */

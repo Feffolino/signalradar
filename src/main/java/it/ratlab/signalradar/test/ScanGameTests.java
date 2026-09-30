@@ -395,7 +395,7 @@ public final class ScanGameTests {
     @SuppressWarnings("removal")
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void entityAndPosLocators(GameTestHelper h) {
-        ServerPlayer p = h.makeMockServerPlayerInLevel();
+        ServerPlayer p = TestPlayers.create(h);
         p.setPos(h.absolutePos(new BlockPos(0, 2, 0)).getCenter());
         Entity stand = h.spawn(EntityType.ARMOR_STAND, new BlockPos(1, 2, 1));
         stand.addTag("sr_test");
@@ -449,7 +449,7 @@ public final class ScanGameTests {
     @SuppressWarnings("removal")
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void heldRadarIsFoundInEitherHand(GameTestHelper h) {
-        ServerPlayer p = h.makeMockServerPlayerInLevel();
+        ServerPlayer p = TestPlayers.create(h);
         h.assertTrue(ScanHandler.heldRadar(p).isEmpty(), "empty hands");
         ItemStack r = radar(0, 100);
         p.setItemInHand(InteractionHand.OFF_HAND, r);
@@ -465,7 +465,7 @@ public final class ScanGameTests {
     @SuppressWarnings("removal")
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void commandsWork(GameTestHelper h) throws Exception {
-        ServerPlayer p = h.makeMockServerPlayerInLevel();
+        ServerPlayer p = TestPlayers.create(h);
         ItemStack r = radar(0, 10);
         p.setItemInHand(InteractionHand.MAIN_HAND, r);
         var dispatcher = h.getLevel().getServer().getCommands().getDispatcher();

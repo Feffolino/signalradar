@@ -55,6 +55,14 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
             systemProperty 'signalradar.gametests', 'true'
         }
+        // Same game tests with KubeJS + Rhino dropped into run-kubejs/mods and the example scripts of src/test_datapack/kubejs
+        // copied into run-kubejs/kubejs (see tools/prepare-kubejs-run.sh); KubeJSGameTests run for real. Not part of the default check.
+        gameTestServerKubeJS {
+            type = "gameTestServer"
+            gameDirectory = project.file('run-kubejs')
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'signalradar.gametests', 'true'
+        }
         configureEach {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             logLevel = org.slf4j.event.Level.DEBUG

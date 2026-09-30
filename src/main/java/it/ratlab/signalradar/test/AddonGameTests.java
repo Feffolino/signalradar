@@ -85,7 +85,7 @@ public final class AddonGameTests {
     }
 
     private static ServerPlayer player(GameTestHelper h) {
-        ServerPlayer p = h.makeMockServerPlayerInLevel();
+        ServerPlayer p = TestPlayers.create(h);
         p.setPos(Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(0, 1, 0))));
         return p;
     }
