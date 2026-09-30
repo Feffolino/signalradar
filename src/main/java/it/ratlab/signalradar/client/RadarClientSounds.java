@@ -9,6 +9,8 @@ import it.ratlab.signalradar.item.RadarItem;
 import it.ratlab.signalradar.registry.ModSounds;
 import it.ratlab.signalradar.scan.Blip;
 import it.ratlab.signalradar.scan.ScanSnapshot;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -27,6 +29,11 @@ public final class RadarClientSounds {
     /** Beep reference distance when a snapshot does not say (motion addon radius at tier 4). */
     private static final double BEEP_REFERENCE_FALLBACK = 48.0;
     private static int beepCooldown;
+    /** Last ping time (ms): at most one ping per ~80 % of the scan period, however many charged snapshots arrive. */
+    private static long lastPingMs;
+    /** Radar-clock tick of the last tick sound per blip id: a blip ticks at most once per sweep turn (turning the
+     *  view can move a blip back across the sweep line). */
+    private static final Map<String, Long> LAST_TICK = new HashMap<>();
 
     private RadarClientSounds() {}
 
@@ -41,8 +48,18 @@ public final class RadarClientSounds {
     static void onSnapshot(ScanSnapshot snap) {
         LocalPlayer p = Minecraft.getInstance().player;
         if (p != null && snap.charged() && !snap.noSignal() && !held(p).isEmpty()) {
-            play(p, ModSounds.SCAN_PING.get(), 1f, 1f);
+            long now = System.currentTimeMillis();
+            if (now - lastPingMs >= Math.max(1, snap.refreshSeconds()) * 800L) {
+                lastPingMs = now;
+                play(p, ModSounds.SCAN_PING.get(), 1f, 1f);
+            }
         }
+    }
+
+    static void reset() {
+        lastPingMs = 0;
+        beepCooldown = 0;
+        LAST_TICK.clear();
     }
 
     static void tick() {
@@ -63,7 +80,7 @@ public final class RadarClientSounds {
             return;
         }
         motionBeep(p, snap, nowMs);
-        long t = mc.level.getGameTime();
+        long t = RadarClock.ticks();
         double prev = RadarMath.sweepAngle(t - 1);
         double cur = RadarMath.sweepAngle(t);
         for (Blip b : snap.blips()) {
@@ -73,6 +90,14 @@ public final class RadarClientSounds {
             Vec3d wp = ClientRadarState.position(b, nowMs);
             Vec2 rel = RadarMath.relative(wp.x() - p.getX(), wp.z() - p.getZ(), p.getViewYRot(1f));
             if (RadarMath.sweepCrossed(prev, cur, RadarMath.displayAngle(rel.x(), rel.y()))) {
+                Long last = LAST_TICK.get(b.id());
+                if (last != null && t - last < RadarMath.SWEEP_PERIOD_TICKS * 0.8) {
+                    continue;
+                }
+                if (LAST_TICK.size() > 256) {
+                    LAST_TICK.clear();
+                }
+                LAST_TICK.put(b.id(), t);
                 play(p, ModSounds.BLIP.get(), 1f, b.outOfRange() ? 0.9f : 1f);
                 return; // one tick per client tick is plenty
             }

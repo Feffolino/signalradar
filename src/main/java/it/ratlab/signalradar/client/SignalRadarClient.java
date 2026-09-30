@@ -35,6 +35,7 @@ public final class SignalRadarClient {
             RadarClientSounds.onSnapshot(p.snapshot());
         };
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e) -> {
+            RadarClock.tick();
             RaiseState.tick();
             RadarClientSounds.tick();
         });
@@ -42,6 +43,8 @@ public final class SignalRadarClient {
             ClientRadarState.clear();
             RadarIcons.clear();
             RaiseState.reset();
+            RadarClock.reset();
+            RadarClientSounds.reset();
         });
     }
 }

@@ -32,7 +32,8 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 /** Server-side glue: scans for players holding a radar, runs the structure queue. */
 public final class ScanHandler {
-    private record Key(int tier, List<ResourceLocation> addons, int stack) {}
+    /** What the scan is paid for: changing tier, addons or hand forces a new paid scan. */
+    private record Key(int tier, List<ResourceLocation> addons, boolean mainHand) {}
 
     private static final Map<UUID, ScanSchedule> STATES = new HashMap<>();
 
@@ -64,7 +65,7 @@ public final class ScanHandler {
         }
         long now = player.level().getGameTime();
         ScanSchedule st = STATES.computeIfAbsent(player.getUUID(), k -> new ScanSchedule());
-        if (!st.due(now, new Key(RadarItem.tier(radar), RadarItem.addons(radar), System.identityHashCode(radar)))) {
+        if (!st.due(now, new Key(RadarItem.tier(radar), RadarItem.addons(radar), player.getMainHandItem() == radar))) {
             return;
         }
         ScanSettings base = ScanSettings.fromConfig();

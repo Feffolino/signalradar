@@ -109,7 +109,7 @@ final class RadarDisplay {
         ScreenLayout lay = RadarScreenLoader.layout();
         Mode mode = mode(ctx);
         float partial = mc.getTimer().getGameTimeDeltaPartialTick(true);
-        double ticks = mc.level == null ? 0 : mc.level.getGameTime() + partial;
+        double ticks = mc.level == null ? 0 : RadarClock.ticks(partial);
         long nowMs = System.currentTimeMillis();
 
         int energy = RadarItem.energy(stack);
