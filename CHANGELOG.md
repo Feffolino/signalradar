@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The screen shows `NO BATTERY` (calm dark screen with a battery outline, red blinking LED) when the radar has no energy;
+  `NO SIGNAL` with static stays for a scan cancelled by a script.
 - Zoom: while the radar is raised (holding right-click) the mouse wheel changes the display range in steps of 16, 32, 64,
   ... 4096 m, capped at the tier range (default = tier range, remembered for the session). Blips beyond the chosen range go to
   the rim with an arrow; the range label follows. Client only, the server still scans the full range. Optional unbound keys

@@ -101,7 +101,7 @@ Custom addons use their definition values and have no config entries. Only the c
 - Drawn by a BEWLR (`client/RadarItemRenderer`): the baked body model of the tier, then the CRT display as fullbright geometry
   (`RenderType.text` with a white texture; no FBO, shader and Sodium/Iris safe): background, range rings, rotating north marker,
   sweep with fading trail, phosphor-decay blips, rim arrows for far targets, up/down arrows for blips more than 4 blocks above or
-  below, dimmed blip with a check mark for found targets, tier pips, energy bar, `NO SIGNAL` with static noise, status LED
+  below, dimmed blip with a check mark for found targets, tier pips, energy bar, `NO BATTERY` (empty energy: calm dark screen, battery outline, text) or `NO SIGNAL` (scan cancelled by a script: static noise), status LED
   (green ok, amber below 20 % energy, blinking red no signal).
 - Heading-up: the player's facing is up. Sweep period 50 ticks.
 - **Blip icons** (`client/RadarIcons`, `icon/IconSpec`): every blip carries an icon spec string (`Blip.icon`) and is drawn as a

@@ -31,6 +31,7 @@
   "subtitles.signalradar.target_found": "Signal acquired",
   "subtitles.signalradar.motion_beep": "Motion tracker beeps",
   "signalradar.display.no_signal": "NO SIGNAL",
+  "signalradar.display.no_battery": "NO BATTERY",
   "key.categories.signalradar": "Signal Radar",
   "key.signalradar.zoom_in": "Radar zoom in",
   "key.signalradar.zoom_out": "Radar zoom out",

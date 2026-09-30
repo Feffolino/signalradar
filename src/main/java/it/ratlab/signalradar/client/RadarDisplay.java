@@ -118,7 +118,8 @@ final class RadarDisplay {
         if (snap != null && RadarMath.stale(nowMs, ClientRadarState.receivedAtMillis(), snap.refreshSeconds())) {
             snap = null; // no data: sweep only
         }
-        boolean noSignal = energy <= 0 || (snap != null && snap.noSignal());
+        boolean noBattery = energy <= 0;
+        boolean noSignal = !noBattery && snap != null && snap.noSignal();
         boolean blink = ((long) ticks / 10) % 2 == 0;
 
         ps.pushPose();
@@ -143,7 +144,11 @@ final class RadarDisplay {
         float yaw = player != null && mode == Mode.LIVE ? player.getViewYRot(partial) : 180f;
 
         List<Text> texts = new ArrayList<>();
-        if (noSignal && mode != Mode.STATIC) {
+        if (noBattery && mode != Mode.STATIC) {
+            // Calm dark screen: battery outline and text, no noise, no blinking text (the LED blinks).
+            d.batteryIcon(cx, cy + 0.45);
+            texts.add(new Text(noBatteryText(), cx, cy - 0.85, fitScale(mc.font, noBatteryText(), 0.09f, r * 1.7), RadarColors.NO_SIGNAL_TEXT, true));
+        } else if (noSignal && mode != Mode.STATIC) {
             d.noise(cx, cy, r, (long) (ticks / 2));
             if (blink) {
                 texts.add(new Text(noSignalText(), cx, cy, 0.1f, RadarColors.NO_SIGNAL_TEXT, true));
@@ -162,7 +167,7 @@ final class RadarDisplay {
             }
         }
         d.panel(px0, px1, lay, RadarItem.tier(stack), energy / (double) capacity, snap, texts);
-        d.led(lay, noSignal, energy / (double) capacity, blink || mode == Mode.STATIC);
+        d.led(lay, noBattery || noSignal, energy / (double) capacity, blink || mode == Mode.STATIC);
         // Icons last among the quads: each texture switch ends the open quad batch.
         d.drawIcons(mc);
 
@@ -177,6 +182,25 @@ final class RadarDisplay {
     private static net.minecraft.world.entity.HumanoidArm armOf(ItemDisplayContext ctx) {
         return ctx == ItemDisplayContext.FIRST_PERSON_LEFT_HAND ? net.minecraft.world.entity.HumanoidArm.LEFT
                 : net.minecraft.world.entity.HumanoidArm.RIGHT;
+    }
+
+    private static String noBatteryString;
+    private static String noBatteryLang;
+
+    /** Translated once per language, not per frame. */
+    private static String noBatteryText() {
+        String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+        if (noBatteryString == null || !lang.equals(noBatteryLang)) {
+            noBatteryString = Component.translatable("signalradar.display.no_battery").getString();
+            noBatteryLang = lang;
+        }
+        return noBatteryString;
+    }
+
+    /** Text scale that keeps the string within {@code maxWidth} model units. */
+    private static float fitScale(Font font, String text, float scale, double maxWidth) {
+        float w = Math.max(1, font.width(text));
+        return (float) Math.min(scale, maxWidth / w);
     }
 
     private static String noSignalString;
@@ -504,6 +528,24 @@ final class RadarDisplay {
         if (f > 0) {
             rect(bx0 + 0.08, by0 + 0.08, bx0 + bw - 0.08, by0 + 0.08 + (barTop - by0 - 0.16) * f, L_SWEEP, c);
         }
+    }
+
+    /** Empty battery outline with a red sliver, centred on (cx, cy). */
+    private void batteryIcon(double cx, double cy) {
+        double w = 1.7;
+        double h = 0.9;
+        double t = 0.11;
+        int c = RadarColors.NO_SIGNAL_TEXT;
+        double x0 = cx - w / 2 - 0.08;
+        double x1 = x0 + w;
+        double y0 = cy - h / 2;
+        double y1 = cy + h / 2;
+        rect(x0, y1 - t, x1, y1, L_MARK, c);
+        rect(x0, y0, x1, y0 + t, L_MARK, c);
+        rect(x0, y0 + t, x0 + t, y1 - t, L_MARK, c);
+        rect(x1 - t, y0 + t, x1, y1 - t, L_MARK, c);
+        rect(x1, cy - 0.17, x1 + 0.16, cy + 0.17, L_MARK, c); // terminal
+        rect(x0 + t + 0.07, y0 + t + 0.07, x0 + t + 0.19, y1 - t - 0.07, L_MARK, RadarColors.ENERGY_EMPTY); // last sliver
     }
 
     private void noise(double cx, double cy, double r, long frame) {
