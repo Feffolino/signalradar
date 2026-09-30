@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
  *   <li>{@code block:<id>}: the face of a block</li>
  *   <li>{@code item:<id>}: an item icon</li>
  *   <li>{@code texture:<rl>}: a plain PNG (resource location of the file, e.g. {@code manholes:textures/gui/map_icon_city.png})</li>
- *   <li>{@code entity:<type id>}: a mob head, else the spawn egg, else a dot</li>
+ *   <li>{@code entity:<type id>}: the mob face, else a full-body render, else the vanilla mob head item, else a dot</li>
  *   <li>{@code player:<uuid>}: the skin face of a player</li>
  *   <li>empty: a coloured dot</li>
  * </ul>

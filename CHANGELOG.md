@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Mob icons never use spawn eggs any more. Order: the mob's face (head model part; now also found when nested in the model tree
+  or kept in a plain `head` field of a custom `EntityModel`, e.g. MutantsZombies), else a full-body mini render of the mob with its own
+  renderer (front facing, frozen, fullbright, flattened; works for GeckoLib mobs such as Zombie Island), else the vanilla mob head
+  item, else a dot. The client log says once per type which path is used: `Mob icon <type>: face|body|head|dot (reason)`.
 - `addons.slotsByTier` values are clamped to 1..5 (0 is no longer accepted; the addon screen keeps its 5-slot layout).
 - Charging limit removed: `energy.maxReceive` now defaults to 2147483647 (no limit; the key stays, 0..max). A charger fills
   the radar as fast as it pushes: accepted = min(offered, maxReceive, free space). Existing config files keep their old value

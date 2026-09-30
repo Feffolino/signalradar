@@ -4,8 +4,10 @@ package it.ratlab.signalradar.client;
 import it.ratlab.signalradar.SignalRadar;
 import it.ratlab.signalradar.icon.IconSpec;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -24,7 +26,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.data.ModelData;
@@ -37,16 +38,21 @@ import org.jetbrains.annotations.Nullable;
  */
 final class RadarIcons {
     /** What to draw: nothing special (a dot), textured layers, or an item model. */
-    enum Kind { DOT, SPRITE, ITEM, HEAD }
+    enum Kind { DOT, SPRITE, ITEM, HEAD, BODY }
 
     /** A textured rectangle: the sprite region {@code u0..u1 x v0..v1} of the texture of {@code type}. */
     record Layer(RenderType type, float u0, float v0, float u1, float v1) {}
 
-    record Icon(Kind kind, Layer[] layers, @Nullable ItemStack stack, @Nullable MobFaces.Head head) {
-        static final Icon DOT = new Icon(Kind.DOT, new Layer[0], null, null);
+    /**
+     * @param body     full-body render (kind BODY)
+     * @param fallback drawn instead of a BODY whose render failed (vanilla head item, or null = empty frame)
+     */
+    record Icon(Kind kind, Layer[] layers, @Nullable ItemStack stack, @Nullable MobFaces.Head head, @Nullable MobBodies.Body body,
+                @Nullable Icon fallback) {
+        static final Icon DOT = new Icon(Kind.DOT, new Layer[0], null, null, null, null);
 
         Icon(Kind kind, Layer[] layers, @Nullable ItemStack stack) {
-            this(kind, layers, stack, null);
+            this(kind, layers, stack, null, null, null);
         }
 
         /** Groups icons sharing a texture so texture switches (and so batch flushes) are few. */
@@ -157,22 +163,53 @@ final class RadarIcons {
         return new Icon(Kind.SPRITE, new Layer[] {new Layer(RenderType.text(tex), 0f, 0f, 1f, 1f)}, null);
     }
 
-    /** The mob's own face (head model part), else the vanilla mob head item, else the spawn egg, else a dot. */
+    /** Entity types whose icon path was already logged (once per type per game session). */
+    private static final Set<String> LOGGED = new HashSet<>();
+
+    /**
+     * The mob's own face (head model part), else a full-body mini render of the mob, else the vanilla mob head item, else
+     * a dot. Never the spawn egg (eggs do not tell mobs apart). The chosen path is logged once per type at INFO
+     * ({@code Mob icon <type>: face|body|head|dot}) so pack makers can report odd icons.
+     */
     private static Icon entity(String typeId) {
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(typeId)).orElse(null);
-        if (type != null) {
-            MobFaces.Head face = MobFaces.create(type);
-            if (face != null) {
-                return new Icon(Kind.HEAD, new Layer[0], null, face);
+        String headId = IconSpec.headItemFor(typeId);
+        Icon headItem = headId == null ? null : item(ResourceLocation.parse(headId));
+        if (headItem != null && headItem.kind() == Kind.DOT) {
+            headItem = null;
+        }
+        if (type == null) {
+            log(typeId, headItem != null ? "head" : "dot", "unknown entity type");
+            return headItem != null ? headItem : Icon.DOT;
+        }
+        MobFaces.Head face = MobFaces.create(type);
+        if (face != null) {
+            log(typeId, "face", null);
+            return new Icon(Kind.HEAD, new Layer[0], null, face, null, null);
+        }
+        String why = "face: " + MobFaces.lastFailure;
+        MobBodies.Body body = MobBodies.create(type);
+        if (body != null) {
+            log(typeId, "body", why);
+            return new Icon(Kind.BODY, new Layer[0], null, null, body, headItem);
+        }
+        why += "; body: " + MobBodies.lastFailure;
+        if (headItem != null) {
+            log(typeId, "head", why);
+            return headItem;
+        }
+        log(typeId, "dot", why);
+        return Icon.DOT;
+    }
+
+    static void log(String typeId, String path, @Nullable String why) {
+        if (LOGGED.add(typeId + "|" + path)) {
+            if (why == null) {
+                SignalRadar.LOGGER.info("Mob icon {}: {}", typeId, path);
+            } else {
+                SignalRadar.LOGGER.info("Mob icon {}: {} ({})", typeId, path, why);
             }
-            SignalRadar.LOGGER.debug("Mob face unavailable for {}, using the fallback icon", typeId);
         }
-        String head = IconSpec.headItemFor(typeId);
-        if (head != null) {
-            return item(ResourceLocation.parse(head));
-        }
-        SpawnEggItem egg = type == null ? null : SpawnEggItem.byId(type);
-        return itemIcon(egg);
     }
 
     private static boolean knownPlayer(String uuid) {

@@ -466,17 +466,38 @@ final class RadarDisplay {
                 MobFaces.draw(icon.head(), ps, buffers.getBuffer(icon.head().type()), (float) (d.half() * 2), d.sub() * ITEM_DEPTH,
                         0xFF000000 | (v << 16) | (v << 8) | v, LIGHT);
                 ps.popPose();
+            } else if (icon.kind() == RadarIcons.Kind.BODY && icon.body() != null) {
+                MobBodies.Body body = icon.body();
+                if (!body.failed) {
+                    ps.pushPose();
+                    try {
+                        ps.translate(d.cx(), d.cy(), zz);
+                        MobBodies.draw(body, ps, buffers, (float) (d.half() * 2), d.sub() * ITEM_DEPTH, d.found() ? LightTexture.pack(3, 3) : LIGHT);
+                    } catch (RuntimeException | LinkageError e) {
+                        body.failed = true;
+                        RadarIcons.log(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(body.entity.getType()).toString(),
+                                icon.fallback() != null ? "head" : "dot", "body render failed: " + e);
+                    } finally {
+                        ps.popPose();
+                    }
+                } else if (icon.fallback() != null && icon.fallback().stack() != null) {
+                    drawItem(mc, icon.fallback().stack(), d, zz);
+                }
             } else if (icon.kind() == RadarIcons.Kind.ITEM && icon.stack() != null) {
-                float side = (float) (d.half() * 2);
-                ps.pushPose();
-                ps.translate(d.cx(), d.cy(), zz);
-                ps.scale(side, side, d.sub() * ITEM_DEPTH);
-                int light = d.found() ? LightTexture.pack(3, 3) : LIGHT;
-                mc.getItemRenderer().renderStatic(icon.stack(), ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, ps, buffers,
-                        mc.level, 0);
-                ps.popPose();
+                drawItem(mc, icon.stack(), d, zz);
             }
         }
+    }
+
+    /** An item model flattened on z, filling the icon square. */
+    private void drawItem(Minecraft mc, ItemStack stack, IconDraw d, float zz) {
+        float side = (float) (d.half() * 2);
+        ps.pushPose();
+        ps.translate(d.cx(), d.cy(), zz);
+        ps.scale(side, side, d.sub() * ITEM_DEPTH);
+        int light = d.found() ? LightTexture.pack(3, 3) : LIGHT;
+        mc.getItemRenderer().renderStatic(stack, ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, ps, buffers, mc.level, 0);
+        ps.popPose();
     }
 
     /** Raised: name (or ???), distance and compass of the blip closest to the view direction. */

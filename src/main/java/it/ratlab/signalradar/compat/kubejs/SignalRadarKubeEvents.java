@@ -136,7 +136,7 @@ public final class SignalRadarKubeEvents {
         /**
          * Icon of every blip of this addon: {@code block:<id>}, {@code item:<id>}, {@code texture:<rl>}, {@code entity:<id>},
          * {@code player:<uuid>}; a bare id is an item. Without it the detector decides (block_tag: the block face, entity_tag:
-         * the mob head or spawn egg, container: the block item, structure_tag: a map).
+         * the mob face or body, container: the block item, structure_tag: a map).
          */
         public AddonBuilderJS icon(String icon) {
             builder.icon(icon);

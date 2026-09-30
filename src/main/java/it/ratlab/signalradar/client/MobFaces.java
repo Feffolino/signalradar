@@ -3,7 +3,6 @@ package it.ratlab.signalradar.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import it.ratlab.signalradar.SignalRadar;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HeadedModel;
 import net.minecraft.client.model.HierarchicalModel;
@@ -16,6 +15,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import org.joml.Vector3f;
 
 /**
@@ -47,16 +48,22 @@ final class MobFaces {
             }
             EntityRenderer<?> renderer = mc.getEntityRenderDispatcher().getRenderer(entity);
             if (!(renderer instanceof LivingEntityRenderer<?, ?> living)) {
+                // GeckoLib (GeoEntityRenderer) and other custom renderers: no vanilla model to take a head from
+                lastFailure = "renderer " + (renderer == null ? "null" : renderer.getClass().getSimpleName()) + " is not a LivingEntityRenderer";
                 return null;
             }
             Object model = living.getModel();
             ModelPart head = null;
             if (model instanceof HeadedModel headed) {
                 head = headed.getHead();
-            } else if (model instanceof HierarchicalModel<?> h && h.root().hasChild("head")) {
-                head = h.root().getChild("head");
+            } else if (model instanceof HierarchicalModel<?> h) {
+                head = findChild(h.root(), "head", 0); // often nested: root > body > head
+            }
+            if (head == null && model != null) {
+                head = headField(model); // plain EntityModel with a "head" field (MutantsZombies and many Blockbench exports)
             }
             if (head == null) {
+                lastFailure = "model " + (model == null ? "null" : model.getClass().getSimpleName()) + " has no head part";
                 return null;
             }
             ResourceLocation tex = ((EntityRenderer<Entity>) (EntityRenderer<?>) renderer).getTextureLocation(entity);
@@ -70,14 +77,60 @@ final class MobFaces {
             float w = b[3] - b[0];
             float h = b[4] - b[1];
             if (!(w > 1e-4f) || !(h > 1e-4f) || !Float.isFinite(w + h)) {
+                lastFailure = "head part has no visible cubes";
                 return null;
             }
             return new Head(head, RenderType.text(tex), (b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2, Math.max(w, h),
                     Math.max(b[5] - b[2], 0.05f));
         } catch (RuntimeException | LinkageError e) {
-            SignalRadar.LOGGER.debug("No mob face for {}: {}", type, e.toString());
+            lastFailure = e.toString();
             return null;
         }
+    }
+
+    /** Why the last {@link #create} returned null (for the one-time log line). */
+    static String lastFailure = "";
+
+    /** Depth-first search for a descendant part called {@code name} (children map, access transformer). */
+    @Nullable
+    private static ModelPart findChild(ModelPart part, String name, int depth) {
+        if (depth > 8) {
+            return null;
+        }
+        ModelPart direct = part.children.get(name);
+        if (direct != null) {
+            return direct;
+        }
+        for (ModelPart child : part.children.values()) {
+            ModelPart found = findChild(child, name, depth + 1);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    /** A {@code ModelPart} field named "head" (any case) of the model class or a superclass, public or not. */
+    @Nullable
+    private static ModelPart headField(Object model) {
+        for (Class<?> c = model.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
+            for (Field f : c.getDeclaredFields()) {
+                if (!ModelPart.class.isAssignableFrom(f.getType()) || !f.getName().equalsIgnoreCase("head")
+                        || Modifier.isStatic(f.getModifiers())) {
+                    continue;
+                }
+                try {
+                    f.setAccessible(true);
+                    Object v = f.get(model);
+                    if (v instanceof ModelPart p) {
+                        return p;
+                    }
+                } catch (ReflectiveOperationException | RuntimeException e) {
+                    // inaccessible: try the next one
+                }
+            }
+        }
+        return null;
     }
 
     /**
