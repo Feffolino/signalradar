@@ -210,4 +210,39 @@ class RadarMathTest {
         assertEquals(64, RadarMath.effectiveRange(64, 2048));
         assertEquals(512, RadarMath.effectiveRange(4096, 512)); // tier cap dropped below the choice
     }
+
+    @Test
+    void peripheralRangeBands() {
+        assertEquals(16, RadarMath.peripheralRange(4));
+        assertEquals(32, RadarMath.peripheralRange(8));
+        assertEquals(32, RadarMath.peripheralRange(16));
+        assertEquals(64, RadarMath.peripheralRange(32));
+        assertEquals(64, RadarMath.peripheralRange(64));
+        assertEquals(512, RadarMath.peripheralRange(512));
+        assertEquals(100, RadarMath.peripheralRange(100)); // non-step tier cap: no band
+        assertEquals(32, RadarMath.peripheralRange(20)); // between steps: band of the step at or below (16)
+    }
+
+    @Test
+    void visibilityLocalVsNavigation() {
+        // zoomed to 4 m on a 128 m tier
+        assertEquals(RadarMath.DRAW, RadarMath.visibility("container", 3, 4, 128));
+        assertEquals(RadarMath.RIM, RadarMath.visibility("container", 10, 4, 128));
+        assertEquals(RadarMath.HIDDEN, RadarMath.visibility("container", 17, 4, 128));
+        assertEquals(RadarMath.HIDDEN, RadarMath.visibility("my_addon", 100, 4, 128));
+        assertEquals(RadarMath.RIM, RadarMath.visibility("motion", 16, 4, 128));
+        for (String nav : new String[] {"narrative", "structure", "manhole", "team", "last_death", "script"}) {
+            assertEquals(RadarMath.DRAW, RadarMath.visibility(nav, 4, 4, 128));
+            assertEquals(RadarMath.RIM, RadarMath.visibility(nav, 5000, 4, 128));
+        }
+        // no zoom: local blips unchanged
+        assertEquals(RadarMath.DRAW, RadarMath.visibility("container", 500, 128, 128));
+        assertEquals(RadarMath.DRAW, RadarMath.visibility("ore", 200, 100, 100));
+    }
+
+    @Test
+    void audibleWithinRangeOnly() {
+        assertTrue(RadarMath.audible(4, 4));
+        assertTrue(!RadarMath.audible(4.1, 4));
+    }
 }

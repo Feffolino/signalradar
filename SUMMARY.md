@@ -139,6 +139,15 @@ Custom addons use their definition values and have no config entries. Only the c
   range label shows the chosen range. The choice is a client static for the session (0 = follow tier), forgotten when the tier
   cap drops below it. Key mappings "Radar zoom in / out" (unbound, category "Signal Radar") work while a radar is in a hand.
   Quiet UI click on change. The server scan is unchanged.
+  **Zoom bands** (`RadarMath.peripheralRange/visibility`, only when a zoom is active, i.e. range < tier range): rim band beyond the
+  zoom range for local blips: 4 -> 16, 8 -> 32, 16 -> 32, 32 -> 64, >= 64 -> none (a value between steps uses the step at or
+  below; a non-step tier cap has no band). *Local* categories = container, loot, ore, biosign, motion and custom addon categories
+  (everything not navigation): distance <= zoom range drawn normally, up to the band on the rim with an arrow, beyond it not drawn
+  and not counted in BlipLayout groups/badges. *Navigation* categories = narrative, structure, manhole, team, last_death and
+  `script` (KubeJS) keep the old rule: always drawn, on the rim with an arrow beyond the range. No zoom = unchanged.
+  **Sounds follow the zoom**: the narrative/motion sweep tick and the motion beep only consider blips within the display range
+  (distance <= zoom range); rim, peripheral and hidden blips never sound. Beep rate reference = min(zoom range, snapshot
+  motion radius); no in-range motion blip = no beep.
 - Live data only in first person for the owner. Third person, other players, item frames, ground: cosmetic sweep with no blips.
   GUI icon: static screen.
 - Sounds (`sounds.json`, custom mono 44.1 kHz OGGs synthesized by `tools/make_sounds.py`, never overwrites without `--force`): scan ping (charged scans only), blip tick (narrative category only),

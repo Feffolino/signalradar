@@ -279,9 +279,13 @@ final class RadarDisplay {
         List<BlipLayout.Item> items = new ArrayList<>(n);
         for (int bi = 0; bi < n; bi++) {
             Blip b = list.get(bi);
+            int vis = RadarMath.visibility(b.category(), Math.sqrt(distSq[bi]), range, snap.range());
+            if (vis == RadarMath.HIDDEN) {
+                continue; // local blip beyond the peripheral band: not drawn, not grouped
+            }
             Vec3d wp = ClientRadarState.position(b, nowMs);
             Vec2 rel = RadarMath.relative(wp.x() - pos.x, wp.z() - pos.z, yaw);
-            RadarMath.Placed p = RadarMath.place(rel, range, r, b.outOfRange());
+            RadarMath.Placed p = RadarMath.place(rel, range, r, b.outOfRange() || vis == RadarMath.RIM);
             spots[bi] = new Spot(b, wp, p, RadarMath.displayAngle(p.x(), p.y()));
             items.add(new BlipLayout.Item(bi, p.x(), p.y(), b.found(), distSq[bi], b.id()));
         }

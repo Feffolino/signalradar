@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Zoom-aware display and sounds: with a zoom active, local blips (containers, loot, ore, biosigns, motion, custom addons) show on
+  the rim only up to a peripheral band (4 m -> 16, 8/16 m -> 32, 32 m -> 64, none from 64 m) and vanish beyond it; navigation
+  blips (narrative, structure, manhole, team, last death, script) still always show. The narrative/motion tick and the motion
+  beep now ignore everything outside the displayed range, and the beep rate is relative to min(zoom range, motion radius).
 - Mob icons (motion, biosign, entity targets) show the mob's face: the head model of the mob's own renderer with its texture,
   drawn flat from the front (villager nose, pig snout, ...), instead of the spawn egg. Mobs without a head model fall back to the
   vanilla mob head item, then the spawn egg. Client only; uses an access transformer on `ModelPart.cubes/children`.

@@ -2,6 +2,7 @@
 package it.ratlab.signalradar.display;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Pure display math (no Minecraft classes, unit tested).
@@ -209,6 +210,62 @@ public final class RadarMath {
         }
         int next = Math.max(0, Math.min(o.length - 1, idx + step));
         return o[next];
+    }
+
+    /** Navigation categories always stay on the display (inside the range, or on the rim with an arrow beyond it). */
+    public static final Set<String> NAVIGATION_CATEGORIES = Set.of("narrative", "structure", "manhole", "team", "last_death", "script");
+
+    /** {@link #visibility}: draw at its real spot. */
+    public static final int DRAW = 0;
+    /** {@link #visibility}: pin to the rim with an arrow. */
+    public static final int RIM = 1;
+    /** {@link #visibility}: not drawn at all. */
+    public static final int HIDDEN = 2;
+
+    /** Local categories (container, loot, ore, biosign, motion, custom addons) are everything that is not navigation. */
+    public static boolean isNavigation(String category) {
+        return NAVIGATION_CATEGORIES.contains(category);
+    }
+
+    /**
+     * Outer edge of the rim band of local blips for a zoomed display range: 4 gives 16, 8 gives 32, 16 gives 32,
+     * 32 gives 64, 64 and up (and anything below 4) give the range itself (no band). A value between steps uses the
+     * band of the step at or below it, so a non-step tier cap such as 100 has no band.
+     */
+    public static int peripheralRange(int zoomRange) {
+        int step = 0;
+        for (int s : RANGE_STEPS) {
+            if (s <= zoomRange) {
+                step = s;
+            }
+        }
+        return switch (step) {
+            case 4 -> 16;
+            case 8, 16 -> 32;
+            case 32 -> 64;
+            default -> zoomRange;
+        };
+    }
+
+    /**
+     * How a blip is shown: {@link #DRAW}, {@link #RIM} or {@link #HIDDEN}. Navigation blips are always shown (rim beyond
+     * the range). Local blips, with a zoom active ({@code zoomRange < tierRange}), are drawn up to the zoom range, on the
+     * rim up to {@link #peripheralRange}, and hidden beyond. Without a zoom nothing changes ({@code DRAW}; the caller
+     * still clamps what is beyond the tier range).
+     */
+    public static int visibility(String category, double dist, int zoomRange, int tierRange) {
+        if (isNavigation(category)) {
+            return dist <= zoomRange ? DRAW : RIM;
+        }
+        if (zoomRange >= tierRange || dist <= zoomRange) {
+            return DRAW;
+        }
+        return dist <= peripheralRange(zoomRange) ? RIM : HIDDEN;
+    }
+
+    /** True when a blip is close enough to sound (inside the effective display range). */
+    public static boolean audible(double dist, int zoomRange) {
+        return dist <= zoomRange;
     }
 
     /** Horizontal distance rounded to whole metres (blocks). */

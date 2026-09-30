@@ -79,7 +79,8 @@ public final class RadarClientSounds {
             beepCooldown = 0;
             return;
         }
-        motionBeep(p, snap, nowMs);
+        int range = RadarZoom.range(snap.range());
+        motionBeep(p, snap, nowMs, range);
         long t = RadarClock.ticks();
         double prev = RadarMath.sweepAngle(t - 1);
         double cur = RadarMath.sweepAngle(t);
@@ -88,7 +89,12 @@ public final class RadarClientSounds {
                 continue;
             }
             Vec3d wp = ClientRadarState.position(b, nowMs);
-            Vec2 rel = RadarMath.relative(wp.x() - p.getX(), wp.z() - p.getZ(), p.getViewYRot(1f));
+            double tdx = wp.x() - p.getX();
+            double tdz = wp.z() - p.getZ();
+            if (!RadarMath.audible(Math.sqrt(tdx * tdx + tdz * tdz), range)) {
+                continue; // rim or hidden blips never tick
+            }
+            Vec2 rel = RadarMath.relative(tdx, tdz, p.getViewYRot(1f));
             if (RadarMath.sweepCrossed(prev, cur, RadarMath.displayAngle(rel.x(), rel.y()))) {
                 Long last = LAST_TICK.get(b.id());
                 if (last != null && t - last < RadarMath.SWEEP_PERIOD_TICKS * 0.8) {
@@ -105,7 +111,7 @@ public final class RadarClientSounds {
     }
 
     /** Alien-style beep of the nearest motion blip: the closer it is, the faster the beeps. */
-    private static void motionBeep(LocalPlayer p, ScanSnapshot snap, long nowMs) {
+    private static void motionBeep(LocalPlayer p, ScanSnapshot snap, long nowMs, int range) {
         if (!RadarClientConfig.motionBeep()) {
             beepCooldown = 0;
             return;
@@ -116,14 +122,17 @@ public final class RadarClientSounds {
                 Vec3d wp = ClientRadarState.position(b, nowMs);
                 double dx = wp.x() - p.getX();
                 double dz = wp.z() - p.getZ();
-                nearest = Math.min(nearest, Math.sqrt(dx * dx + dz * dz));
+                double d = Math.sqrt(dx * dx + dz * dz);
+                if (RadarMath.audible(d, range)) {
+                    nearest = Math.min(nearest, d);
+                }
             }
         }
         if (nearest == Double.MAX_VALUE) {
             beepCooldown = 0;
             return;
         }
-        double reference = snap.motionRadius() > 0 ? snap.motionRadius() : BEEP_REFERENCE_FALLBACK;
+        double reference = Math.min(range, snap.motionRadius() > 0 ? snap.motionRadius() : BEEP_REFERENCE_FALLBACK);
         if (--beepCooldown <= 0) {
             float pitch = (float) (1.25 - 0.35 * Math.min(1.0, nearest / reference));
             play(p, ModSounds.MOTION_BEEP.get(), 0.7f, pitch);
