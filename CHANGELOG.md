@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Blips are drawn as clear, same-size icons instead of coloured dots: the block face for ores and custom block addons,
+  item icons for containers, loot, structures, narrative targets (compass) and the last death (skull), the Manhole Travel map
+  icon of each manhole look, mob heads or spawn eggs for motion and biosign, the skin face of team members. Thin frame in the
+  blip colour (motion still pulses), found icons dimmed with a check mark, rim arrows kept.
+- Target JSON: optional `"icon"` (`block:`, `item:`, `texture:`, `entity:`, `player:` or a bare item id). KubeJS addon builder:
+  optional `.icon(...)`. Client config: `iconSize` (0.5..2.0) and `maxIcons` (default 48, the nearest become icons).
+- Network protocol version 5 (snapshot blips carry an icon spec); client and server must match.
+
 ## 1.0.0
 
 First release.

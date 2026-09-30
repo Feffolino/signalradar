@@ -8,6 +8,7 @@ import it.ratlab.signalradar.addon.AddonMath;
 import it.ratlab.signalradar.addon.AddonRegistry;
 import it.ratlab.signalradar.addon.AddonSettings;
 import it.ratlab.signalradar.data.StructureCacheData;
+import it.ratlab.signalradar.icon.IconSpec;
 import it.ratlab.signalradar.scan.BlockLocatorScan;
 import it.ratlab.signalradar.scan.StructureLookupService;
 import it.ratlab.signalradar.target.Locator;
@@ -143,10 +144,24 @@ public final class Detectors {
             if (hits.size() >= MAX_HITS) {
                 break;
             }
-            hits.add(new Hit(p.getX() + "," + p.getY() + "," + p.getZ(), level.getBlockState(p).getBlock().getName(),
-                    p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, 0));
+            Block block = level.getBlockState(p).getBlock();
+            hits.add(new Hit(p.getX() + "," + p.getY() + "," + p.getZ(), block.getName(),
+                    p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, 0, blockItemIcon(block)));
         }
         return hits;
+    }
+
+    /** Icon of a found container-like block: its block item, the chest when it has none. */
+    public static String blockItemIcon(Block block) {
+        net.minecraft.world.item.Item item = block.asItem();
+        if (item == net.minecraft.world.item.Items.AIR) {
+            return IconSpec.CHEST;
+        }
+        return IconSpec.item(BuiltInRegistries.ITEM.getKey(item).toString());
+    }
+
+    private static String entityIcon(Entity e) {
+        return IconSpec.entity(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString());
     }
 
     private static boolean exposesItems(ServerLevel level, BlockPos pos, BlockEntity be) {
@@ -196,7 +211,7 @@ public final class Detectors {
                 color = OreColorResolver.color(state.getBlock());
             }
             hits.add(new Hit(p.getX() + "," + p.getY() + "," + p.getZ(), state.getBlock().getName(),
-                    p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, color));
+                    p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, color, IconSpec.block(BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString())));
         }
         return hits;
     }
@@ -224,7 +239,7 @@ public final class Detectors {
             if (hits.size() >= MAX_HITS) {
                 break;
             }
-            hits.add(new Hit(e.getUUID().toString(), e.getName(), e.getX(), e.getY(), e.getZ(), 0));
+            hits.add(new Hit(e.getUUID().toString(), e.getName(), e.getX(), e.getY(), e.getZ(), 0, entityIcon(e)));
         }
         return hits;
     }
@@ -255,7 +270,7 @@ public final class Detectors {
             if (hits.size() >= MAX_HITS) {
                 break;
             }
-            hits.add(new Hit(e.getUUID().toString(), e.getName(), e.getX(), e.getY(), e.getZ(), 0));
+            hits.add(new Hit(e.getUUID().toString(), e.getName(), e.getX(), e.getY(), e.getZ(), 0, entityIcon(e)));
         }
         return hits;
     }
@@ -299,7 +314,7 @@ public final class Detectors {
                 continue;
             }
             hits.add(new Hit(id.toString(), Component.literal(AddonMath.prettify(id.getPath())), pos.get().getX() + 0.5, c.y,
-                    pos.get().getZ() + 0.5, 0));
+                    pos.get().getZ() + 0.5, 0, IconSpec.STRUCTURE));
         }
         return hits;
     }

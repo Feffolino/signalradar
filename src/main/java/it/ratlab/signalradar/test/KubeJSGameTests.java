@@ -91,6 +91,7 @@ public final class KubeJSGameTests {
                 && oil.radiusMax() == 48 && oil.refreshSeconds() == 5 && oil.color() == 0x222222 && oil.energyCost() == 10
                 && oil.category().equals("Oil") && oil.tag().equals(ResourceLocation.parse("c:ores/oil")) && oil.requiredModId() == null,
                 "oil definition " + oil);
+        h.assertTrue("item:minecraft:lava_bucket".equals(oil.icon()), "oil icon " + oil.icon());
         h.assertTrue(!AddonRegistry.isBuiltin(oil) && AddonRegistry.isActive(oil), "oil is an active custom addon");
         AddonItem oilItem = (AddonItem) AddonRegistry.item(OIL).orElseThrow(() -> new IllegalStateException("oil item missing"));
         ItemStack oilStack = new ItemStack(oilItem);

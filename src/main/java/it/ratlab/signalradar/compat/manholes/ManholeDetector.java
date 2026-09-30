@@ -7,6 +7,7 @@ import it.ratlab.manholes.data.NodeRecord;
 import it.ratlab.signalradar.addon.detect.Detectors;
 import it.ratlab.signalradar.addon.detect.Hit;
 import it.ratlab.signalradar.addon.detect.NodeFilter;
+import it.ratlab.signalradar.icon.IconSpec;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +32,8 @@ public final class ManholeDetector {
                 key -> ManholesAPI.isOpen(player, UUID.fromString(key)), Detectors.MAX_HITS);
         List<Hit> hits = new ArrayList<>(nodes.size());
         for (NodeFilter.Node<NodeRecord> n : nodes) {
-            hits.add(new Hit(n.key(), n.ref().displayName(level.registryAccess()), n.x(), n.y(), n.z(), 0));
+            hits.add(new Hit(n.key(), n.ref().displayName(level.registryAccess()), n.x(), n.y(), n.z(), 0,
+                    IconSpec.manholeTexture(n.ref().lookOrDefault())));
         }
         return hits;
     }

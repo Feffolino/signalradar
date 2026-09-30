@@ -33,6 +33,8 @@ public final class ManholeChecks {
             h.assertTrue(!has(hits, home), "home manhole listed");
             Hit alpha = hits.stream().filter(x -> x.key().equals(near.id.toString())).findFirst().orElseThrow();
             h.assertTrue(alpha.name().getString().equals("Alpha"), "blip name " + alpha.name().getString());
+            h.assertTrue(alpha.icon().startsWith("texture:manholes:textures/gui/map_icon_") && alpha.icon().endsWith(".png"),
+                    "manhole icon " + alpha.icon());
             h.assertTrue(!has(CompatGameTests.run(AddonRegistry.MANHOLE, p, h, 50), far), "radius ignored");
             ManholesAPI.open(p, near);
             List<Hit> after = CompatGameTests.run(AddonRegistry.MANHOLE, p, h, 160);

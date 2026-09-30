@@ -5,6 +5,7 @@ import it.ratlab.signalradar.SignalRadarConfig;
 import it.ratlab.signalradar.addon.AddonRules;
 import it.ratlab.signalradar.addon.AddonSettings;
 import it.ratlab.signalradar.addon.detect.Hit;
+import it.ratlab.signalradar.icon.IconSpec;
 import it.ratlab.signalradar.item.RadarItem;
 import it.ratlab.signalradar.target.TargetDef;
 import java.util.ArrayList;
@@ -113,14 +114,14 @@ public final class RadarScanner {
             Vec3 shown = ScanMath.fuzz(player, def.blipId(), now, real, ScanMath.fuzzMagnitude(maxFuzz, dist, range));
             boolean revealed = ScanMath.revealed(dist, def.revealDistance());
             blips.add(new Blip(def.blipId(), def.category(), def.color(), shown.x, shown.y, shown.z,
-                    revealed ? def.name() : Blip.UNKNOWN_NAME, dist > range, progress.found().test(def.id())));
+                    revealed ? def.name() : Blip.UNKNOWN_NAME, dist > range, progress.found().test(def.id()), def.icon()));
         }
         if (progress.lastDeath() != null) {
             Vec3 real = progress.lastDeath();
             double dist = ScanMath.distance(playerPos, real);
             Vec3 shown = ScanMath.fuzz(player, LAST_DEATH_ID, now, real, ScanMath.fuzzMagnitude(maxFuzz, dist, range));
             blips.add(new Blip(LAST_DEATH_ID, LAST_DEATH_CATEGORY, LAST_DEATH_COLOR, shown.x, shown.y, shown.z,
-                    Component.translatable("blip.signalradar.last_death"), dist > range, false));
+                    Component.translatable("blip.signalradar.last_death"), dist > range, false, IconSpec.LAST_DEATH));
         }
         for (AddonSettings addon : addons) {
             String category = addon.def().category();
@@ -130,7 +131,8 @@ public final class RadarScanner {
                 String id = addon.def().id() + "/" + hit.key();
                 Vec3 shown = ScanMath.fuzz(player, id, now, real, ScanMath.fuzzMagnitude(maxFuzz, dist, range));
                 int color = hit.color() != 0 ? hit.color() : addon.color();
-                blips.add(new Blip(id, category, color, shown.x, shown.y, shown.z, hit.name(), dist > range, false));
+                String icon = addon.def().icon() != null ? addon.def().icon() : hit.icon();
+                blips.add(new Blip(id, category, color, shown.x, shown.y, shown.z, hit.name(), dist > range, false, icon));
             }
         }
         int motionRadius = 0;

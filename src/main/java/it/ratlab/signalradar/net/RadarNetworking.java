@@ -10,7 +10,7 @@ public final class RadarNetworking {
     public static Consumer<SnapshotPayload> clientSnapshot = p -> {};
 
     /** 2: snapshot carries range + refreshSeconds (phase 3); 3: snapshot carries the charged flag (phase 4); 4: snapshot carries the motion addon radius (phase 5). */
-    public static final String PROTOCOL = "4";
+    public static final String PROTOCOL = "5";
 
     private RadarNetworking() {}
 

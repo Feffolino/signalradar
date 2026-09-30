@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import it.ratlab.signalradar.SignalRadar;
+import it.ratlab.signalradar.icon.IconSpec;
 import it.ratlab.signalradar.item.RadarItem;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
@@ -47,7 +48,9 @@ public final class TargetParser {
         int foundRadius = Math.max(0, GsonHelper.getAsInt(o, "found_radius", TargetDef.DEFAULT_FOUND_RADIUS));
         boolean hideWhenFound = GsonHelper.getAsBoolean(o, "hide_when_found", false);
         Locator locator = parseLocator(GsonHelper.getAsJsonObject(o, "locator"));
-        return new TargetDef(id, name, category, minTier, color, reveal, stage, requiresUnlock, foundRadius, hideWhenFound, locator);
+        String icon = IconSpec.normalize(o.has("icon") && !o.get("icon").isJsonNull() ? GsonHelper.getAsString(o, "icon") : null,
+                IconSpec.DEFAULT_TARGET);
+        return new TargetDef(id, name, category, minTier, color, reveal, stage, requiresUnlock, foundRadius, hideWhenFound, locator, icon);
     }
 
     static int parseColor(JsonElement e) {

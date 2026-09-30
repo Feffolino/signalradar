@@ -133,6 +133,16 @@ public final class SignalRadarKubeEvents {
             return this;
         }
 
+        /**
+         * Icon of every blip of this addon: {@code block:<id>}, {@code item:<id>}, {@code texture:<rl>}, {@code entity:<id>},
+         * {@code player:<uuid>}; a bare id is an item. Without it the detector decides (block_tag: the block face, entity_tag:
+         * the mob head or spawn egg, container: the block item, structure_tag: a map).
+         */
+        public AddonBuilderJS icon(String icon) {
+            builder.icon(icon);
+            return this;
+        }
+
         /** Only registered when this mod is loaded. */
         public AddonBuilderJS requiredMod(String modId) {
             builder.requiredMod(modId);
@@ -170,6 +180,11 @@ public final class SignalRadarKubeEvents {
 
         public int getColor() {
             return blip.color();
+        }
+
+        /** Icon spec (empty = dot). */
+        public String getIcon() {
+            return blip.icon();
         }
 
         /** Shown (fuzzed) position. */

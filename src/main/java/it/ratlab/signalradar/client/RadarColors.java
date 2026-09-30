@@ -19,6 +19,8 @@ public final class RadarColors {
     public static final int ARROW_DIM = 0x0E3318;
     /** Height arrows next to blips. */
     public static final int HEIGHT_ARROW = 0xCFFFD6;
+    /** Dark square behind blip icons. */
+    public static final int ICON_BG = 0x04100A;
     /** Found targets: blip colour mixed this much toward the disc, plus the check mark colour. */
     public static final double FOUND_DIM = 0.65;
     public static final int FOUND_CHECK = 0xB8FFC4;

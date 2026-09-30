@@ -114,6 +114,23 @@ public final class ScanGameTests {
     }
 
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void targetIconParsedWithDefault(GameTestHelper h) {
+        String loc = "\"locator\":{\"type\":\"pos\",\"pos\":[0,0,0]}";
+        h.assertTrue(TargetParser.parse(ID, json("{" + loc + "}")).orElseThrow().icon().equals("item:minecraft:compass"), "default icon");
+        h.assertTrue(TargetParser.parse(ID, json("{\"icon\":\"minecraft:map\"," + loc + "}")).orElseThrow().icon().equals("item:minecraft:map"),
+                "bare id is an item");
+        h.assertTrue(TargetParser.parse(ID, json("{\"icon\":\"block:minecraft:gold_ore\"," + loc + "}")).orElseThrow().icon()
+                .equals("block:minecraft:gold_ore"), "block icon");
+        h.assertTrue(TargetParser.parse(ID, json("{\"icon\":\"entity:minecraft:zombie\"," + loc + "}")).orElseThrow().icon()
+                .equals("entity:minecraft:zombie"), "entity icon");
+        h.assertTrue(TargetParser.parse(ID, json("{\"icon\":\"nonsense:::\"," + loc + "}")).isEmpty(), "bad icon accepted");
+        // the icon travels with the blip
+        TargetDef d = TargetParser.parse(ID, json("{\"icon\":\"minecraft:clock\"," + loc + "}")).orElseThrow();
+        h.assertTrue(d.icon().equals("item:minecraft:clock"), "parsed icon");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void targetParsesAllLocatorsAndDefaults(GameTestHelper h) {
         TargetDef pos = TargetParser.parse(ID, json("{\"locator\":{\"type\":\"pos\",\"pos\":[1,2,3],\"dimension\":\"minecraft:the_nether\"}}")).orElseThrow();
         h.assertTrue(pos.locator() instanceof Locator.Pos p && p.pos().equals(new BlockPos(1, 2, 3))
@@ -417,8 +434,8 @@ public final class ScanGameTests {
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void snapshotPayloadRoundTrips(GameTestHelper h) {
         List<Blip> blips = new ArrayList<>();
-        blips.add(new Blip("signalradar:a", "narrative", 0x7CFC00, 1.5, 64.0, -3000.25, Component.literal("Faint signal"), false, false));
-        blips.add(new Blip("signalradar:b", "story", 0x123456, -1, 2, 3, Blip.UNKNOWN_NAME, true, true));
+        blips.add(new Blip("signalradar:a", "narrative", 0x7CFC00, 1.5, 64.0, -3000.25, Component.literal("Faint signal"), false, false, "item:minecraft:compass"));
+        blips.add(new Blip("signalradar:b", "story", 0x123456, -1, 2, 3, Blip.UNKNOWN_NAME, true, true, "block:minecraft:iron_ore"));
         ScanSnapshot in = new ScanSnapshot(3, 12345, 20000, 2048, 5, false, 987654321L, blips, true, 48);
         RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), h.getLevel().registryAccess(), ConnectionType.NEOFORGE);
         SnapshotPayload.CODEC.encode(buf, new SnapshotPayload(in));
@@ -429,8 +446,8 @@ public final class ScanGameTests {
         Blip a = out.blips().get(0);
         Blip b = out.blips().get(1);
         h.assertTrue(a.id().equals("signalradar:a") && a.color() == 0x7CFC00 && a.x() == 1.5 && a.z() == -3000.25
-                && a.name().getString().equals("Faint signal") && !a.outOfRange() && !a.found(), "blip a");
-        h.assertTrue(b.outOfRange() && b.found() && b.name().getString().equals("???") && b.category().equals("story"), "blip b");
+                && a.name().getString().equals("Faint signal") && !a.outOfRange() && !a.found() && a.icon().equals("item:minecraft:compass"), "blip a");
+        h.assertTrue(b.outOfRange() && b.found() && b.name().getString().equals("???") && b.category().equals("story") && b.icon().equals("block:minecraft:iron_ore"), "blip b");
         h.assertTrue(buf.readableBytes() == 0, "trailing bytes");
         // A blip count above the cap is rejected, not truncated.
         RegistryFriendlyByteBuf bad = new RegistryFriendlyByteBuf(Unpooled.buffer(), h.getLevel().registryAccess(), ConnectionType.NEOFORGE);

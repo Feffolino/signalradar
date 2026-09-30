@@ -40,6 +40,7 @@ public final class TeamChecks {
             h.assertTrue(!has(hits, a), "self listed");
             h.assertTrue(!has(hits, stranger), "non-member listed");
             h.assertTrue(hits.get(0).name().getString().equals(mate.getGameProfile().getName()), "blip name");
+            h.assertTrue(hits.get(0).icon().equals("player:" + mate.getUUID()), "team icon " + hits.get(0).icon());
             h.assertTrue(!has(CompatGameTests.run(AddonRegistry.TEAM, a, h, 100), mate), "radius ignored");
         } finally {
             try {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.api;
 
+import it.ratlab.signalradar.icon.IconSpec;
 import it.ratlab.signalradar.item.RadarItem;
 import it.ratlab.signalradar.scan.Blip;
 import it.ratlab.signalradar.scan.ScanMath;
@@ -90,7 +91,7 @@ public class RadarScanEvent extends PlayerEvent implements ICancellableEvent {
             id = base + "#" + n;
         }
         double dist = ScanMath.distance(getEntity().position(), new Vec3(x, y, z));
-        Blip b = new Blip(id, SCRIPT_CATEGORY, color & 0xFFFFFF, x, y, z, name, dist > range, false);
+        Blip b = new Blip(id, SCRIPT_CATEGORY, color & 0xFFFFFF, x, y, z, name, dist > range, false, IconSpec.DEFAULT_TARGET);
         targets.add(b);
         return b;
     }

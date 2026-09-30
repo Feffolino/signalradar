@@ -31,8 +31,8 @@ KubeJS, FTB Teams and Architectury come from Maven.
 
 ## Tests
 ```
-./gradlew test                       # 32 JUnit tests (pure math)
-./gradlew runGameTestServer          # 78 game tests, no optional mods
+./gradlew test                       # 39 JUnit tests (pure logic)
+./gradlew runGameTestServer          # 80 game tests, no optional mods
 tools/prepare-kubejs-run.sh && ./gradlew runGameTestServerKubeJS   # with KubeJS + Rhino
 tools/prepare-compat-run.sh && ./gradlew runGameTestServerCompat   # with Manhole Travel, Lootr, FTB Teams
 ```

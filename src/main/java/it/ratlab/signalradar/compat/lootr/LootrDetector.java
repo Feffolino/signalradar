@@ -3,6 +3,7 @@ package it.ratlab.signalradar.compat.lootr;
 
 import it.ratlab.signalradar.addon.detect.Detectors;
 import it.ratlab.signalradar.addon.detect.Hit;
+import it.ratlab.signalradar.icon.IconSpec;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -28,7 +29,7 @@ import noobanidus.mods.lootr.common.api.data.entity.ILootrEntity;
 public final class LootrDetector {
     private LootrDetector() {}
 
-    private record Found(String key, Component name, double x, double y, double z) {}
+    private record Found(String key, Component name, double x, double y, double z, String icon) {}
 
     public static List<Hit> run(ServerPlayer player, ServerLevel level, int radius) {
         Vec3 c = player.position();
@@ -51,7 +52,8 @@ public final class LootrDetector {
                     BlockPos p = e.getKey();
                     if (horizontalSq(p.getX() + 0.5, p.getZ() + 0.5, c) <= r2 && !lootr.hasOpened(player)) {
                         found.add(new Found(p.getX() + "," + p.getY() + "," + p.getZ(), level.getBlockState(p).getBlock().getName(),
-                                p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5));
+                                p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5,
+                                Detectors.blockItemIcon(level.getBlockState(p).getBlock())));
                     }
                 }
             }
@@ -59,7 +61,7 @@ public final class LootrDetector {
         for (Entity e : level.getEntitiesOfClass(Entity.class, new AABB(c, c).inflate(radius),
                 en -> en instanceof ILootrEntity && en.isAlive() && horizontalSq(en.getX(), en.getZ(), c) <= r2)) {
             if (!((ILootrEntity) e).hasOpened(player)) {
-                found.add(new Found(e.getUUID().toString(), e.getName(), e.getX(), e.getY(), e.getZ()));
+                found.add(new Found(e.getUUID().toString(), e.getName(), e.getX(), e.getY(), e.getZ(), IconSpec.CHEST));
             }
         }
         found.sort(Comparator.comparingDouble((Found f) -> horizontalSq(f.x(), f.z(), c)).thenComparing(Found::key));
@@ -68,7 +70,7 @@ public final class LootrDetector {
             if (hits.size() >= Detectors.MAX_HITS) {
                 break;
             }
-            hits.add(new Hit(f.key(), f.name(), f.x(), f.y(), f.z(), 0));
+            hits.add(new Hit(f.key(), f.name(), f.x(), f.y(), f.z(), 0, f.icon()));
         }
         return hits;
     }

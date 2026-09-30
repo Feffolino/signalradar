@@ -20,6 +20,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -46,10 +47,18 @@ final class RadarDisplay {
     private static final float L_TRAIL = 0.090f;
     private static final float L_RING = 0.120f;
     private static final float L_SWEEP = 0.150f;
-    private static final float L_BLIP = 0.180f;
-    private static final float L_MARK = 0.210f;
-    private static final float L_TEXT_BG = 0.240f;
-    private static final float L_TEXT = 0.280f;
+    private static final float L_BLIP = 0.180f; // dots, and the dark backing of icons
+    private static final float L_ICON = 0.210f; // icon content (sprites, flattened items)
+    private static final float L_FRAME = 0.240f; // icon frame
+    private static final float L_MARK = 0.270f;
+    private static final float L_TEXT_BG = 0.300f;
+    private static final float L_TEXT = 0.340f;
+    /** Extra depth between two icons drawn in one frame, so overlapping icons never z-fight (48 icons stay below 0.02). */
+    private static final float ICON_STEP = 0.0004f;
+    /** Icons across the screen width at iconSize 1.0. */
+    private static final double ICONS_ACROSS = 12.0;
+    /** Flatten factor of item models on z. */
+    private static final float ITEM_FLAT = 0.02f;
 
     private static final int DISC_SEGMENTS = 48;
     private static final int TRAIL_SEGMENTS = 20;
@@ -64,13 +73,28 @@ final class RadarDisplay {
     private final VertexConsumer vc;
     private final float bright;
     private final float z;
+    private final PoseStack ps;
+    private final MultiBufferSource buffers;
+    /** Side of one icon square, model units. */
+    private final double iconSide;
+    /** Icons collected while the quad batch is open; drawn afterwards (other textures end the batch). */
+    private final List<IconDraw> icons = new ArrayList<>();
 
-    private RadarDisplay(Matrix4f matrix, VertexConsumer vc, float z) {
+    private RadarDisplay(Matrix4f matrix, VertexConsumer vc, float z, PoseStack ps, MultiBufferSource buffers, double screenWidth) {
         this.matrix = matrix;
         this.vc = vc;
         this.bright = RadarClientConfig.screenBrightness();
         this.z = z;
+        this.ps = ps;
+        this.buffers = buffers;
+        this.iconSide = screenWidth / ICONS_ACROSS * RadarClientConfig.iconSize();
     }
+
+    private record IconDraw(RadarIcons.Icon icon, double cx, double cy, double half, float off, boolean found) {}
+
+    /** Squared horizontal distance of every blip of the snapshot being drawn (index = blip index), reused between frames. */
+    private static double[] distSq = new double[64];
+    private static double[] sortedDistSq = new double[64];
 
     static Mode mode(ItemDisplayContext ctx) {
         if (ctx == ItemDisplayContext.GUI) {
@@ -101,7 +125,7 @@ final class RadarDisplay {
         ps.pushPose();
         ps.scale(1f / 16f, 1f / 16f, 1f / 16f);
         Matrix4f m = ps.last().pose();
-        RadarDisplay d = new RadarDisplay(m, buffers.getBuffer(QUADS), (float) lay.z());
+        RadarDisplay d = new RadarDisplay(m, buffers.getBuffer(QUADS), (float) lay.z(), ps, buffers, lay.width());
 
         // Geometry of this screen: disc on the left, side panel on the right.
         double h = lay.height();
@@ -140,6 +164,8 @@ final class RadarDisplay {
         }
         d.panel(px0, px1, lay, RadarItem.tier(stack), energy / (double) capacity, snap, texts);
         d.led(lay, noSignal, energy / (double) capacity, blink || mode == Mode.STATIC);
+        // Icons last among the quads: each texture switch ends the open quad batch.
+        d.drawIcons(mc);
 
         // Text last: the font uses its own render type, which ends our quad batch.
         Font font = mc.font;
@@ -216,7 +242,21 @@ final class RadarDisplay {
                        double sweep, float yaw, double ticks) {
         Vec3 pos = player.getPosition(partial);
         boolean heights = RadarClientConfig.showHeightArrows();
-        for (Blip b : snap.blips()) {
+        List<Blip> list = snap.blips();
+        int maxIcons = RadarClientConfig.maxIcons();
+        double limit = iconDistanceLimit(list, pos.x, pos.z, maxIcons);
+        int iconsLeft = maxIcons;
+        for (int bi = 0; bi < list.size(); bi++) {
+            Blip b = list.get(bi);
+            RadarIcons.Icon icon = RadarIcons.Icon.DOT;
+            if (iconsLeft > 0 && distSq[bi] <= limit && !b.icon().isEmpty()) {
+                icon = RadarIcons.get(b.icon());
+                if (icon.kind() != RadarIcons.Kind.DOT) {
+                    iconsLeft--;
+                }
+            }
+            boolean asIcon = icon.kind() != RadarIcons.Kind.DOT;
+            double hs = asIcon ? iconSide / 2 : 0.21;
             Vec3d wp = ClientRadarState.position(b, nowMs);
             Vec2 rel = RadarMath.relative(wp.x() - pos.x, wp.z() - pos.z, yaw);
             RadarMath.Placed p = RadarMath.place(rel, snap.range(), r, b.outOfRange());
@@ -233,7 +273,7 @@ final class RadarDisplay {
             if (b.found()) {
                 base = RadarMath.mix(base, RadarColors.DISC, RadarColors.FOUND_DIM);
             }
-            int c = RadarMath.mix(RadarColors.DISC, base, glow);
+            int c = RadarMath.mix(RadarColors.DISC, base, asIcon && !motion ? Math.max(glow, ICON_FRAME_MIN) : glow);
             double bx = cx + p.x();
             double by = cy + p.y();
             if (p.clamped()) {
@@ -243,26 +283,108 @@ final class RadarDisplay {
                 tri(cx + Math.sin(ang) * tipR, cy + Math.cos(ang) * tipR,
                         cx + Math.sin(ang - half) * baseR, cy + Math.cos(ang - half) * baseR,
                         cx + Math.sin(ang + half) * baseR, cy + Math.cos(ang + half) * baseR, L_BLIP, c);
-                bx = cx + Math.sin(ang) * (baseR - 0.1);
-                by = cy + Math.cos(ang) * (baseR - 0.1);
-            } else {
-                double half = 0.21 + 0.07 * pulse;
-                rect(bx - half, by - half, bx + half, by + half, L_BLIP, c);
+                double inward = asIcon ? baseR - 0.05 - hs : baseR - 0.1;
+                bx = cx + Math.sin(ang) * inward;
+                by = cy + Math.cos(ang) * inward;
+            } else if (!asIcon) {
+                double dh = 0.21 + 0.07 * pulse;
+                rect(bx - dh, by - dh, bx + dh, by + dh, L_BLIP, c);
+            }
+            if (asIcon) {
+                float off = (maxIcons - iconsLeft) * ICON_STEP;
+                double t = ICON_FRAME + 0.05 * pulse;
+                rect(bx - hs, by - hs, bx + hs, by + hs, L_BLIP + off, RadarColors.ICON_BG);
+                rect(bx - hs, by + hs - t, bx + hs, by + hs, L_FRAME + off, c);
+                rect(bx - hs, by - hs, bx + hs, by - hs + t, L_FRAME + off, c);
+                rect(bx - hs, by - hs + t, bx - hs + t, by + hs - t, L_FRAME + off, c);
+                rect(bx + hs - t, by - hs + t, bx + hs, by + hs - t, L_FRAME + off, c);
+                icons.add(new IconDraw(icon, bx, by, hs - ICON_FRAME - ICON_INSET, off, b.found()));
             }
             if (b.found()) {
                 int check = RadarMath.mix(RadarColors.DISC, RadarColors.FOUND_CHECK, Math.max(0.5, glow));
-                line(bx + 0.28, by + 0.05, bx + 0.42, by - 0.1, 0.08, L_MARK, check);
-                line(bx + 0.42, by - 0.1, bx + 0.7, by + 0.3, 0.08, L_MARK, check);
+                double k = hs + 0.07;
+                line(bx + k, by + 0.05, bx + k + 0.14, by - 0.1, 0.08, L_MARK + 0.01f, check);
+                line(bx + k + 0.14, by - 0.1, bx + k + 0.42, by + 0.3, 0.08, L_MARK + 0.01f, check);
             }
             int hm = heights ? RadarMath.heightMarker(wp.y() - pos.y) : 0;
             if (hm != 0) {
                 int hc = RadarMath.mix(RadarColors.DISC, RadarColors.HEIGHT_ARROW, Math.max(0.45, glow));
-                double ax = bx - 0.45;
+                double ax = bx - (hs + 0.24);
                 if (hm > 0) {
                     tri(ax, by + 0.2, ax - 0.16, by - 0.1, ax + 0.16, by - 0.1, L_MARK, hc);
                 } else {
                     tri(ax, by - 0.2, ax + 0.16, by + 0.1, ax - 0.16, by + 0.1, L_MARK, hc);
                 }
+            }
+        }
+    }
+
+    private static final double ICON_FRAME = 0.07;
+    private static final double ICON_INSET = 0.02;
+    private static final double ICON_FRAME_MIN = 0.55;
+
+    /**
+     * Fills {@link #distSq} for the blips and returns the squared distance of the {@code max}-th nearest one (everything up
+     * to it may be an icon); no allocation once the scratch arrays are big enough.
+     */
+    private static double iconDistanceLimit(List<Blip> list, double px, double pz, int max) {
+        int n = list.size();
+        if (distSq.length < n) {
+            distSq = new double[n * 2];
+            sortedDistSq = new double[n * 2];
+        }
+        for (int i = 0; i < n; i++) {
+            Blip b = list.get(i);
+            double dx = b.x() - px;
+            double dz = b.z() - pz;
+            distSq[i] = dx * dx + dz * dz;
+        }
+        if (max <= 0) {
+            return -1;
+        }
+        if (n <= max) {
+            return Double.MAX_VALUE;
+        }
+        System.arraycopy(distSq, 0, sortedDistSq, 0, n);
+        java.util.Arrays.sort(sortedDistSq, 0, n);
+        return sortedDistSq[max - 1];
+    }
+
+    /** Draws the collected icons: sprites as textured quads (fullbright text type), items flattened on z. */
+    private void drawIcons(Minecraft mc) {
+        if (icons.isEmpty()) {
+            return;
+        }
+        icons.sort(java.util.Comparator.comparingInt((IconDraw i) -> i.icon().sortKey()));
+        for (IconDraw d : icons) {
+            RadarIcons.Icon icon = d.icon();
+            float zz = z + L_ICON + d.off();
+            if (icon.kind() == RadarIcons.Kind.SPRITE) {
+                int v = Math.round(255f * bright * (d.found() ? 0.4f : 1f));
+                int argb = 0xFF000000 | (v << 16) | (v << 8) | v;
+                float h = (float) d.half();
+                float layerZ = zz;
+                for (RadarIcons.Layer l : icon.layers()) {
+                    VertexConsumer c = buffers.getBuffer(l.type());
+                    float x0 = (float) d.cx() - h;
+                    float x1 = (float) d.cx() + h;
+                    float y0 = (float) d.cy() - h;
+                    float y1 = (float) d.cy() + h;
+                    c.addVertex(matrix, x0, y0, layerZ).setColor(argb).setUv(l.u0(), l.v1()).setLight(LIGHT);
+                    c.addVertex(matrix, x1, y0, layerZ).setColor(argb).setUv(l.u1(), l.v1()).setLight(LIGHT);
+                    c.addVertex(matrix, x1, y1, layerZ).setColor(argb).setUv(l.u1(), l.v0()).setLight(LIGHT);
+                    c.addVertex(matrix, x0, y1, layerZ).setColor(argb).setUv(l.u0(), l.v0()).setLight(LIGHT);
+                    layerZ += 0.006f; // hat layer of skins sits in front of the face
+                }
+            } else if (icon.kind() == RadarIcons.Kind.ITEM && icon.stack() != null) {
+                float side = (float) (d.half() * 2);
+                ps.pushPose();
+                ps.translate(d.cx(), d.cy(), zz);
+                ps.scale(side, side, side * ITEM_FLAT);
+                int light = d.found() ? LightTexture.pack(3, 3) : LIGHT;
+                mc.getItemRenderer().renderStatic(icon.stack(), ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, ps, buffers,
+                        mc.level, 0);
+                ps.popPose();
             }
         }
     }

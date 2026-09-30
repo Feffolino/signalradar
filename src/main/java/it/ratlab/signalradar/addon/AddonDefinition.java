@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.addon;
 
+import it.ratlab.signalradar.icon.IconSpec;
 import java.util.Locale;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -20,10 +21,18 @@ import org.jetbrains.annotations.Nullable;
  * @param requiredModId  item is only registered when this mod is loaded (null = always)
  * @param tag            block / entity / structure tag id for the tag based detectors (null = detector default)
  * @param useMapColor    block blips take the colour of their {@code c:ores/<material>} tag instead of {@code color} (ore)
+ * @param icon           icon spec for every blip of this addon (custom addons, {@code .icon()}); null = the detector's own icon
  */
 public record AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
                               int color, int energyCost, String category, @Nullable String requiredModId,
-                              @Nullable ResourceLocation tag, boolean useMapColor) {
+                              @Nullable ResourceLocation tag, boolean useMapColor, @Nullable String icon) {
+
+    /** Built-in style definition without an icon override. */
+    public AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
+                           int color, int energyCost, String category, @Nullable String requiredModId,
+                           @Nullable ResourceLocation tag, boolean useMapColor) {
+        this(id, detector, minTier, radiusMin, radiusMax, refreshSeconds, color, energyCost, category, requiredModId, tag, useMapColor, null);
+    }
 
     /** Detector types. The first four are public (custom addons); the rest are built-in behaviours (biosign, motion, compat). */
     public enum Detector {
@@ -81,6 +90,7 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
         }
         category = category == null || category.isBlank() ? id.getPath() : category;
         color &= 0xFFFFFF;
+        icon = icon == null || icon.isBlank() ? null : IconSpec.normalize(icon, "");
     }
 
     /** Starts a custom addon definition (public detector types only). Defaults: tier 0, radius 16..32, 5 s, white, 10 FE. */
@@ -100,6 +110,7 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
         private String category;
         private String requiredMod;
         private ResourceLocation tag;
+        private String icon;
 
         private Builder(ResourceLocation id, Detector detector) {
             this.id = id;
@@ -142,6 +153,12 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
             return this;
         }
 
+        /** Icon spec for every blip (see {@link IconSpec}); a bare id is an item. Null / blank = the detector default. */
+        public Builder icon(String icon) {
+            this.icon = icon;
+            return this;
+        }
+
         public Builder requiredMod(String modId) {
             this.requiredMod = modId;
             return this;
@@ -150,7 +167,7 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
         /** @throws IllegalArgumentException on invalid values */
         public AddonDefinition build() {
             return new AddonDefinition(id, detector, minTier, radiusMin, radiusMax, refresh, color, energy, category, requiredMod,
-                    tag, false);
+                    tag, false, icon);
         }
     }
 }

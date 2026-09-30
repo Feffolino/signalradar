@@ -17,6 +17,9 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
     /** Sanity cap so a broken server cannot make the client allocate absurd lists. */
     private static final int MAX_BLIPS = 4096;
 
+    /** Longest icon spec on the wire. */
+    private static final int MAX_ICON = 256;
+
     private static final int FLAG_OUT_OF_RANGE = 1;
     private static final int FLAG_FOUND = 2;
 
@@ -43,6 +46,7 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
             buf.writeDouble(b.z());
             ComponentSerialization.STREAM_CODEC.encode(buf, b.name());
             buf.writeByte((b.outOfRange() ? FLAG_OUT_OF_RANGE : 0) | (b.found() ? FLAG_FOUND : 0));
+            buf.writeUtf(b.icon(), MAX_ICON);
         }
     }
 
@@ -70,7 +74,8 @@ public record SnapshotPayload(ScanSnapshot snapshot) implements CustomPacketPayl
             double z = buf.readDouble();
             var name = ComponentSerialization.STREAM_CODEC.decode(buf);
             int flags = buf.readByte();
-            blips.add(new Blip(id, category, color, x, y, z, name, (flags & FLAG_OUT_OF_RANGE) != 0, (flags & FLAG_FOUND) != 0));
+            String icon = buf.readUtf(MAX_ICON);
+            blips.add(new Blip(id, category, color, x, y, z, name, (flags & FLAG_OUT_OF_RANGE) != 0, (flags & FLAG_FOUND) != 0, icon));
         }
         return new SnapshotPayload(new ScanSnapshot(tier, energy, capacity, range, refresh, noSignal, time, blips, charged, motionRadius));
     }

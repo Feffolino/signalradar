@@ -5,6 +5,7 @@ import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import it.ratlab.signalradar.addon.detect.Detectors;
 import it.ratlab.signalradar.addon.detect.Hit;
+import it.ratlab.signalradar.icon.IconSpec;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -46,7 +47,8 @@ public final class TeamDetector {
             if (hits.size() >= Detectors.MAX_HITS) {
                 break;
             }
-            hits.add(new Hit(m.getUUID().toString(), m.getName(), m.getX(), m.getY(), m.getZ(), 0));
+            hits.add(new Hit(m.getUUID().toString(), m.getName(), m.getX(), m.getY(), m.getZ(), 0,
+                    IconSpec.player(m.getUUID().toString())));
         }
         return hits;
     }

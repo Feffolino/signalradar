@@ -99,6 +99,10 @@ public final class AddonGameTests {
         return hits.stream().anyMatch(x -> x.key().equals(key));
     }
 
+    private static String iconOf(List<Hit> hits, Entity e) {
+        return hits.stream().filter(x -> x.key().equals(e.getUUID().toString())).findFirst().map(Hit::icon).orElse("<none>");
+    }
+
     private static boolean hasEntity(List<Hit> hits, Entity e) {
         return hits.stream().anyMatch(x -> x.key().equals(e.getUUID().toString()));
     }
@@ -152,6 +156,31 @@ public final class AddonGameTests {
                 && AddonSettings.defaults(AddonRegistry.get(AddonRegistry.ORE).orElseThrow()).radius(4, 4096) == 32, "ore radius by tier");
         h.assertTrue(settings(AddonRegistry.STRUCTURE).radius(3, 2048) == 2048, "structure uses the tier range");
         h.assertTrue(AddonRegistry.get(AddonRegistry.MOTION).orElseThrow().category().equals("motion"), "motion category");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void addonIconsFlowIntoBlipsAndBuilderValidates(GameTestHelper h) {
+        UUID id = new UUID(7, 8);
+        List<Hit> hits = List.of(new Hit("1,2,3", Component.literal("Ore"), 40, 64, 0, 0, "block:minecraft:iron_ore"),
+                new Hit("4,5,6", Component.literal("Plain"), 41, 64, 0, 0));
+        ItemStack radar = radar(0, 5000);
+        RadarItem.setAddons(radar, ids(AddonRegistry.CONTAINER));
+        ScanSnapshot s = RadarScanner.scan(radar, id, new Vec3(0, 64, 0), 100, DEFAULTS, List.of(), d -> java.util.Optional.empty(),
+                AddonRules.active(radar), a -> hits, RadarScanner.Charge.PAY);
+        h.assertTrue(s.blips().get(0).icon().equals("block:minecraft:iron_ore"), "hit icon lost: " + s.blips().get(0).icon());
+        h.assertTrue(s.blips().get(1).icon().isEmpty(), "missing hit icon should stay empty (dot)");
+        AddonDefinition d = AddonDefinition.builder(ResourceLocation.parse("pack:ico"), AddonDefinition.Detector.CONTAINER).icon("minecraft:map").build();
+        h.assertTrue("item:minecraft:map".equals(d.icon()), "bare id is an item: " + d.icon());
+        h.assertTrue(AddonDefinition.builder(ResourceLocation.parse("pack:ico2"), AddonDefinition.Detector.CONTAINER).build().icon() == null,
+                "default icon override should be null");
+        boolean threw = false;
+        try {
+            AddonDefinition.builder(ResourceLocation.parse("pack:ico3"), AddonDefinition.Detector.CONTAINER).icon("banana:Not Valid").build();
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        h.assertTrue(threw, "bad icon accepted");
         h.succeed();
     }
 
@@ -563,6 +592,9 @@ public final class AddonGameTests {
         h.assertTrue(!hasKey(hits, h.absolutePos(new BlockPos(-2, 1, 1))), "crafting table reported");
         Hit chest = hits.stream().filter(x -> x.key().equals(key(h.absolutePos(new BlockPos(2, 1, 1))))).findFirst().orElseThrow();
         h.assertTrue(chest.name().getString().equals(Blocks.CHEST.getName().getString()), "name " + chest.name().getString());
+        h.assertTrue(chest.icon().equals("item:minecraft:chest"), "container icon " + chest.icon());
+        Hit barrel = hits.stream().filter(x -> x.key().equals(key(h.absolutePos(new BlockPos(3, 1, 1))))).findFirst().orElseThrow();
+        h.assertTrue(barrel.icon().equals("item:minecraft:barrel"), "barrel icon " + barrel.icon());
         // outside the radius: not reported
         h.assertTrue(Detectors.run(settings(AddonRegistry.CONTAINER), p, h.getLevel(), 1, BlockLocatorScan.Budget.unlimited(), 100).stream()
                 .noneMatch(x -> x.key().equals(key(h.absolutePos(new BlockPos(3, 1, 1))))), "radius ignored");
@@ -595,6 +627,8 @@ public final class AddonGameTests {
         h.assertTrue(dia.color() == expectedDia && dia.color() != 0, "diamond colour " + Integer.toHexString(dia.color()));
         h.assertTrue(quartz.color() == expectedQuartz && quartz.color() != dia.color(), "quartz colour " + Integer.toHexString(quartz.color()));
         h.assertTrue(dia.name().getString().equals(Blocks.DIAMOND_ORE.getName().getString()), "ore name");
+        h.assertTrue(dia.icon().equals("block:minecraft:diamond_ore") && quartz.icon().equals("block:minecraft:nether_quartz_ore"),
+                "ore icons " + dia.icon() + " / " + quartz.icon());
         // no budget: nothing searched
         h.assertTrue(Detectors.run(settings(AddonRegistry.ORE), p, h.getLevel(), 16, new BlockLocatorScan.Budget(0), 100).isEmpty(),
                 "ore search ignored the budget");
@@ -623,6 +657,8 @@ public final class AddonGameTests {
         Entity stand = h.spawn(EntityType.ARMOR_STAND, new BlockPos(2, 1, 3));
         List<Hit> hits = Detectors.run(settings(AddonRegistry.BIOSIGN), p, h.getLevel(), 32, BlockLocatorScan.Budget.unlimited(), 100);
         h.assertTrue(hasEntity(hits, pig), "pig missed");
+        h.assertTrue(iconOf(hits, pig).equals("entity:minecraft:pig") && iconOf(hits, villager).equals("entity:minecraft:villager"),
+                "biosign icons " + iconOf(hits, pig));
         h.assertTrue(hasEntity(hits, villager), "villager missed");
         h.assertTrue(hasEntity(hits, cod), "ambient mob missed");
         h.assertTrue(!hasEntity(hits, zombie), "zombie reported as biosign");
@@ -648,6 +684,7 @@ public final class AddonGameTests {
         still.setPos(still.getX() + 0.05, still.getY(), still.getZ()); // jitter below the threshold
         List<Hit> second = Detectors.run(motion, p, h.getLevel(), 48, BlockLocatorScan.Budget.unlimited(), 120);
         h.assertTrue(hasEntity(second, walker), "moving zombie missed");
+        h.assertTrue(iconOf(second, walker).equals("entity:minecraft:zombie"), "motion icon " + iconOf(second, walker));
         h.assertTrue(!hasEntity(second, still), "still zombie reported");
         h.assertTrue(!hasEntity(second, pig), "moving pig reported by the motion tracker");
         // standing still again: gone

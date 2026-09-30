@@ -19,6 +19,14 @@ public final class RadarClientConfig {
             .comment("Show a small up/down arrow next to blips more than 4 blocks above/below you.")
             .define("showHeightArrows", true);
 
+    private static final ModConfigSpec.DoubleValue ICON_SIZE = B
+            .comment("Size factor of the blip icons (1.0 = about 12 icons across the screen).")
+            .defineInRange("iconSize", 1.0, 0.5, 2.0);
+
+    private static final ModConfigSpec.IntValue MAX_ICONS = B
+            .comment("At most this many of the nearest blips are drawn as icons, the rest as plain dots (0 = dots only).")
+            .defineInRange("maxIcons", 48, 0, 256);
+
     public static final ModConfigSpec SPEC = B.build();
 
     private RadarClientConfig() {}
@@ -34,5 +42,15 @@ public final class RadarClientConfig {
 
     public static boolean showHeightArrows() {
         return SPEC.isLoaded() ? SHOW_HEIGHT_ARROWS.getAsBoolean() : SHOW_HEIGHT_ARROWS.getDefault();
+    }
+
+    public static float iconSize() {
+        double v = SPEC.isLoaded() ? ICON_SIZE.getAsDouble() : ICON_SIZE.getDefault();
+        return (float) Math.max(0.5, Math.min(2.0, v));
+    }
+
+    public static int maxIcons() {
+        int v = SPEC.isLoaded() ? MAX_ICONS.getAsInt() : MAX_ICONS.getDefault();
+        return Math.max(0, Math.min(256, v));
     }
 }

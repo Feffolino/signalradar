@@ -6,6 +6,7 @@
 // Builder (all optional except tag for the tag detectors):
 //   .tag('#ns:tag')  .minTier(0..4)  .radius(minAtMinTier, maxAtTier4)  .refresh(seconds)
 //   .color('#RRGGBB' or 0xRRGGBB)  .energy(FE per scan)  .category('Name')  .requiredMod('modid')
+//   .icon('block:ns:id' | 'item:ns:id' | 'texture:ns:textures/..png' | 'entity:ns:id' | bare item id)  blip icon on the radar
 // Items without their own model / lang entry get a generic icon tinted with .color() and the name
 // "Radar Addon (<category>)". Give them assets in kubejs/assets/<ns>/ (models/item/<path>.json, lang/en_us.json).
 // A restart is needed after editing: addons are items.
@@ -20,6 +21,7 @@ SignalRadarEvents.registerAddons(event => {
     .color('#222222')
     .energy(10)
     .category('Oil')
+    .icon('minecraft:lava_bucket')
 
   // Entities in a tag.
   event.create('signalradar_example:addon_undead', 'entity_tag')

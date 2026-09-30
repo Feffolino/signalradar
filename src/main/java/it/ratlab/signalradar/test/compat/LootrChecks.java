@@ -35,6 +35,8 @@ public final class LootrChecks {
         h.assertTrue(h.getLevel().getBlockEntity(abs) instanceof ILootrBlockEntity, "lootr chest has no ILootrBlockEntity");
         List<Hit> hits = CompatGameTests.run(AddonRegistry.LOOT, p, h, 96);
         h.assertTrue(has(hits, abs), "unopened lootr chest missing");
+        h.assertTrue(hits.stream().filter(x -> x.key().equals(abs.getX() + "," + abs.getY() + "," + abs.getZ())).allMatch(x -> x.icon().startsWith("item:")),
+                "lootr icon is not an item");
         h.assertTrue(!has(hits, h.absolutePos(plainRel)), "vanilla chest listed");
         h.assertTrue(CompatGameTests.run(AddonRegistry.LOOT, p, h, 1).isEmpty(), "radius ignored");
         ((ILootrBlockEntity) h.getLevel().getBlockEntity(abs)).addOpener(p);

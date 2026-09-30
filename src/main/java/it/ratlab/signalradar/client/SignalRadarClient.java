@@ -28,6 +28,8 @@ public final class SignalRadarClient {
         modBus.addListener((RegisterClientExtensionsEvent e) -> e.registerItem(new RadarClientExtensions(), ModItems.RADAR.get()));
         modBus.addListener((RegisterMenuScreensEvent e) -> e.register(ModMenus.ADDONS.get(), AddonScreen::new));
         modBus.addListener((RegisterClientReloadListenersEvent e) -> e.registerReloadListener(new RadarScreenLoader()));
+        modBus.addListener((RegisterClientReloadListenersEvent e) ->
+                e.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener) rm -> RadarIcons.clear()));
         RadarNetworking.clientSnapshot = p -> {
             ClientRadarState.accept(p);
             RadarClientSounds.onSnapshot(p.snapshot());
@@ -38,6 +40,7 @@ public final class SignalRadarClient {
         });
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             ClientRadarState.clear();
+            RadarIcons.clear();
             RaiseState.reset();
         });
     }

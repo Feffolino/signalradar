@@ -103,6 +103,26 @@ Custom addons use their definition values and have no config entries. Only the c
   below, dimmed blip with a check mark for found targets, tier pips, energy bar, `NO SIGNAL` with static noise, status LED
   (green ok, amber below 20 % energy, blinking red no signal).
 - Heading-up: the player's facing is up. Sweep period 50 ticks.
+- **Blip icons** (`client/RadarIcons`, `icon/IconSpec`): every blip carries an icon spec string (`Blip.icon`) and is drawn as a
+  square icon, all the same size, instead of a coloured dot: dark backing, a thin frame in the blip colour (phosphor glow of
+  the sweep, pulsing red for motion), the icon inside. Found = dimmed icon + check mark; out-of-range blips keep the rim arrow
+  with the icon just inside it; the height arrow sits left of the icon. Specs (server builds them, client resolves them once
+  and caches per string; the cache is cleared on resource reload and logout):
+
+  | Spec | Client draws | Used by |
+  |---|---|---|
+  | `block:<id>` | sprite of the model's NORTH face (else first quad, else particle sprite) as a textured quad, `RenderType.text(block atlas)` | ore, custom `block_tag` (the found block) |
+  | `item:<id>` | the item model through `ItemRenderer.renderStatic(GUI)`, scaled to the square and flattened on z (scale 0.02) | container and loot (block item of the found block, fallback chest), structure (`minecraft:map`), narrative targets (default `minecraft:compass`), last death (`minecraft:skeleton_skull`) |
+  | `texture:<rl>` | plain PNG quad; a missing `map_icon_<look>.png` falls back to `map_icon.png` of the same folder, else a dot | manholes: `manholes:textures/gui/map_icon_<look>.png` by node look (`home_manhole`, `city`, `grate`, `hatch`, `cave`, `ns:x` looks use their namespace) |
+  | `entity:<type id>` | vanilla mob head item (zombie, skeleton, wither skeleton, creeper, piglin and zombified piglin, ender dragon), else the spawn egg, else a dot | motion, biosign, custom `entity_tag` |
+  | `player:<uuid>` | skin face + hat layer (tab list skin, default skin when unknown) | team |
+  | empty | the old coloured dot | script blips added by other mods with an empty icon |
+
+  Icon side = screen width / 12 x `iconSize`. At most `maxIcons` nearest blips (horizontal distance) are icons, the rest are dots.
+  Layers (model units in front of the screen plane, 0.03 apart): bg .03, disc .06, trail .09, rings .12, sweep .15, blip dots and
+  icon backing .18, icon content .21, frame .24, marks .27, text bg .30, text .34; icons drawn in one frame get an extra
+  0.0004 each so overlapping icons do not z-fight. Icon content is drawn after all other quads (each new texture ends the
+  vertex batch), still fullbright (items get a low light only when found). Cosmetic mode draws no blips and so no icons.
 - **Hold right-click** raises the device to the face (eased client pose via `applyForgeHandTransform`, not the spyglass
   animation) and shows a text line for the blip closest to the crosshair direction: name, distance in metres, compass. An offhand
   radar only raises when the main-hand item has no use action of its own (vanilla priority).
@@ -167,6 +187,7 @@ clients (the snapshot carries name, colour and category). A bad file logs a warn
 | `requires_unlock` | false | Hidden until `/signalradar unlock` or `SignalRadar.unlock`. |
 | `found_radius` | 24 | Horizontal blocks for the found check. |
 | `hide_when_found` | false | Hide once found (otherwise drawn dimmed with a check mark). |
+| `icon` | `item:minecraft:compass` | Blip icon spec (`block:`, `item:`, `texture:`, `entity:`, `player:` + id; a bare id is an item). An invalid value skips the target with a warning. |
 | `locator` | required | See below. |
 
 Locators:
@@ -227,6 +248,8 @@ Examples:
 | `motionBeep` | true | Motion tracker beep. |
 | `screenBrightness` | 1.0 | 0.2..1.0. |
 | `showHeightArrows` | true | Up/down arrows for blips more than 4 blocks above/below. |
+| `iconSize` | 1.0 | 0.5..2.0. Icon size factor (1.0 = about 12 icons across the screen). |
+| `maxIcons` | 48 | 0..256. Nearest blips drawn as icons, the rest as dots (0 = dots only). |
 
 ## Commands (op level 2)
 - `/signalradar settier <player> <0-4>`
@@ -249,9 +272,12 @@ SignalRadarEvents.registerAddons(e => {
   e.create('my_pack:addon_oil', 'block_tag')   // detector: container | block_tag | entity_tag | structure_tag
     .tag('#c:ores/oil').minTier(3).radius(16, 48).refresh(5)
     .color('#222222').energy(10).category('Oil').requiredMod('somemod')
+    .icon('minecraft:lava_bucket')   // optional blip icon, see "Blip icons"; bare id = item
 })
 ```
-Custom addons without a model use the generic tinted model `signalradar:item/addon_custom` (tint = `.color`), without a lang entry
+Custom addon blip icons default by detector: `block_tag` the block face, `entity_tag` the mob head or spawn egg, `container`
+the block item, `structure_tag` a map; `.icon('...')` replaces that for every blip of the addon (a bad spec is reported at
+startup and skips that addon). Custom addons without a model use the generic tinted model `signalradar:item/addon_custom` (tint = `.color`), without a lang entry
 the name "Radar Addon (Oil)". Ship `assets/<ns>/models/item/<path>.json` and lang entries (`kubejs/assets`) to override. A restart is
 needed after editing (addons are items).
 
@@ -295,9 +321,9 @@ Detectors are dispatched from `Detectors.run` behind `AddonRegistry.modPresent`;
 Removing an optional mod from an existing world drops its addons from radar slots.
 
 ## Networking
-Payload protocol version `4` (`RadarNetworking.PROTOCOL`). One payload, server to client: `SnapshotPayload` (blips with id,
-category, colour, fuzzed position, name or `???`, flags; plus `range`, `refreshSeconds`, `noSignal`, `charged`), at most `MAX_BLIPS`
-blips (decode throws above). History: v2 range + refresh, v3 `charged`, v4 motion radius. The addon menu is a vanilla container
+Payload protocol version `5` (`RadarNetworking.PROTOCOL`). One payload, server to client: `SnapshotPayload` (blips with id,
+category, colour, fuzzed position, name or `???`, flags, icon spec (max 256 chars); plus `range`, `refreshSeconds`, `noSignal`, `charged`), at most `MAX_BLIPS`
+blips (decode throws above). History: v2 range + refresh, v3 `charged`, v4 motion radius, v5 blip icon. The addon menu is a vanilla container
 menu (`signalradar:addons`).
 
 ## Assets pipeline
@@ -317,10 +343,10 @@ Use `JAVA_HOME="/c/Program Files/Java/jdk-25"` on the dev machine.
 
 | Command | Needs | Result (1.0.0) |
 |---|---|---|
-| `./gradlew test` | nothing | 32 JUnit tests (pure math: display, addon math, node filter, ore colours, scan schedule) |
-| `./gradlew runGameTestServer` | nothing | 78 game tests; optional-mod checks pass trivially without their mod |
-| `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | 78 game tests, the KubeJS ones run for real |
-| `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | 78 game tests, real compat detectors |
+| `./gradlew test` | nothing | 39 JUnit tests (pure logic: display, addon math, node filter, ore colours, scan schedule, icon specs and head mapping) |
+| `./gradlew runGameTestServer` | nothing | 80 game tests; optional-mod checks pass trivially without their mod |
+| `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | 80 game tests, the KubeJS ones run for real |
+| `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | 80 game tests, real compat detectors |
 | `./gradlew runClient` / `runClientKubeJS` | | dev client (the second with KubeJS and the example scripts) |
 
 Game tests register only with `-Dsignalradar.gametests=true` (set by the gameTestServer run configs); they ship inside the jar
@@ -331,6 +357,7 @@ KubeJS scripts; see its README. `libs/` is gitignored: `manholes-1.7.0.jar`, `lo
 ## Known limitations
 - Not play-tested in a live client yet (display geometry, raise pose, sounds, menu and JEI pages are verified by code and headless
   tests only; the client boot check only proves the mod loads).
+- Blip icons are verified by code, headless tests and a client boot only: size, readability and the look of flattened item models (lighting of block items) still need an eyeball in game.
 - Structure lookups can take a while to appear after the first scan (queue + cache); misses retry every 5 minutes.
 - `RadarUpgradedEvent` is inferred from the crafted result (no recipe in `ItemCraftedEvent`).
 - The team addon applies normal fuzz (it does not show exact teammate positions).
