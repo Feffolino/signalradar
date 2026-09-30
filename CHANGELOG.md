@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Charging limit removed: `energy.maxReceive` now defaults to 2147483647 (no limit; the key stays, 0..max). A charger fills
+  the radar as fast as it pushes: accepted = min(offered, maxReceive, free space). Existing config files keep their old value
+  (100) until edited.
 - New **Battery Addon** (`signalradar:addon_battery`, stacks to 8): a whole stack fits in ONE addon slot and each battery adds
   `addons.battery.capacityPerBattery` FE (server config, default 10000) to the radar capacity
   (`capacity = energy.capacity + batteries * capacityPerBattery`). Energy storage, item bar, tooltip, snapshot, LED and energy bar use

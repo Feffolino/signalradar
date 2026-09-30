@@ -125,6 +125,32 @@ public final class BatteryGameTests {
     }
 
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void maxReceiveIsUnlimitedByDefault(GameTestHelper h) {
+        h.assertTrue(SignalRadarConfig.defaultMaxReceive() == Integer.MAX_VALUE, "default maxReceive " + SignalRadarConfig.defaultMaxReceive());
+        // the dev run folders may still hold an old config file with 100: test the default value
+        SignalRadarConfig.overrideMaxReceive(SignalRadarConfig.defaultMaxReceive());
+        try {
+            unlimitedReceive(h);
+        } finally {
+            SignalRadarConfig.overrideMaxReceive(-1);
+        }
+        h.succeed();
+    }
+
+    private static void unlimitedReceive(GameTestHelper h) {
+        ItemStack radar = radar(0);
+        RadarItem.setAddonEntries(radar, List.of(new AddonEntry(AddonRegistry.BATTERY, 2)));
+        int cap = RadarItem.capacity(radar);
+        IEnergyStorage fe = radar.getCapability(Capabilities.EnergyStorage.ITEM);
+        h.assertTrue(fe != null, "no FE capability");
+        int sim = fe.receiveEnergy(Integer.MAX_VALUE, true);
+        h.assertTrue(sim == cap && RadarItem.energy(radar) == 0, "simulate " + sim);
+        int got = fe.receiveEnergy(Integer.MAX_VALUE, false);
+        h.assertTrue(got == cap && RadarItem.energy(radar) == cap, "one insert fills the radar: " + got + " / " + cap);
+        h.assertTrue(fe.receiveEnergy(1000, false) == 0, "full radar accepts nothing");
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void batteriesStackInOneMenuSlot(GameTestHelper h) {
         ServerPlayer p = player(h);
         ItemStack radar = radar(1); // 2 slots

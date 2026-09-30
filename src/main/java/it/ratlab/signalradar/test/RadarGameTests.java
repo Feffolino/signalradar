@@ -42,7 +42,8 @@ public final class RadarGameTests {
     public static void receiveIsCappedByMaxReceive(GameTestHelper h) {
         ItemStack radar = new ItemStack(ModItems.RADAR.get());
         int got = energyOf(h, radar).receiveEnergy(1_000_000, false);
-        h.assertTrue(got == SignalRadarConfig.maxReceive(), "received " + got + ", expected " + SignalRadarConfig.maxReceive());
+        int expected = Math.min(1_000_000, Math.min(SignalRadarConfig.maxReceive(), RadarItem.capacity(radar)));
+        h.assertTrue(got == expected, "received " + got + ", expected " + expected);
         h.assertTrue(RadarItem.energy(radar) == got, "stored " + RadarItem.energy(radar));
         h.succeed();
     }

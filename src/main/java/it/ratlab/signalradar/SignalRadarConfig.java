@@ -33,7 +33,8 @@ public final class SignalRadarConfig {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.push("energy");
         CAPACITY = b.comment("FE the radar can store (each installed battery addon adds addons.battery.capacityPerBattery).").defineInRange("capacity", 20000, 1, Integer.MAX_VALUE);
-        MAX_RECEIVE = b.comment("Max FE per tick the radar accepts from chargers.").defineInRange("maxReceive", 100, 0, Integer.MAX_VALUE);
+        MAX_RECEIVE = b.comment("Max FE the radar accepts per insert from chargers (0 = none). Default 2147483647 = no limit: a charger",
+                "fills it as fast as it pushes, capped by the free space.").defineInRange("maxReceive", Integer.MAX_VALUE, 0, Integer.MAX_VALUE);
         b.pop();
         b.push("scan");
         SCAN_COST = b.comment("FE charged per scan while a radar is held. Not enough FE = NO SIGNAL.")
@@ -71,7 +72,22 @@ public final class SignalRadarConfig {
         return SPEC.isLoaded() ? CAPACITY.get() : CAPACITY.getDefault();
     }
 
+    /** Game tests only: forces {@code energy.maxReceive} (-1 = follow the config). */
+    private static volatile int maxReceiveOverride = -1;
+
+    public static void overrideMaxReceive(int value) {
+        maxReceiveOverride = value;
+    }
+
+    /** Default of {@code energy.maxReceive}: {@link Integer#MAX_VALUE}, i.e. no per-insert limit. */
+    public static int defaultMaxReceive() {
+        return MAX_RECEIVE.getDefault();
+    }
+
     public static int maxReceive() {
+        if (maxReceiveOverride >= 0) {
+            return maxReceiveOverride;
+        }
         return SPEC.isLoaded() ? MAX_RECEIVE.get() : MAX_RECEIVE.getDefault();
     }
 
