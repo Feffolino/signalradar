@@ -43,10 +43,14 @@ public final class KubeJSCompat {
                 error("Custom addon " + b.id() + " is invalid: " + e.getMessage());
                 continue;
             }
-            if (AddonRegistry.registerCustom(def)) {
-                added++;
-            } else {
-                error("Custom addon " + b.id() + " was not registered (id taken or too late), see the log");
+            try {
+                if (AddonRegistry.registerCustom(def)) {
+                    added++;
+                } else {
+                    error("Custom addon " + b.id() + " was not registered (id taken or too late), see the log");
+                }
+            } catch (RuntimeException e) {
+                error("Custom addon " + b.id() + " failed to register: " + e);
             }
         }
         SignalRadar.LOGGER.info("KubeJS registerAddons: {} custom addon(s) registered", added);

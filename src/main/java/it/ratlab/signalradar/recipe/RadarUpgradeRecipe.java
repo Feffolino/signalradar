@@ -88,7 +88,12 @@ public class RadarUpgradeRecipe extends CustomRecipe {
         return p != null && RadarItem.tier(p.radar()) == p.moduleTier() - 1 ? RadarItem.tier(p.radar()) : -1;
     }
 
-    /** NeoForge bus: posts {@link RadarUpgradedEvent} when a player takes an upgraded radar out of the grid. */
+    /**
+     * NeoForge bus: posts {@link RadarUpgradedEvent} when a player takes an upgraded radar out of the grid.
+     * {@link PlayerEvent.ItemCraftedEvent} does not expose the recipe that produced the result, so the upgrade is inferred:
+     * the grid still holds a radar plus a module of the next tier ({@link #upgradeFromTier}) and the result is exactly one
+     * tier higher. Another recipe of the same shape would fire the event too, which is what a script wants anyway.
+     */
     public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !(event.getCrafting().getItem() instanceof RadarItem)) {
             return;

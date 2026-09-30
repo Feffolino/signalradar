@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
-// Signal Radar example server script: every SignalRadarEvents server event and the SignalRadar binding.
-// Copy to kubejs/server_scripts/. ./gradlew runGameTestServerKubeJS runs it; the game tests switch the branches
+// TEST FIXTURE of the mod build (driven by the KubeJS game tests through scoreboard tags) - not a script to copy.
+// For a clean starting point for your own pack see signalradar_template.js.
+// Every SignalRadarEvents server event and the SignalRadar binding, as exercised by the tests.
+// ./gradlew runGameTestServerKubeJS runs it; the game tests switch the branches
 // on with the scoreboard tags 'sr_example_*' and read back the 'sr_js_*' tags it adds.
 // Rhino notes: use let (not const) inside loops; compare levels by dimension, not with .equals.
 

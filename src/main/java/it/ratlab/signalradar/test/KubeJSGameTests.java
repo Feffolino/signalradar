@@ -172,6 +172,34 @@ public final class KubeJSGameTests {
     }
 
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void kubejsBindingBadIds(GameTestHelper h) {
+        if (skip(h, "kubejsBindingBadIds")) {
+            return;
+        }
+        var b = new it.ratlab.signalradar.compat.kubejs.SignalRadarBindingJS();
+        var idOrNull = (java.util.function.Function<String, ResourceLocation>) it.ratlab.signalradar.compat.kubejs.SignalRadarBindingJS::idOrNull;
+        h.assertTrue(idOrNull.apply(null) == null && idOrNull.apply("") == null && idOrNull.apply("  ") == null
+                && idOrNull.apply("Bad Id!") == null && idOrNull.apply("a:B") == null, "bad ids give null");
+        h.assertTrue(idOrNull.apply("foo").toString().equals("kubejs:foo") && idOrNull.apply("#c:ores/x").toString().equals("c:ores/x"), "good ids");
+        ServerPlayer p = player(h);
+        ItemStack r = radar(1, 500);
+        ItemStack dirt = new ItemStack(net.minecraft.world.item.Items.DIRT);
+        b.unlock(p, null);
+        b.lock(p, "Bad Id!");
+        b.resetFound(p, "");
+        h.assertTrue(!b.isUnlocked(p, null) && !b.isFound(p, "Bad Id!") && b.getTargetPos(h.getLevel(), null) == null, "bad target ids are harmless");
+        h.assertTrue(!b.hasAddon(r, null) && !b.hasAddon(r, "x y") && !b.hasAddon(null, "signalradar:addon_ore"), "hasAddon bad input");
+        b.setTier(dirt, 3);
+        b.setEnergy(dirt, 100);
+        b.setTier(null, 3);
+        h.assertTrue(!b.isRadar(dirt) && !b.isRadar(null) && !b.isRadar(ItemStack.EMPTY) && b.getTier(dirt) == 0 && b.getEnergy(dirt) == 0
+                && b.getAddons(dirt).isEmpty() && b.getAddons(null).isEmpty() && b.getTier(null) == 0, "non-radar stacks");
+        b.setTier(r, 2);
+        h.assertTrue(b.getTier(r) == 2 && b.isRadar(r), "valid radar still works");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void kubejsFoundUpgradeAddonEvents(GameTestHelper h) {
         if (skip(h, "kubejsFoundUpgradeAddonEvents")) {
             return;
