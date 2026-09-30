@@ -23,4 +23,3 @@ else
 fi
 cp -v src/test_datapack/kubejs/startup_scripts/*.js run-kubejs/kubejs/startup_scripts/
 cp -v src/test_datapack/kubejs/server_scripts/*.js run-kubejs/kubejs/server_scripts/
-echo "eula=true" > run-kubejs/eula.txt
