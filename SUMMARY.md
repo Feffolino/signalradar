@@ -119,9 +119,13 @@ Custom addons use their definition values and have no config entries. Only the c
   | empty | the old coloured dot | script blips added by other mods with an empty icon |
 
   Icon side = screen width / 12 x `iconSize`. At most `maxIcons` nearest blips (horizontal distance) are icons, the rest are dots.
-  Layers (model units in front of the screen plane, 0.03 apart): bg .03, disc .06, trail .09, rings .12, sweep .15, blip dots and
-  icon backing .18, icon content .21, frame .24, marks .27, text bg .30, text .34; icons drawn in one frame get an extra
-  0.0004 each so overlapping icons do not z-fight. Icon content is drawn after all other quads (each new texture ends the
+  Layers (model units in front of the screen plane, 0.03 apart): bg .03, disc .06, trail .09, rings .12, sweep .15, blips
+  .18 to .265, north marker / you .27, count badge .295, text bg .30, text .34. Blips (`display/BlipLayout`, pure) are
+  drawn without flicker: each drawn blip owns a depth slot (0.002 apart, shrinking so all fit in 0.085), slots follow the
+  blip id order (never distance, so nothing swaps between frames), and inside a slot the order is rim arrow, dot or backing,
+  content (item models are squashed to fit), frame, check mark and height arrow, so everything of a blip stays above the
+  previous one. Blips closer than 0.35 icon sizes on screen merge into one (nearest not-found wins the icon, the rest count)
+  with a small count badge ("2") on its corner. Icon content is drawn after all other quads (each new texture ends the
   vertex batch), still fullbright (items get a low light only when found). Cosmetic mode draws no blips and so no icons.
 - **Hold right-click** raises the device to the face (eased client pose via `applyForgeHandTransform`, not the spyglass
   animation; RAISED_Y -0.28, first-person display translation y +2 px, both set in code / `art/make_tiers.py`) and shows a text line for the blip closest to the crosshair direction: name, distance in metres, compass. An offhand
