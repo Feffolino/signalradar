@@ -7,10 +7,14 @@ modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
 authors="Rat Lab"
+credits="Thanks to the NeoForge, KubeJS, FTB, Lootr and JEI teams for their APIs."
+# Placeholder until the CurseForge project page exists.
+displayURL="https://www.curseforge.com/minecraft/mc-mods/signal-radar"
 description='''
-An upgradable, FE-powered handheld radar with its display on the device itself.
-Tiers raise range, precision and addon slots; addons choose what it detects.
-Targets are data-driven (datapack JSON), with optional KubeJS integration.
+A handheld radar powered by Forge Energy, with its display on the item itself. Five tiers raise range,
+precision and addon slots; addons pick what it detects (containers, ores, animals, structures, moving
+mobs, manholes, unopened Lootr chests, teammates). Narrative targets are plain datapack JSON, with
+per-player unlocks and stages, a KubeJS-ready event and binding API, and a NeoForge API for other mods.
 '''
 
 [[dependencies.${mod_id}]]
@@ -54,3 +58,10 @@ Targets are data-driven (datapack JSON), with optional KubeJS integration.
     versionRange="${ftbteams_version_range}"
     ordering="NONE"
     side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="jei"
+    type="optional"
+    versionRange="${jei_version_range}"
+    ordering="NONE"
+    side="CLIENT"

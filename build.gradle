@@ -103,6 +103,8 @@ dependencies {
     // Manhole Travel and Lootr: jars copied from the pack into libs/ (gitignored, never committed or bundled).
     compileOnly files('libs/manholes-1.7.0.jar')
     compileOnly files('libs/lootr-neoforge-1.21.1-1.11.38.127.jar')
+    // JEI (full jar, contains the API): info pages, compat/jei only.
+    compileOnly files('libs/jei-1.21.1-neoforge-19.57.0.449.jar')
     compileOnly("dev.ftb.mods:ftb-teams-neoforge:2101.1.11") { transitive = false }
     compileOnly("dev.ftb.mods:ftb-library-neoforge:2101.1.36") { transitive = false }
     compileOnly("dev.architectury:architectury-neoforge:13.0.11") { transitive = false }
@@ -137,6 +139,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             manholes_version_range : manholes_version_range,
             lootr_version_range    : lootr_version_range,
             ftbteams_version_range : ftbteams_version_range,
+            jei_version_range : jei_version_range,
     ]
     inputs.properties replaceProperties
     expand replaceProperties
