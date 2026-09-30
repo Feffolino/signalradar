@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 package it.ratlab.signalradar.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import it.ratlab.signalradar.SignalRadar;
 import it.ratlab.signalradar.addon.menu.AddonMenu;
 import java.util.Optional;
@@ -15,6 +16,9 @@ import net.minecraft.world.item.ItemStack;
 /** Addon slot screen: locked slots are crossed out, a refused carried addon shows its reason as tooltip. */
 public class AddonScreen extends AbstractContainerScreen<AddonMenu> {
     private static final ResourceLocation TEXTURE = SignalRadar.id("textures/gui/addon_slots.png");
+    /** Real size of {@code addon_slots.png} (the 176x133 background sits in the top left corner). */
+    private static final int TEX_W = 256;
+    private static final int TEX_H = 256;
 
     public AddonScreen(AddonMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -33,9 +37,21 @@ public class AddonScreen extends AbstractContainerScreen<AddonMenu> {
         renderTooltip(g, mouseX, mouseY);
     }
 
+    /**
+     * Called from {@code renderBackground}, after the blur and the menu dim. {@code blit} reads the global shader colour,
+     * blend and depth state; whatever drew before (item models, tooltips, HUD overlays of other mods) may have left them
+     * changed, which showed as a missing or garbled background. Reset them explicitly, flush pending GUI batches first and
+     * pass the sheet size instead of relying on the implicit 256x256 overload.
+     */
     @Override
     protected void renderBg(GuiGraphics g, float partial, int mouseX, int mouseY) {
-        g.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight);
+        g.flush();
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.enableDepthTest();
+        g.blit(TEXTURE, leftPos, topPos, 0, 0f, 0f, imageWidth, imageHeight, TEX_W, TEX_H);
+        RenderSystem.disableBlend();
     }
 
     @Override

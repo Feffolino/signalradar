@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed: the addon screen background could show broken or missing. It now resets the shader colour, blend and depth state
+  before drawing and passes the real sheet size (256x256) to `blit`.
 - Zoom: the mouse wheel direction is inverted (wheel up = larger range, wheel down = smaller range). The zoom keys are unchanged.
 - Motion tracker: from radar tier 3 it also shows stationary hostiles (new category `motion_still`: entity face icon in a steady dim red
   frame, no pulse, no beep; moving ones still pulse and beep). Config `addons.motion.stationaryFromTier` (0-5, default 3, 5 = never).
