@@ -112,6 +112,7 @@ Custom addons use their definition values and have no config entries. Only the c
 
 ### Display (client)
 - The radar is active only when held (main hand or offhand); not in hand = off, zero work on server and client.
+- **Two-handed main hand** (`item/TwoHanded.blocksOffhand`, shared server/client): an OFFHAND radar is off (no scan, no FE drain, no snapshots, sounds or beeps; display drawn dark with the LED off) while the main hand is being used with a BOW, CROSSBOW, SPEAR, SPYGLASS, BRUSH or TOOT_HORN use animation, holds a charged crossbow, or holds an item of the tag `signalradar:two_handed` (ships empty, add guns etc.). Client only: also when the main hand item's `IClientItemExtensions.getArmPose` is two-handed. The main-hand radar is never affected; the scan key is not reset, so the offhand radar resumes on its normal schedule. `ScanHandler.activeRadar` = `heldRadar` minus this case (the found check keeps using the carried radar)
 - Drawn by a BEWLR (`client/RadarItemRenderer`): the baked body model of the tier, then the CRT display as fullbright geometry
   (`RenderType.text` with a white texture; no FBO, shader and Sodium/Iris safe): background, range rings, rotating north marker,
   sweep with fading trail, phosphor-decay blips, rim arrows for far targets, up/down arrows for blips more than 4 blocks above or

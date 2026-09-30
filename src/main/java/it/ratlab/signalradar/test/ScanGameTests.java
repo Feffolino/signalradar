@@ -37,10 +37,14 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import it.ratlab.signalradar.item.TwoHanded;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.component.ChargedProjectiles;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.IEventBus;
@@ -476,6 +480,74 @@ public final class ScanGameTests {
         h.assertTrue(ScanHandler.heldRadar(p) == main, "main hand should win");
         p.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         p.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+        h.succeed();
+    }
+
+    /** Runs one scan tick of the player; returns the radar's energy afterwards. */
+    private static int tickEnergy(ServerPlayer p, ItemStack radar) {
+        ScanHandler.reset();
+        try {
+            ScanHandler.tickPlayer(p);
+        } catch (RuntimeException e) {
+            // The mock connection refuses the snapshot payload; the paid scan already drained the energy by then.
+        }
+        return RadarItem.energy(radar);
+    }
+
+    @SuppressWarnings("removal")
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void twoHandedMainHandBlocksOffhandRadar(GameTestHelper h) {
+        ServerPlayer p = TestPlayers.create(h);
+        ItemStack r = radar(0, 500);
+        p.setItemInHand(InteractionHand.OFF_HAND, r);
+        // Normal item in the main hand: the offhand radar scans and pays.
+        p.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.STICK));
+        h.assertTrue(!TwoHanded.blocksOffhand(p) && ScanHandler.activeRadar(p) == r, "stick blocked the offhand radar");
+        h.assertTrue(tickEnergy(p, r) < 500, "offhand radar with a stick did not pay");
+        // Charged crossbow in the main hand: off, no scan, no drain.
+        RadarItem.setEnergy(r, 500);
+        ItemStack bow = new ItemStack(Items.CROSSBOW);
+        p.setItemInHand(InteractionHand.MAIN_HAND, bow);
+        h.assertTrue(!TwoHanded.blocksOffhand(p), "empty crossbow blocks");
+        bow.set(DataComponents.CHARGED_PROJECTILES, ChargedProjectiles.of(new ItemStack(Items.ARROW)));
+        h.assertTrue(TwoHanded.blocksOffhand(p) && ScanHandler.activeRadar(p).isEmpty(), "charged crossbow does not block");
+        h.assertTrue(tickEnergy(p, r) == 500, "blocked offhand radar drained energy: " + RadarItem.energy(r));
+        // Back to a normal item: scans again at once (no extra schedule reset needed).
+        p.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.STICK));
+        h.assertTrue(tickEnergy(p, r) < 500, "offhand radar did not resume");
+        // The main-hand radar is never affected.
+        RadarItem.setEnergy(r, 500);
+        p.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+        p.setItemInHand(InteractionHand.MAIN_HAND, r);
+        h.assertTrue(!TwoHanded.blocksOffhand(p) && ScanHandler.activeRadar(p) == r, "main-hand radar blocked");
+        h.assertTrue(tickEnergy(p, r) < 500, "main-hand radar did not pay");
+        p.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        ScanHandler.reset();
+        h.succeed();
+    }
+
+    @SuppressWarnings({"removal", "unchecked"})
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void twoHandedTagBlocksOffhandRadar(GameTestHelper h) throws Exception {
+        ServerPlayer p = TestPlayers.create(h);
+        ItemStack r = radar(0, 500);
+        p.setItemInHand(InteractionHand.OFF_HAND, r);
+        p.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.STICK));
+        h.assertTrue(!TwoHanded.blocksOffhand(p), "untagged stick blocks");
+        // Bind the tag to the stick for this test (the shipped tag is empty).
+        var holder = Items.STICK.builtInRegistryHolder();
+        var bind = net.minecraft.core.Holder.Reference.class.getDeclaredMethod("bindTags", java.util.Collection.class);
+        bind.setAccessible(true);
+        var old = java.util.Set.copyOf(holder.tags().toList());
+        bind.invoke(holder, java.util.Set.of(TwoHanded.TAG));
+        try {
+            h.assertTrue(TwoHanded.blocksOffhand(p), "tagged item does not block");
+            h.assertTrue(tickEnergy(p, r) == 500, "tagged main hand item: offhand radar drained");
+        } finally {
+            bind.invoke(holder, old);
+            p.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            ScanHandler.reset();
+        }
         h.succeed();
     }
 

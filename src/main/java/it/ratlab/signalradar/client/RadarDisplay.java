@@ -145,6 +145,13 @@ final class RadarDisplay {
         float yaw = player != null && mode == Mode.LIVE ? player.getViewYRot(partial) : 180f;
 
         List<Text> texts = new ArrayList<>();
+        if (mode == Mode.LIVE && player != null && offhandBlocked(player, ctx)) {
+            // Offhand radar while the main hand is two-handed: dark screen, LED off.
+            d.led(lay, true, 0, false);
+            d.drawIcons(mc);
+            ps.popPose();
+            return;
+        }
         if (noBattery && mode != Mode.STATIC) {
             // Calm dark screen: battery outline and text, no noise, no blinking text (the LED blinks).
             d.batteryIcon(cx, cy + 0.45);
@@ -178,6 +185,12 @@ final class RadarDisplay {
             d.text(font, buffers, ps, t);
         }
         ps.popPose();
+    }
+
+    /** This first-person draw is the offhand's and the main hand is two-handed. */
+    private static boolean offhandBlocked(LocalPlayer player, ItemDisplayContext ctx) {
+        net.minecraft.world.entity.HumanoidArm offArm = player.getMainArm().getOpposite();
+        return armOf(ctx) == offArm && ClientTwoHanded.blocksOffhand(player);
     }
 
     private static net.minecraft.world.entity.HumanoidArm armOf(ItemDisplayContext ctx) {

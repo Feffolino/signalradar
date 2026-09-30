@@ -52,7 +52,7 @@ final class RadarZoom {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
         boolean holding = p != null && mc.screen == null && (p.getItemInHand(InteractionHand.MAIN_HAND).getItem() instanceof RadarItem
-                || p.getItemInHand(InteractionHand.OFF_HAND).getItem() instanceof RadarItem);
+                || p.getItemInHand(InteractionHand.OFF_HAND).getItem() instanceof RadarItem && !ClientTwoHanded.blocksOffhand(p));
         while (ZOOM_IN.consumeClick()) {
             if (holding) {
                 step(-1);

@@ -10,6 +10,7 @@ import it.ratlab.signalradar.addon.detect.Hit;
 import it.ratlab.signalradar.addon.detect.MotionTracker;
 import it.ratlab.signalradar.data.StructureCacheData;
 import it.ratlab.signalradar.item.RadarItem;
+import it.ratlab.signalradar.item.TwoHanded;
 import it.ratlab.signalradar.net.SnapshotPayload;
 import it.ratlab.signalradar.target.TargetManager;
 import java.util.HashMap;
@@ -55,11 +56,24 @@ public final class ScanHandler {
         return off.getItem() instanceof RadarItem ? off : ItemStack.EMPTY;
     }
 
-    private static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
+    /**
+     * The radar that is switched on: {@link #heldRadar}, except an offhand radar while the main hand is two-handed
+     * ({@link TwoHanded#blocksOffhand}); empty then.
+     */
+    public static ItemStack activeRadar(Player player) {
         ItemStack radar = heldRadar(player);
+        return !radar.isEmpty() && radar != player.getMainHandItem() && TwoHanded.blocksOffhand(player) ? ItemStack.EMPTY : radar;
+    }
+
+    private static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            tickPlayer(player);
+        }
+    }
+
+    /** One player tick of the scan schedule (public for game tests). */
+    public static void tickPlayer(ServerPlayer player) {
+        ItemStack radar = activeRadar(player);
         if (radar.isEmpty()) {
             return;
         }

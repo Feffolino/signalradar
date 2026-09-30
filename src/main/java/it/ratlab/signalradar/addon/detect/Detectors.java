@@ -279,7 +279,7 @@ public final class Detectors {
             samples.add(new MotionTracker.Sample(e.getUUID(), e.getX(), e.getY(), e.getZ()));
         }
         Set<UUID> moving = MotionTracker.INSTANCE.update(player.getUUID(), samples, MOTION_MIN_MOVE);
-        ItemStack held = ScanHandler.heldRadar(player);
+        ItemStack held = ScanHandler.activeRadar(player);
         boolean withStill = !held.isEmpty()
                 && AddonMath.showsStationary(RadarItem.tier(held), AddonConfig.stationaryFromTier());
         if (!withStill) {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: an offhand radar stayed active while the main hand used a two-handed item. Now it is off (no scan, no FE drain, no snapshots, sounds or beeps; dark screen, LED off) while the main hand uses a bow, crossbow, spear/trident, spyglass, brush or goat horn, holds a charged crossbow, or holds an item of the new tag `signalradar:two_handed` (empty by default: packs add guns etc.; optional entries are fine). On the client a two-handed arm pose of the main hand item also counts. The main-hand radar is unaffected and the offhand radar resumes without an extra paid scan.
 - Fixed: blips near the zoom range edge vanished and came back about 1 s later. Zoom visibility (rim band / hidden), merging and
   the icon limit used the blip's new snapshot position while the blip was still drawn gliding (1 s) from its old one, so a blip
   whose new position was across a zoom boundary disappeared at once and reappeared when the glide ended. The layout now uses

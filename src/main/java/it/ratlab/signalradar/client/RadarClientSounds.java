@@ -37,12 +37,12 @@ public final class RadarClientSounds {
 
     private RadarClientSounds() {}
 
-    /** The radar held by the local player (main hand first), or empty. */
+    /** The radar held by the local player (main hand first), or empty; an offhand radar is off while the main hand is two-handed. */
     public static ItemStack held(LocalPlayer p) {
         if (p.getMainHandItem().getItem() instanceof RadarItem) {
             return p.getMainHandItem();
         }
-        return p.getOffhandItem().getItem() instanceof RadarItem ? p.getOffhandItem() : ItemStack.EMPTY;
+        return p.getOffhandItem().getItem() instanceof RadarItem && !ClientTwoHanded.blocksOffhand(p) ? p.getOffhandItem() : ItemStack.EMPTY;
     }
 
     static void onSnapshot(ScanSnapshot snap) {
