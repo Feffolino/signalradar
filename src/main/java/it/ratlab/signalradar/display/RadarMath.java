@@ -161,6 +161,56 @@ public final class RadarMath {
         return (r << 16) | (g << 8) | b;
     }
 
+    /** Display range steps of the zoom, metres. */
+    public static final int[] RANGE_STEPS = {16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
+
+    /** Selectable ranges for a tier range {@code cap}: the steps up to the cap, plus the cap itself when it is not a step. */
+    public static int[] rangeOptions(int cap) {
+        if (cap <= 0) {
+            return new int[] {Math.max(cap, 0)};
+        }
+        int n = 0;
+        for (int s : RANGE_STEPS) {
+            if (s < cap) {
+                n++;
+            }
+        }
+        int[] out = new int[n + 1];
+        int i = 0;
+        for (int s : RANGE_STEPS) {
+            if (s < cap) {
+                out[i++] = s;
+            }
+        }
+        out[n] = cap;
+        return out;
+    }
+
+    /** Range actually displayed: the chosen one, or the tier range when nothing is chosen (<= 0) or the cap dropped below it. */
+    public static int effectiveRange(int chosen, int cap) {
+        return chosen <= 0 || chosen > cap ? cap : chosen;
+    }
+
+    /**
+     * Next display range: {@code dir} +1 = larger (zoom out), -1 = smaller (zoom in), one option per call, clamped to
+     * {@link #rangeOptions}. A current range between two options steps to the one below it (zoom in) or the one above (zoom out).
+     */
+    public static int stepRange(int current, int cap, int dir) {
+        int[] o = rangeOptions(cap);
+        int idx = 0;
+        for (int i = 0; i < o.length; i++) {
+            if (o[i] <= current) {
+                idx = i;
+            }
+        }
+        int step = Integer.signum(dir);
+        if (step < 0 && o[idx] < current) {
+            step = 0; // between two options: zooming in lands on the one below
+        }
+        int next = Math.max(0, Math.min(o.length - 1, idx + step));
+        return o[next];
+    }
+
     /** Horizontal distance rounded to whole metres (blocks). */
     public static int metres(double dx, double dz) {
         return (int) Math.round(Math.sqrt(dx * dx + dz * dz));

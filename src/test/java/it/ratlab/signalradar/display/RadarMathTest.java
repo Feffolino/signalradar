@@ -182,4 +182,31 @@ class RadarMathTest {
         assertEquals(x, v.x(), 1e-9, "x of " + v);
         assertEquals(y, v.y(), 1e-9, "y of " + v);
     }
+
+    @Test
+    void rangeOptionsAreStepsUpToTheCap() {
+        assertEquals(List.of(16, 32, 64, 128, 256), java.util.Arrays.stream(RadarMath.rangeOptions(256)).boxed().toList());
+        assertEquals(9, RadarMath.rangeOptions(4096).length);
+        assertEquals(List.of(16, 32, 64, 100), java.util.Arrays.stream(RadarMath.rangeOptions(100)).boxed().toList());
+        assertEquals(List.of(10), java.util.Arrays.stream(RadarMath.rangeOptions(10)).boxed().toList());
+    }
+
+    @Test
+    void stepRangeMovesOneOptionAndClamps() {
+        assertEquals(128, RadarMath.stepRange(256, 4096, -1));
+        assertEquals(512, RadarMath.stepRange(256, 4096, 1));
+        assertEquals(16, RadarMath.stepRange(16, 4096, -1));
+        assertEquals(256, RadarMath.stepRange(256, 256, 1));
+        assertEquals(100, RadarMath.stepRange(64, 100, 1));
+        assertEquals(64, RadarMath.stepRange(100, 100, -1));
+        assertEquals(64, RadarMath.stepRange(90, 100, -1));
+        assertEquals(100, RadarMath.stepRange(90, 100, 1)); // between options: in lands on the lower one
+    }
+
+    @Test
+    void effectiveRangeFollowsTierUnlessChosen() {
+        assertEquals(2048, RadarMath.effectiveRange(0, 2048));
+        assertEquals(64, RadarMath.effectiveRange(64, 2048));
+        assertEquals(512, RadarMath.effectiveRange(4096, 512)); // tier cap dropped below the choice
+    }
 }

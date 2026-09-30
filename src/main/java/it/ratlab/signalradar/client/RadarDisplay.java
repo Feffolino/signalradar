@@ -192,14 +192,14 @@ final class RadarDisplay {
         return noSignalString;
     }
 
-    private static ScanSnapshot labelSnapshot;
+    private static int labelRange = -1;
     private static String labelText = "";
 
-    /** Range label, formatted once per snapshot. */
-    private static String rangeLabel(ScanSnapshot snap) {
-        if (snap != labelSnapshot) {
-            labelSnapshot = snap;
-            labelText = snap.range() >= 1000 ? String.format("%.1fk", snap.range() / 1000.0) : snap.range() + "m";
+    /** Range label, formatted once per displayed range. */
+    private static String rangeLabel(int range) {
+        if (range != labelRange) {
+            labelRange = range;
+            labelText = range >= 1000 ? String.format("%.1fk", range / 1000.0) : range + "m";
         }
         return labelText;
     }
@@ -246,6 +246,7 @@ final class RadarDisplay {
         boolean heights = RadarClientConfig.showHeightArrows();
         List<Blip> list = snap.blips();
         int maxIcons = RadarClientConfig.maxIcons();
+        int range = RadarZoom.range(snap.range()); // chosen display range; farther blips sit on the rim with an arrow
         double limit = iconDistanceLimit(list, pos.x, pos.z, maxIcons);
 
         // Where every blip is on the display, then merge the ones that sit almost on the same spot.
@@ -256,7 +257,7 @@ final class RadarDisplay {
             Blip b = list.get(bi);
             Vec3d wp = ClientRadarState.position(b, nowMs);
             Vec2 rel = RadarMath.relative(wp.x() - pos.x, wp.z() - pos.z, yaw);
-            RadarMath.Placed p = RadarMath.place(rel, snap.range(), r, b.outOfRange());
+            RadarMath.Placed p = RadarMath.place(rel, range, r, b.outOfRange());
             spots[bi] = new Spot(b, wp, p, RadarMath.displayAngle(p.x(), p.y()));
             items.add(new BlipLayout.Item(bi, p.x(), p.y(), b.found(), distSq[bi], b.id()));
         }
@@ -488,7 +489,7 @@ final class RadarDisplay {
         // Range label (live data only), then the energy bar filling the rest.
         double barTop = py0 - 0.25;
         if (snap != null) {
-            texts.add(new Text(rangeLabel(snap), (px0 + px1) / 2, py0 - 0.5, 0.065f, RadarColors.RANGE_TEXT, true));
+            texts.add(new Text(rangeLabel(RadarZoom.range(snap.range())), (px0 + px1) / 2, py0 - 0.5, 0.065f, RadarColors.RANGE_TEXT, true));
             barTop = py0 - 0.9;
         }
         double bw = Math.min(0.9, (px1 - px0) * 0.45);

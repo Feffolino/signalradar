@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Zoom: while the radar is raised (holding right-click) the mouse wheel changes the display range in steps of 16, 32, 64,
+  ... 4096 m, capped at the tier range (default = tier range, remembered for the session). Blips beyond the chosen range go to
+  the rim with an arrow; the range label follows. Client only, the server still scans the full range. Optional unbound keys
+  "Radar zoom in / out" (category "Signal Radar") work while holding the radar. The hotbar does not scroll while raised.
 - Fixed: the addon screen showed no item tooltips on hover (refusal tooltips for locked or invalid slots still work).
 - Fixed: icons and height arrows flickered when two blips overlapped (z-fighting). Blips now have a stable draw order and
   their own depth slots; blips almost on the same spot merge into one icon with a count badge.

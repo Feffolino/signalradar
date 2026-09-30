@@ -21,6 +21,10 @@ public final class SignalRadarClient {
 
     public static void init(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.CLIENT, RadarClientConfig.SPEC);
+        modBus.addListener((net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent e) -> {
+            e.register(RadarZoom.ZOOM_IN);
+            e.register(RadarZoom.ZOOM_OUT);
+        });
         modBus.addListener(ModelEvent.RegisterAdditional.class, RadarItemRenderer::registerModels);
         modBus.addListener(ModelEvent.RegisterAdditional.class, CustomAddonModels::registerModels);
         modBus.addListener(ModelEvent.ModifyBakingResult.class, CustomAddonModels::modifyBakingResult);
@@ -38,6 +42,17 @@ public final class SignalRadarClient {
             RadarClock.tick();
             RaiseState.tick();
             RadarClientSounds.tick();
+            RadarZoom.tick();
+        });
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.InputEvent.MouseScrollingEvent e) -> {
+            // Raised radar: the wheel is the zoom, never the hotbar.
+            if (RaiseState.raised() && net.minecraft.client.Minecraft.getInstance().screen == null) {
+                e.setCanceled(true);
+                double d = e.getScrollDeltaY();
+                if (d != 0) {
+                    RadarZoom.step(d > 0 ? -1 : 1);
+                }
+            }
         });
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             ClientRadarState.clear();
@@ -45,6 +60,7 @@ public final class SignalRadarClient {
             RaiseState.reset();
             RadarClock.reset();
             RadarClientSounds.reset();
+            RadarZoom.reset();
         });
     }
 }

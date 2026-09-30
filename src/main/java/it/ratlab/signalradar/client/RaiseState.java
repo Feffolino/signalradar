@@ -34,6 +34,12 @@ public final class RaiseState {
         now = Mth.clamp(now + (using ? 1f : -1f) / TICKS, 0f, 1f);
     }
 
+    /** The local player holds right-click on a radar right now (zoom keys and mouse wheel apply). */
+    public static boolean raised() {
+        LocalPlayer p = Minecraft.getInstance().player;
+        return p != null && p.isUsingItem() && p.getUseItem().getItem() instanceof RadarItem;
+    }
+
     /** Eased progress for this frame. */
     public static float progress(float partialTick) {
         return RadarMath.ease(Mth.lerp(partialTick, prev, now));
