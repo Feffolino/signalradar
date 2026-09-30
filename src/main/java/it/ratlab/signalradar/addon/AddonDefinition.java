@@ -24,10 +24,21 @@ import org.jetbrains.annotations.Nullable;
  * @param icon           icon spec for every blip of this addon (custom addons, {@code .icon()}); null = the detector's own icon
  * @param stackable      a whole stack of the item (up to its max stack size) fits in one addon slot and is stored with its
  *                       count (battery); every other addon holds exactly one item per slot
+ * @param texture        item texture id ({@code ns:item/path} = {@code assets/ns/textures/item/path.png}); client-side use only (custom
+ *                       addons without an own item model); null = {@code <addon ns>:item/<addon path>}
  */
 public record AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
                               int color, int energyCost, String category, @Nullable String requiredModId,
-                              @Nullable ResourceLocation tag, boolean useMapColor, @Nullable String icon, boolean stackable) {
+                              @Nullable ResourceLocation tag, boolean useMapColor, @Nullable String icon, boolean stackable,
+                              ResourceLocation texture) {
+
+    /** Definition with the default texture id. */
+    public AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
+                           int color, int energyCost, String category, @Nullable String requiredModId,
+                           @Nullable ResourceLocation tag, boolean useMapColor, @Nullable String icon, boolean stackable) {
+        this(id, detector, minTier, radiusMin, radiusMax, refreshSeconds, color, energyCost, category, requiredModId, tag, useMapColor,
+                icon, stackable, null);
+    }
 
     /** Definition without the stackable flag (every addon except the battery). */
     public AddonDefinition(ResourceLocation id, Detector detector, int minTier, int radiusMin, int radiusMax, int refreshSeconds,
@@ -103,6 +114,12 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
         category = category == null || category.isBlank() ? id.getPath() : category;
         color &= 0xFFFFFF;
         icon = icon == null || icon.isBlank() ? null : IconSpec.normalize(icon, "");
+        texture = texture == null ? defaultTexture(id) : texture;
+    }
+
+    /** {@code <addon ns>:item/<addon path>}. */
+    public static ResourceLocation defaultTexture(ResourceLocation id) {
+        return ResourceLocation.fromNamespaceAndPath(id.getNamespace(), "item/" + id.getPath());
     }
 
     /** Starts a custom addon definition (public detector types only). Defaults: tier 0, radius 16..32, 5 s, white, 10 FE. */
@@ -123,6 +140,7 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
         private String requiredMod;
         private ResourceLocation tag;
         private String icon;
+        private ResourceLocation texture;
 
         private Builder(ResourceLocation id, Detector detector) {
             this.id = id;
@@ -171,6 +189,12 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
             return this;
         }
 
+        /** Item texture id {@code ns:item/path} (file {@code assets/ns/textures/item/path.png}); null = {@code <addon ns>:item/<addon path>}. */
+        public Builder texture(ResourceLocation texture) {
+            this.texture = texture;
+            return this;
+        }
+
         public Builder requiredMod(String modId) {
             this.requiredMod = modId;
             return this;
@@ -179,7 +203,7 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
         /** @throws IllegalArgumentException on invalid values */
         public AddonDefinition build() {
             return new AddonDefinition(id, detector, minTier, radiusMin, radiusMax, refresh, color, energy, category, requiredMod,
-                    tag, false, icon);
+                    tag, false, icon, false, texture);
         }
     }
 }

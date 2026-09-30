@@ -182,6 +182,11 @@ public final class AddonGameTests {
             threw = true;
         }
         h.assertTrue(threw, "bad icon accepted");
+        AddonDefinition dt = AddonDefinition.builder(ResourceLocation.parse("pack:tex"), AddonDefinition.Detector.CONTAINER).build();
+        h.assertTrue(dt.texture().equals(ResourceLocation.parse("pack:item/tex")), "default texture " + dt.texture());
+        AddonDefinition et = AddonDefinition.builder(ResourceLocation.parse("pack:tex"), AddonDefinition.Detector.CONTAINER)
+                .texture(ResourceLocation.parse("other:item/sub/x")).build();
+        h.assertTrue(et.texture().equals(ResourceLocation.parse("other:item/sub/x")), "explicit texture " + et.texture());
         h.succeed();
     }
 

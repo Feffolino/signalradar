@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- New: custom addon textures from KubeJS. Put a PNG at `kubejs/assets/<ns>/textures/item/<addon path>.png` (default) or choose a
+  file with the new builder option `.texture('ns:item/xxx')` (also `AddonDefinition.Builder.texture`). Addons without an own
+  `models/item` json get an `item/generated` model of that texture through an in-memory client pack (lowest priority, so a real
+  model still overrides it). When the PNG does not exist the addon falls back to the generic tinted model as before (never
+  purple/black). The client logs `Custom addon <id>: texture <rl>` / `generic (texture missing)` once per addon.
 - Fixed: an offhand radar stayed active while the main hand used a two-handed item. Now it is off (no scan, no FE drain, no snapshots, sounds or beeps; dark screen, LED off) while the main hand uses a bow, crossbow, spear/trident, spyglass, brush or goat horn, holds a charged crossbow, or holds an item of the new tag `signalradar:two_handed` (empty by default: packs add guns etc.; optional entries are fine). On the client a two-handed arm pose of the main hand item also counts. The main-hand radar is unaffected and the offhand radar resumes without an extra paid scan.
 - Fixed: blips near the zoom range edge vanished and came back about 1 s later. Zoom visibility (rim band / hidden), merging and
   the icon limit used the blip's new snapshot position while the blip was still drawn gliding (1 s) from its old one, so a blip

@@ -143,6 +143,19 @@ public final class SignalRadarKubeEvents {
             return this;
         }
 
+        /**
+         * Item texture {@code 'ns:item/xxx'} = {@code kubejs/assets/ns/textures/item/xxx.png} (a leading {@code textures/} and a trailing
+         * {@code .png} are accepted). Default {@code <addon ns>:item/<addon path>}. Client side only: without the PNG (and without
+         * an own {@code models/item} json) the addon uses the generic tinted model.
+         */
+        public AddonBuilderJS texture(String texture) {
+            String t = texture.endsWith(".png") ? texture.substring(0, texture.length() - 4) : texture;
+            ResourceLocation rl = rl(t);
+            String path = rl.getPath().startsWith("textures/") ? rl.getPath().substring("textures/".length()) : rl.getPath();
+            builder.texture(ResourceLocation.fromNamespaceAndPath(rl.getNamespace(), path));
+            return this;
+        }
+
         /** Only registered when this mod is loaded. */
         public AddonBuilderJS requiredMod(String modId) {
             builder.requiredMod(modId);

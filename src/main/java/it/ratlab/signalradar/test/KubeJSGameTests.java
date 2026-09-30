@@ -92,6 +92,7 @@ public final class KubeJSGameTests {
                 && oil.category().equals("Oil") && oil.tag().equals(ResourceLocation.parse("c:ores/oil")) && oil.requiredModId() == null,
                 "oil definition " + oil);
         h.assertTrue("item:minecraft:lava_bucket".equals(oil.icon()), "oil icon " + oil.icon());
+        h.assertTrue(oil.texture().equals(ResourceLocation.parse("signalradar_example:item/addon_oil")), "oil default texture " + oil.texture());
         h.assertTrue(!AddonRegistry.isBuiltin(oil) && AddonRegistry.isActive(oil), "oil is an active custom addon");
         AddonItem oilItem = (AddonItem) AddonRegistry.item(OIL).orElseThrow(() -> new IllegalStateException("oil item missing"));
         ItemStack oilStack = new ItemStack(oilItem);
@@ -100,6 +101,9 @@ public final class KubeJSGameTests {
         AddonDefinition undead = AddonRegistry.get(UNDEAD).orElseThrow();
         h.assertTrue(undead.detector() == AddonDefinition.Detector.ENTITY_TAG && undead.minTier() == 1 && undead.color() == 0x88AA55
                 && undead.energyCost() == 15 && undead.refreshSeconds() == 2, "undead definition " + undead);
+        h.assertTrue(undead.texture().equals(ResourceLocation.parse("signalradar_example:item/undead_skull")), "undead texture " + undead.texture());
+        AddonDefinition plain = AddonRegistry.get(ResourceLocation.parse("signalradar_example:addon_plain")).orElseThrow();
+        h.assertTrue(plain.texture().equals(ResourceLocation.parse("signalradar_example:item/addon_plain")), "plain texture " + plain.texture());
         AddonDefinition optional = AddonRegistry.get(OPTIONAL).orElseThrow();
         h.assertTrue(!AddonRegistry.isActive(optional) && AddonRegistry.item(OPTIONAL).isEmpty(), "optional addon has no item");
 

@@ -314,13 +314,26 @@ SignalRadarEvents.registerAddons(e => {
     .tag('#c:ores/oil').minTier(3).radius(16, 48).refresh(5)
     .color('#222222').energy(10).category('Oil').requiredMod('somemod')
     .icon('minecraft:lava_bucket')   // optional blip icon, see "Blip icons"; bare id = item
+    .texture('my_pack:item/oil')     // optional item texture (client side), default my_pack:item/addon_oil
 })
 ```
 Custom addon blip icons default by detector: `block_tag` the block face, `entity_tag` the mob face (or body / head item), `container`
 the block item, `structure_tag` a map; `.icon('...')` replaces that for every blip of the addon (a bad spec is reported at
-startup and skips that addon). Custom addons without a model use the generic tinted model `signalradar:item/addon_custom` (tint = `.color`), without a lang entry
-the name "Radar Addon (Oil)". Ship `assets/<ns>/models/item/<path>.json` and lang entries (`kubejs/assets`) to override. A restart is
-needed after editing (addons are items).
+startup and skips that addon). Custom addons without a lang entry get the name "Radar Addon (Oil)". A restart is needed after editing (addons are items).
+
+**Item textures.** KubeJS serves `kubejs/assets/` as a resource pack, so put the PNG at
+`kubejs/assets/<ns>/textures/item/<path>.png`. The default texture id is `<addon ns>:item/<addon path>` (addon `my_pack:addon_oil`
+-> `kubejs/assets/my_pack/textures/item/addon_oil.png`); `.texture('ns:item/xxx')` picks another file
+(`kubejs/assets/ns/textures/item/xxx.png`; a leading `textures/` and a trailing `.png` are accepted). The id is stored in
+`AddonDefinition.texture()` and used on the client only. How the item looks, in order:
+1. An own `assets/<ns>/models/item/<path>.json` (KubeJS or a resource pack) always wins.
+2. Else an in-memory client pack (`CustomAddonPack`, always on, lowest priority) supplies an `item/generated` model with
+   `layer0` = the texture.
+3. Else, when that PNG is not in the loaded resources (checked while baking, `ModelEvent.ModifyBakingResult`), the generic tinted
+   model `signalradar:item/addon_custom` (tint = `.color`) is used, never purple/black. The tint handler is only registered for
+   addons on the generic model.
+The client logs once per custom addon at INFO: `Custom addon <id>: texture <rl>`, `Custom addon <id>: generic (texture missing)` or
+`Custom addon <id>: own model <file>`. Textures are client assets: changing a PNG only needs F3+T, a new `.texture()` needs a restart.
 
 **Server events** (`SignalRadarEvents.*`):
 - `scan`: `player, radar, tier, range, targets, targetIds`, `removeTarget(id)`, `removeCategory(cat)`, `removeIf(t => ..)`,

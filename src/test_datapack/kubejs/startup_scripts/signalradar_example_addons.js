@@ -7,8 +7,10 @@
 //   .tag('#ns:tag')  .minTier(0..4)  .radius(minAtMinTier, maxAtTier4)  .refresh(seconds)
 //   .color('#RRGGBB' or 0xRRGGBB)  .energy(FE per scan)  .category('Name')  .requiredMod('modid')
 //   .icon('block:ns:id' | 'item:ns:id' | 'texture:ns:textures/..png' | 'entity:ns:id' | bare item id)  blip icon on the radar
-// Items without their own model / lang entry get a generic icon tinted with .color() and the name
-// "Radar Addon (<category>)". Give them assets in kubejs/assets/<ns>/ (models/item/<path>.json, lang/en_us.json).
+//   .texture('ns:item/xxx')  item texture = kubejs/assets/ns/textures/item/xxx.png (default: <addon ns>:item/<addon path>)
+// Item look (client side): own kubejs/assets/<ns>/models/item/<path>.json wins; else the PNG above (item/generated); else, when the
+// PNG is missing, a generic icon tinted with .color() (never purple/black). The name without a lang entry is "Radar Addon (<category>)"
+// (lang: kubejs/assets/<ns>/lang/en_us.json). The client log says per addon: "Custom addon <id>: texture <rl>" or "generic (texture missing)".
 // A restart is needed after editing: addons are items.
 
 SignalRadarEvents.registerAddons(event => {
@@ -22,6 +24,7 @@ SignalRadarEvents.registerAddons(event => {
     .energy(10)
     .category('Oil')
     .icon('minecraft:lava_bucket')
+    // no .texture(): default signalradar_example:item/addon_oil = kubejs/assets/signalradar_example/textures/item/addon_oil.png
 
   // Entities in a tag.
   event.create('signalradar_example:addon_undead', 'entity_tag')
@@ -32,6 +35,12 @@ SignalRadarEvents.registerAddons(event => {
     .color(0x88AA55)
     .energy(15)
     .category('Undead')
+    .texture('signalradar_example:item/undead_skull')  // kubejs/assets/signalradar_example/textures/item/undead_skull.png
+
+  // No texture PNG anywhere: falls back to the generic tinted model.
+  event.create('signalradar_example:addon_plain', 'container')
+    .color('#33AAFF')
+    .category('Plain')
 
   // Only registered when its mod is loaded (this one never is).
   event.create('signalradar_example:addon_optional', 'container')

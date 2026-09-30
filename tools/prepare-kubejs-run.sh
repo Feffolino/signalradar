@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 # Prepares ./gradlew runGameTestServerKubeJS: copies KubeJS + Rhino into run-kubejs/mods (jars are gitignored) and the
-# example scripts of src/test_datapack/kubejs into run-kubejs/kubejs. Run again after editing the example scripts.
+# example scripts and assets (placeholder item PNGs) of src/test_datapack/kubejs into run-kubejs/kubejs. Run again after editing the example scripts.
 # Usage: tools/prepare-kubejs-run.sh [path-to-a-mods-dir-with-kubejs-and-rhino]
 # Without an argument the jars come from the Gradle cache (the exact compileOnly versions of build.gradle).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-mkdir -p run-kubejs/mods run-kubejs/kubejs/startup_scripts run-kubejs/kubejs/server_scripts
+mkdir -p run-kubejs/mods run-kubejs/kubejs/startup_scripts run-kubejs/kubejs/server_scripts run-kubejs/kubejs/assets
 rm -f run-kubejs/mods/kubejs-*.jar run-kubejs/mods/rhino-*.jar
 if [ $# -ge 1 ]; then
     cp -v "$1"/kubejs-neoforge-*.jar "$1"/rhino-*.jar run-kubejs/mods/
@@ -23,3 +23,4 @@ else
 fi
 cp -v src/test_datapack/kubejs/startup_scripts/*.js run-kubejs/kubejs/startup_scripts/
 cp -v src/test_datapack/kubejs/server_scripts/*.js run-kubejs/kubejs/server_scripts/
+cp -rv src/test_datapack/kubejs/assets/. run-kubejs/kubejs/assets/

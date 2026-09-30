@@ -27,6 +27,7 @@ public final class SignalRadarClient {
         });
         modBus.addListener(ModelEvent.RegisterAdditional.class, RadarItemRenderer::registerModels);
         modBus.addListener(ModelEvent.RegisterAdditional.class, CustomAddonModels::registerModels);
+        modBus.addListener(net.neoforged.neoforge.event.AddPackFindersEvent.class, CustomAddonPack::register);
         modBus.addListener(ModelEvent.ModifyBakingResult.class, CustomAddonModels::modifyBakingResult);
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterColorHandlersEvent.Item.class, CustomAddonModels::registerColors);
         modBus.addListener((RegisterClientExtensionsEvent e) -> e.registerItem(new RadarClientExtensions(), ModItems.RADAR.get()));

@@ -4,6 +4,9 @@
 // Rhino notes: use let (not const) inside loops; Java lists are read with size() / get(i); compare levels by dimension.
 // Ids without a namespace get 'kubejs:'. Bad ids never throw: the binding methods return false / null / do nothing and
 // log a warning.
+// Custom addon items (startup_scripts, SignalRadarEvents.registerAddons): give one a look with a PNG at
+// kubejs/assets/<ns>/textures/item/<addon path>.png or pick another with .texture('ns:item/xxx'); without a PNG the addon uses the
+// generic tinted model. See signalradar_example_addons.js.
 
 let ENABLED = false
 
