@@ -66,7 +66,7 @@ public final class AddonConfig {
                     .defineInRange("energyCost", d.energyCost(), 0, 1_000_000);
             if (d.id().equals(AddonRegistry.CONTAINER)) {
                 includeLootr = b.comment("Also show Lootr containers (only matters with Lootr installed).",
-                                "Turn off when the Loot addon is used, so the container addon shows only ordinary containers.")
+                                "Turn off when the Lootr addon is used, so the container addon shows only ordinary containers.")
                         .define("includeLootrContainers", true);
             }
             if (d.id().equals(AddonRegistry.MOTION)) {

@@ -222,7 +222,7 @@ public final class RadarMath {
     /** {@link #visibility}: not drawn at all. */
     public static final int HIDDEN = 2;
 
-    /** Local categories (container, loot, ore, biosign, motion, custom addons) are everything that is not navigation. */
+    /** Local categories (container, lootr, ore, biosign, motion, custom addons) are everything that is not navigation. */
     public static boolean isNavigation(String category) {
         return NAVIGATION_CATEGORIES.contains(category);
     }

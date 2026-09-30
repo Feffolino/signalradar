@@ -17,7 +17,7 @@ you are looking at. It runs on Forge Energy, so keep it charged, or it shows **N
   - **Structure**: the nearest known structures.
   - **Motion tracker**: moving hostile mobs only (still ones stay hidden), with a beep that speeds up as they close in.
   - **Manhole** (with Manhole Travel): manholes your network has not opened yet.
-  - **Loot** (with Lootr): Lootr containers you have not opened yet.
+  - **Lootr** (with Lootr): Lootr containers you have not opened yet.
   - **Team** (with FTB Teams): online teammates in your dimension.
   - **Battery**: detects nothing; up to 8 stack in one slot and each adds 10000 FE of capacity (configurable). Removing
     batteries loses the energy above the new capacity.

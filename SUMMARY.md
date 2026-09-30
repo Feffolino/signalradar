@@ -128,7 +128,7 @@ Custom addons use their definition values and have no config entries. Only the c
   | Spec | Client draws | Used by |
   |---|---|---|
   | `block:<id>` | sprite of the model's NORTH face (else first quad, else particle sprite) as a textured quad, `RenderType.text(block atlas)` | ore, custom `block_tag` (the found block) |
-  | `item:<id>` | the item model through `ItemRenderer.renderStatic(GUI)`, scaled to the square and flattened on z (scale 0.02) | container and loot (block item of the found block, fallback chest), structure (`minecraft:map`), narrative targets (default `minecraft:compass`), last death (`minecraft:skeleton_skull`) |
+  | `item:<id>` | the item model through `ItemRenderer.renderStatic(GUI)`, scaled to the square and flattened on z (scale 0.02) | container and lootr (block item of the found block, fallback chest), structure (`minecraft:map`), narrative targets (default `minecraft:compass`), last death (`minecraft:skeleton_skull`) |
   | `texture:<rl>` | plain PNG quad; a missing `map_icon_<look>.png` falls back to `map_icon.png` of the same folder, else a dot | manholes: `manholes:textures/gui/map_icon_<look>.png` by node look (`home_manhole`, `city`, `grate`, `hatch`, `cave`, `ns:x` looks use their namespace) |
   | `entity:<type id>` | 1. the mob's own face: the head `ModelPart` of its renderer model (`HeadedModel.getHead()`; a `head` part anywhere in a `HierarchicalModel` tree; or a non-static `ModelPart` field named `head` of any `EntityModel`, e.g. MutantsZombies) drawn from the front with the renderer's texture via `RenderType.text` (fullbright), pose neutralised, centred and scaled from the bounds of its visible cubes, flattened on z. 2. a **full-body mini render** (`client/MobBodies`): the cached dummy entity drawn with its renderer's own `render(...)` (any `EntityRenderer`, GeckoLib included), yaw 0 (faces the viewer), tick 0, partial 0, fullbright, scaled to fit the square from its bounding box, flattened on z. 3. the vanilla mob head item (zombie, skeleton, wither skeleton, creeper, piglin, dragon). 4. a dot. **Never the spawn egg.** Each type logs once at INFO `Mob icon <type>: face/body/head/dot (reason)`; a body whose render throws is marked failed (logged once) and draws the head item or an empty frame. All per-type try/catch, cached, cleared on level change and logout | motion, biosign, custom `entity_tag` |
   | `player:<uuid>` | skin face + hat layer (tab list skin, default skin when unknown) | team |
@@ -156,7 +156,7 @@ Custom addons use their definition values and have no config entries. Only the c
   Quiet UI click on change. The server scan is unchanged.
   **Zoom bands** (`RadarMath.peripheralRange/visibility`, only when a zoom is active, i.e. range < tier range): rim band beyond the
   zoom range for local blips: 4 -> 16, 8 -> 32, 16 -> 32, 32 -> 64, >= 64 -> none (a value between steps uses the step at or
-  below; a non-step tier cap has no band). *Local* categories = container, loot, ore, biosign, motion, motion_still and custom addon categories
+  below; a non-step tier cap has no band). *Local* categories = container, lootr, ore, biosign, motion, motion_still and custom addon categories
   (everything not navigation; distances are those of the drawn, glided position, `RadarMath.shownDistance`, never the new snapshot position): distance <= zoom range drawn normally, up to the band on the rim with an arrow, beyond it not drawn
   and not counted in BlipLayout groups/badges. *Navigation* categories = narrative, structure, manhole, team, last_death and
   `script` (KubeJS) keep the old rule: always drawn, on the rim with an arrow beyond the range. No zoom = unchanged.
@@ -273,7 +273,7 @@ Examples:
 | `scan.maxBlockChecksPerScan` | 200000 | 4096..max. |
 | `addons.slotsByTier` | `[1, 2, 3, 4, 5]` | Each clamped to 1..5. |
 | `addons.battery.capacityPerBattery` | 10000 | FE per installed battery (0..100000000). |
-| `addons.<container/ore/biosign/structure/motion/manhole/loot/team>.{enabled,minTier,radiusMin,radiusMax,refreshSeconds,color,energyCost}` | see the addon table | |
+| `addons.<container/ore/biosign/structure/motion/manhole/lootr/team>.{enabled,minTier,radiusMin,radiusMax,refreshSeconds,color,energyCost}` | see the addon table | `[addons.lootr]` replaces the old `[addons.loot]`; old values are not migrated (copy them by hand) |
 | `addons.motion.stationaryFromTier` | 3 | Radar tier (0-5) from which the motion tracker also shows stationary hostiles (`motion_still`); 5 = never. Read at scan time. |
 | `addons.container.includeLootrContainers` | `true` | When false the container addon skips Lootr block entities (use it with the Loot addon so chests are not listed twice). |
 | `addons.ore.colorOverrides` | `[]` | `"iron=#D8AF93"` style entries. |
@@ -366,7 +366,7 @@ Package `it.ratlab.signalradar.api` (server side, all static, none starts a stru
 | Mod | What | Class |
 |---|---|---|
 | Manhole Travel 1.7+ | `addon_manhole`: registry nodes (works in unloaded chunks), same dimension, horizontal radius, no home manholes, not `ManholesAPI.isOpen(player, id)`; name = node display name. | `compat/manholes/ManholeDetector` |
-| Lootr | `addon_loot`: loaded chunks, `ILootrBlockEntity` / `ILootrEntity` with `!hasOpened(player)` (team aware; `hasLootAvailable` avoided, it builds inventories). | `compat/lootr/LootrDetector` |
+| Lootr | `addon_lootr` (was `addon_loot`): loaded chunks, `ILootrBlockEntity` / `ILootrEntity` with `!hasOpened(player)` (team aware; `hasLootAvailable` avoided, it builds inventories). | `compat/lootr/LootrDetector` |
 | FTB Teams | `addon_team`: `getTeamForPlayer(p).getOnlineMembers()` minus self, same dimension. | `compat/ftbteams/TeamDetector` |
 | KubeJS | events, binding, stages, startup addons. | `compat/kubejs/*` |
 | JEI | Info pages for the radar, the four modules and every active addon (text built from the addon tooltip). Client only, optional. | `compat/jei/SignalRadarJeiPlugin` (`@JeiPlugin`) |

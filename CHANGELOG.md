@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Changed: the Loot addon is now the Lootr addon: item `signalradar:addon_loot` became `signalradar:addon_lootr` (name "Lootr Addon"),
+  category `loot` became `lootr`, config section `[addons.loot]` became `[addons.lootr]` (old values are not migrated: copy them by
+  hand, otherwise the defaults apply). Saved radars and stacks keep working: the old id is an item registry alias and the addons
+  component maps `addon_loot` to `addon_lootr` when it is read. The default recipe is now `default/addon_lootr`. Add
+  `textures/item/addon_lootr.png` for the icon.
 - New: custom addon textures from KubeJS. Put a PNG at `kubejs/assets/<ns>/textures/item/<addon path>.png` (default) or choose a
   file with the new builder option `.texture('ns:item/xxx')` (also `AddonDefinition.Builder.texture`). Addons without an own
   `models/item` json get an `item/generated` model of that texture through an in-memory client pack (lowest priority, so a real
@@ -35,7 +40,7 @@
   frame, no pulse, no beep; moving ones still pulse and beep). Config `addons.motion.stationaryFromTier` (0-5, default 3, 5 = never).
   `Hit` gained an optional per-hit category override. Addon tooltip updated.
 
-- Zoom-aware display and sounds: with a zoom active, local blips (containers, loot, ore, biosigns, motion, custom addons) show on
+- Zoom-aware display and sounds: with a zoom active, local blips (containers, lootr, ore, biosigns, motion, custom addons) show on
   the rim only up to a peripheral band (4 m -> 16, 8/16 m -> 32, 32 m -> 64, none from 64 m) and vanish beyond it; navigation
   blips (narrative, structure, manhole, team, last death, script) still always show. The narrative/motion tick and the motion
   beep now ignore everything outside the displayed range, and the beep rate is relative to min(zoom range, motion radius).
@@ -43,9 +48,9 @@
   drawn flat from the front (villager nose, pig snout, ...), instead of the spawn egg. Mobs without a head model fall back to the
   vanilla mob head item, then the spawn egg. Client only; uses an access transformer on `ModelPart.cubes/children`.
 - Fixed: a Lootr chest you just opened stayed on the radar until the Loot addon refreshed (10 s). Opening or closing a Lootr
-  container now drops your cached Loot result and sends the next snapshot within a fraction of a second, at no extra energy.
+  container now drops your cached Lootr result and sends the next snapshot within a fraction of a second, at no extra energy.
 - New server config `addons.container.includeLootrContainers` (default true): when false the container addon skips Lootr
-  containers, so with the Loot addon a chest is not listed twice.
+  containers, so with the Lootr addon a chest is not listed twice.
 - Higher tiers are more energy-efficient: new server config `scan.energyMultiplierByTier` (default 1.0, 0.85, 0.7, 0.55, 0.4;
   0.05..1.0). The FE charged per scan period is `ceil((scanCost + addon costs) * multiplier)`.
 - The screen shows `NO BATTERY` (calm dark screen with a battery outline, red blinking LED) when the radar has no energy;
@@ -63,7 +68,7 @@
   `tools/make_sounds.py`.
 
 - Blips are drawn as clear, same-size icons instead of coloured dots: the block face for ores and custom block addons,
-  item icons for containers, loot, structures, narrative targets (compass) and the last death (skull), the Manhole Travel map
+  item icons for containers, lootr, structures, narrative targets (compass) and the last death (skull), the Manhole Travel map
   icon of each manhole look, mob heads or spawn eggs for motion and biosign, the skin face of team members. Thin frame in the
   blip colour (motion still pulses), found icons dimmed with a check mark, rim arrows kept.
 - Target JSON: optional `"icon"` (`block:`, `item:`, `texture:`, `entity:`, `player:` or a bare item id). KubeJS addon builder:

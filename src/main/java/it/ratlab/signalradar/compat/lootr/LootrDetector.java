@@ -31,7 +31,7 @@ public final class LootrDetector {
 
     private record Found(String key, Component name, double x, double y, double z, String icon) {}
 
-    /** True for Lootr's own block entities (used by the container addon to leave them to the Loot addon). */
+    /** True for Lootr's own block entities (used by the container addon to leave them to the Lootr addon). */
     public static boolean isLootr(net.minecraft.world.level.block.entity.BlockEntity be) {
         return be instanceof ILootrBlockEntity;
     }

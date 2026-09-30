@@ -74,6 +74,21 @@ public final class BatteryGameTests {
         return r;
     }
 
+    /** Radars saved with the old Loot addon id decode to the renamed Lootr addon (plain id and {id, count} forms). */
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void legacyLootAddonIdIsMigrated(GameTestHelper h) {
+        ResourceLocation old = SignalRadar.id("addon_loot");
+        var plain = AddonEntry.LIST_CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("[\"signalradar:addon_loot\", \"signalradar:addon_ore\"]"))
+                .getOrThrow();
+        h.assertTrue(plain.size() == 2 && plain.get(0).id().equals(AddonRegistry.LOOTR) && plain.get(0).count() == 1, "plain id not migrated: " + plain);
+        h.assertTrue(plain.get(1).id().equals(AddonRegistry.ORE), "other ids must stay: " + plain);
+        var full = AddonEntry.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("{\"id\":\"signalradar:addon_loot\",\"count\":1}"))
+                .getOrThrow();
+        h.assertTrue(full.id().equals(AddonRegistry.LOOTR), "object form not migrated: " + full);
+        h.assertTrue(!AddonRegistry.LOOTR.equals(old) && AddonRegistry.LEGACY_LOOT.equals(old), "legacy id constant");
+        h.succeed();
+    }
+
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void batteryDefinitionAndItem(GameTestHelper h) {
         AddonDefinition def = AddonRegistry.get(AddonRegistry.BATTERY).orElseThrow();

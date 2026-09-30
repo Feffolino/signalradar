@@ -12,7 +12,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
 import noobanidus.mods.lootr.common.api.data.inventory.ILootrInventory;
 
 /**
- * Drops the Loot addon's cached result of a player who opens (or closes) a Lootr container, so the chest disappears from the
+ * Drops the Lootr addon's cached result of a player who opens (or closes) a Lootr container, so the chest disappears from the
  * radar at the next snapshot instead of after the addon refresh. Only class-loaded after a {@code ModList} check.
  */
 public final class LootrEvents {
@@ -47,9 +47,9 @@ public final class LootrEvents {
         return false;
     }
 
-    /** Invalidates the player's Loot addon cache entry and asks for a free snapshot soon. */
+    /** Invalidates the player's Lootr addon cache entry and asks for a free snapshot soon. */
     public static void refresh(ServerPlayer player) {
-        AddonCache.INSTANCE.invalidate(player.getUUID(), AddonRegistry.LOOT);
+        AddonCache.INSTANCE.invalidate(player.getUUID(), AddonRegistry.LOOTR);
         ScanHandler.requestRefresh(player);
     }
 }

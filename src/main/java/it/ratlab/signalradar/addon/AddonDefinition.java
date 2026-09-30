@@ -65,7 +65,7 @@ public record AddonDefinition(ResourceLocation id, Detector detector, int minTie
         MOTION("motion", false),
         /** Compat detectors: need their mod, code lives in {@code compat/}. */
         MANHOLE("manhole", false),
-        LOOT("loot", false),
+        LOOTR("lootr", false),
         TEAM("team", false),
         /** Detects nothing (no hits, no blips); the addon does something else (battery: extra FE capacity). */
         NONE("none", false);

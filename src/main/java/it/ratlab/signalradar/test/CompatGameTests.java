@@ -58,7 +58,7 @@ public final class CompatGameTests {
     public static void compatAddonsFollowTheirMods(GameTestHelper h) {
         Object[][] rows = {
                 {AddonRegistry.MANHOLE, "manholes", 0, 96, 160, 5, 5, "manhole"},
-                {AddonRegistry.LOOT, "lootr", 2, 48, 96, 10, 10, "loot"},
+                {AddonRegistry.LOOTR, "lootr", 2, 48, 96, 10, 10, "lootr"},
                 {AddonRegistry.TEAM, "ftbteams", 1, 100_000, 100_000, 1, 5, "team"},
         };
         ServerPlayer p = player(h);
@@ -146,7 +146,7 @@ public final class CompatGameTests {
         for (String n : base) {
             h.assertTrue(rm.byKey(SignalRadar.id("default/" + n)).isPresent() == enabled, "default/" + n + " loaded == " + enabled);
         }
-        String[][] compat = {{"addon_manhole", "manholes"}, {"addon_loot", "lootr"}, {"addon_team", "ftbteams"}};
+        String[][] compat = {{"addon_manhole", "manholes"}, {"addon_lootr", "lootr"}, {"addon_team", "ftbteams"}};
         for (String[] c : compat) {
             h.assertTrue(rm.byKey(SignalRadar.id("default/" + c[0])).isPresent() == (enabled && loaded(c[1])),
                     "default/" + c[0] + " loaded == enabled && " + c[1] + " loaded");

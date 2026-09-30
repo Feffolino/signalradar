@@ -96,7 +96,7 @@ public final class Detectors {
                 case STRUCTURE_TAG -> structures(addon, player, level, radius, now);
                 case MANHOLE -> AddonRegistry.modPresent(def)
                         ? it.ratlab.signalradar.compat.manholes.ManholeDetector.run(player, level, radius) : List.<Hit>of();
-                case LOOT -> AddonRegistry.modPresent(def)
+                case LOOTR -> AddonRegistry.modPresent(def)
                         ? it.ratlab.signalradar.compat.lootr.LootrDetector.run(player, level, radius) : List.<Hit>of();
                 case NONE -> List.<Hit>of();
                 case TEAM -> AddonRegistry.modPresent(def)

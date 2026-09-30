@@ -32,7 +32,9 @@ public final class AddonRegistry {
     public static final ResourceLocation STRUCTURE = SignalRadar.id("addon_structure");
     public static final ResourceLocation MOTION = SignalRadar.id("addon_motion");
     public static final ResourceLocation MANHOLE = SignalRadar.id("addon_manhole");
-    public static final ResourceLocation LOOT = SignalRadar.id("addon_loot");
+    public static final ResourceLocation LOOTR = SignalRadar.id("addon_lootr");
+    /** Id of the Lootr addon before it was renamed; kept as an item registry alias and mapped when a radar is decoded. */
+    public static final ResourceLocation LEGACY_LOOT = SignalRadar.id("addon_loot");
     public static final ResourceLocation TEAM = SignalRadar.id("addon_team");
     public static final ResourceLocation BATTERY = SignalRadar.id("addon_battery");
     /** Max stack size of the battery addon item (and so of one battery slot). */
@@ -57,7 +59,7 @@ public final class AddonRegistry {
                 SignalRadar.id("trackable"), false));
         // Compat addons: only get an item when their mod is loaded. Team radius = whole dimension (config maximum, 100000).
         builtin(new AddonDefinition(MANHOLE, Detector.MANHOLE, 0, 96, 160, 5, 0xC8A050, 5, "manhole", "manholes", null, false));
-        builtin(new AddonDefinition(LOOT, Detector.LOOT, 2, 48, 96, 10, 0xB060FF, 10, "loot", "lootr", null, false));
+        builtin(new AddonDefinition(LOOTR, Detector.LOOTR, 2, 48, 96, 10, 0xB060FF, 10, "lootr", "lootr", null, false));
         // Battery: no detection, no energy cost, every tier; up to BATTERY_STACK in one slot, each adds capacity.
         builtin(new AddonDefinition(BATTERY, Detector.NONE, 0, 0, 0, 3600, 0xF0D040, 0, "battery", null, null, false, null, true));
         builtin(new AddonDefinition(TEAM, Detector.TEAM, 1, AddonMath.WHOLE_DIMENSION_RADIUS, AddonMath.WHOLE_DIMENSION_RADIUS, 1, 0x40E0D0, 5, "team", "ftbteams", null, false));
@@ -187,6 +189,10 @@ public final class AddonRegistry {
                 } catch (RuntimeException e) {
                     SignalRadar.LOGGER.error("Addon item {} could not be registered: {}", def.id(), e.toString());
                 }
+            }
+            if (get(LOOTR).filter(AddonRegistry::modPresent).isPresent()) {
+                // Stacks and recipes that still say signalradar:addon_loot resolve to the renamed item.
+                BuiltInRegistries.ITEM.addAlias(LEGACY_LOOT, LOOTR);
             }
         });
     }
