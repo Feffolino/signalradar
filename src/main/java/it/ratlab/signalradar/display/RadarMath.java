@@ -162,7 +162,7 @@ public final class RadarMath {
     }
 
     /** Display range steps of the zoom, metres. */
-    public static final int[] RANGE_STEPS = {16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
+    public static final int[] RANGE_STEPS = {4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
 
     /** Selectable ranges for a tier range {@code cap}: the steps up to the cap, plus the cap itself when it is not a step. */
     public static int[] rangeOptions(int cap) {

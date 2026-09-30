@@ -133,7 +133,7 @@ Custom addons use their definition values and have no config entries. Only the c
   radar only raises when the main-hand item has no use action of its own (vanilla priority).
 - **Sneak + right-click** opens the addon menu (slots = the tier's slot count, locked slots crossed out).
 - **Zoom** (client only, `client/RadarZoom`, steps in `RadarMath.rangeOptions/stepRange/effectiveRange`): while raised, the mouse
-  wheel (`InputEvent.MouseScrollingEvent`, cancelled so the hotbar stays put) steps the display range through 16, 32, 64, 128,
+  wheel (`InputEvent.MouseScrollingEvent`, cancelled so the hotbar stays put) steps the display range through 4, 8, 16, 32, 64, 128,
   256, 512, 1024, 2048, 4096 m, at most the tier range (`snap.range()`, which is also the default; a non-step cap is offered
   as the last option). Wheel up = smaller range. Blips beyond the chosen range use the rim arrow like out-of-range ones; the
   range label shows the chosen range. The choice is a client static for the session (0 = follow tier), forgotten when the tier
