@@ -398,8 +398,8 @@ KubeJS scripts; see its README. `libs/` is gitignored: `manholes-1.7.0.jar`, `lo
 11. Bad ids in KubeJS calls log and no-op instead of throwing; the startup builder reports errors per addon.
 12. Opening (or closing) a Lootr container (`PlayerContainerEvent`, menu with an `ILootrInventory` slot; `compat/lootr/LootrEvents`) drops that player's Loot cache entry and pulls the next free snapshot within 5 ticks (`ScanSchedule.pullForward`, only in a paid period, never an extra charge).
 13. The manhole addon reads the node registry (no block scan) and hides nodes the network opened; the Lootr addon avoids loot generation.
-13. JEI support is an isolated `@JeiPlugin` class reusing the addon tooltip; JEI is never a hard dependency.
-14. Off-the-shelf radar mods (sonar style, satellites) were rejected in planning in favour of this custom mod.
+14. JEI support is an isolated `@JeiPlugin` class reusing the addon tooltip; JEI is never a hard dependency.
+15. Off-the-shelf radar mods (sonar style, satellites) were rejected in planning in favour of this custom mod.
 
 Hand transforms note: vanilla `ItemTransform.apply(leftHand)` mirrors the left hand itself (negates translation x, rotation y/z), so
 `firstperson_lefthand` and `thirdperson_lefthand` hold the same numbers as the right entries (enforced by `art/make_tiers.py`,
