@@ -23,7 +23,7 @@ public final class RadarClientExtensions implements IClientItemExtensions {
     private static final float REST_Z = -0.72f;
     private static final float RAISED_X = 0.14f;
     /**
-     * Raised target y. Was -0.36; +0.08 on top of the display lift (firstperson translation y +2 model px, which at the
+     * Raised target y. -0.28 was too high in play-test, back to -0.36; the display lift (firstperson translation y +2 model px, which at the
      * raised scale of 1.3 is already ~0.16 higher). Tune here; the rest pose height lives in art/make_tiers.py
      * ({@code FP_LIFT_Y}) and the item model JSON.
      */
