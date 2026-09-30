@@ -53,7 +53,7 @@ def body(tier):
 
 # Hand poses. Tune here (the Blockbench display tab is overridden for the hand entries).
 # FP_LIFT_Y: extra first-person translation y (display units, 1/16 block) so the device sits higher in both hands.
-FP_LIFT_Y = 0
+FP_LIFT_Y = 2
 
 
 def hand_display(display):
