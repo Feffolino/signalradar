@@ -20,5 +20,7 @@ First release.
 - KubeJS: events `scan`, `targetFound`, `upgraded`, `addonChanged`, startup `registerAddons` for custom addons, `SignalRadar`
   binding with lenient id handling; clean script template.
 - NeoForge API: `SignalRadarAPI`, scan / found / upgrade / addon-changed events, addon registry hooks.
+- Default vanilla crafting recipes (`signalradar:default/*`) for the radar, modules 1 to 4 and all addons, behind the startup config
+  `recipes.enableDefaultRecipes` (`signalradar-startup.toml`) and the condition `signalradar:default_recipes_enabled`.
 - JEI info pages for the radar, the modules and every addon.
 - English translation.

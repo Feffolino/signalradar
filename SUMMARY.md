@@ -20,7 +20,7 @@ Their code lives in `compat/<mod>/` and is class-loaded only after a `ModList.is
 | Item | Notes |
 |---|---|
 | `signalradar:radar` | Stack size 1. Energy capability `Capabilities.EnergyStorage.ITEM` (Mekanism chargers, etc.). Item bar = energy. Tooltip: tier, FE, addons. |
-| `signalradar:radar_module_1..4` | Stack size 16. Only ingredient of the upgrade recipe. Tag `signalradar:radar_modules`. No crafting recipes for modules or addons ship with the mod (packs add them, e.g. with KubeJS). |
+| `signalradar:radar_module_1..4` | Stack size 16. Ingredient of the upgrade recipe. Tag `signalradar:radar_modules`. Default crafting recipes exist (see Default recipes). |
 | `signalradar:addon_container`, `_ore`, `_biosign`, `_structure`, `_motion` | Always registered. |
 | `signalradar:addon_manhole`, `_loot`, `_team` | Only registered when `manholes` / `lootr` / `ftbteams` is loaded. |
 | Custom addons | Registered by KubeJS startup scripts or other mods (see below). Tag `signalradar:addons` holds the built-in ones. |
@@ -36,6 +36,24 @@ at tier N only when the current tier is N-1; every other component (energy, addo
 tier = no output. The recipe JSON has no ingredients; the serializer does the matching. `PlayerEvent.ItemCraftedEvent`
 does not expose the recipe, so `RadarUpgradedEvent` is inferred (grid still holds radar + next-tier module and the result
 is exactly one tier higher).
+
+### Default recipes
+Vanilla-only shaped recipes (category `equipment`) in `data/signalradar/recipe/default/`, ids `signalradar:default/<name>`. Each
+carries the condition `signalradar:default_recipes_enabled` (follows startup config `recipes.enableDefaultRecipes`, default true,
+file `config/signalradar-startup.toml`; restart after changing it). Compat addon recipes also need `neoforge:mod_loaded`.
+`radar_upgrade` is a special recipe outside `default/` and is never disabled by this switch.
+
+| Id | Pattern | Keys |
+|---|---|---|
+| `default/radar` | `ILI` `GCG` `IRI` | I iron ingot, L lightning rod, G glass pane, C compass, R redstone |
+| `default/radar_module_1` | `CRC` `RPR` `CRC` | C copper ingot, R redstone, P repeater |
+| `default/radar_module_2` | `GQG` `QKQ` `GQG` | G gold ingot, Q quartz, K comparator |
+| `default/radar_module_3` | `DAD` `AEA` `DAD` | D diamond, A amethyst shard, E ender eye |
+| `default/radar_module_4` | `ESE` `SNS` `ESE` | E echo shard, S sculk sensor, N netherite ingot |
+| `default/addon_*` | `NRN` `RXR` `NRN` | N iron nugget, R redstone, X = container: chest, ore: iron pickaxe, biosign: egg, structure: map, motion: sculk sensor, manhole: iron trapdoor (needs manholes), loot: ender chest (needs lootr), team: bell (needs ftbteams) |
+
+Disable: set `recipes.enableDefaultRecipes = false`, or per recipe in KubeJS `event.remove({ id: /^signalradar:default\// })`
+(server script, `ServerEvents.recipes`), or override by id in a datapack.
 
 ### Tiers
 | Tier | Range (narrative / structure), blocks | Addon slots | Max fuzz, blocks |
@@ -198,6 +216,11 @@ Examples:
 | `addons.<container/ore/biosign/structure/motion/manhole/loot/team>.{enabled,minTier,radiusMin,radiusMax,refreshSeconds,color,energyCost}` | see the addon table | |
 | `addons.ore.colorOverrides` | `[]` | `"iron=#D8AF93"` style entries. |
 
+### `config/signalradar-startup.toml` (STARTUP, loaded in the mod constructor)
+| Key | Default | Notes |
+|---|---|---|
+| `recipes.enableDefaultRecipes` | true | Loads `signalradar:default/*` recipes via the `signalradar:default_recipes_enabled` condition; restart after a change. |
+
 ### `config/signalradar-client.toml`
 | Key | Default | Notes |
 |---|---|---|
@@ -295,9 +318,9 @@ Use `JAVA_HOME="/c/Program Files/Java/jdk-25"` on the dev machine.
 | Command | Needs | Result (1.0.0) |
 |---|---|---|
 | `./gradlew test` | nothing | 32 JUnit tests (pure math: display, addon math, node filter, ore colours, scan schedule) |
-| `./gradlew runGameTestServer` | nothing | 77 game tests; optional-mod checks pass trivially without their mod |
-| `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | 77 game tests, the KubeJS ones run for real |
-| `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | 77 game tests, real compat detectors |
+| `./gradlew runGameTestServer` | nothing | 78 game tests; optional-mod checks pass trivially without their mod |
+| `./gradlew runGameTestServerKubeJS` | `tools/prepare-kubejs-run.sh` (KubeJS + Rhino jars from the Gradle cache, example and template scripts copied to `run-kubejs`) | 78 game tests, the KubeJS ones run for real |
+| `./gradlew runGameTestServerCompat` | `tools/prepare-compat-run.sh` (Manhole Travel, Lootr, FTB Teams/Library, Architectury jars from the pack's `mods/`; it also writes `eula.txt` into the game-test-only directory `run-compat`) | 78 game tests, real compat detectors |
 | `./gradlew runClient` / `runClientKubeJS` | | dev client (the second with KubeJS and the example scripts) |
 
 Game tests register only with `-Dsignalradar.gametests=true` (set by the gameTestServer run configs); they ship inside the jar
@@ -314,7 +337,7 @@ KubeJS scripts; see its README. `libs/` is gitignored: `manholes-1.7.0.jar`, `lo
 - Offhand raise-to-face does not work while the main hand holds an item with its own use action (shield, bow...).
 - Blips of other dimensions are never shown (`pos` locators carry a dimension, everything else scans the current one).
 - The found check counts the highest-tier radar carried; a radar in an ender chest or backpack does not count.
-- English only; no bundled recipes for modules or addons; all art is placeholder.
+- English only; default recipes are vanilla-item placeholders (balance is the pack's call); all art is placeholder.
 - The dedicated `runServer` start was not exercised (needs an accepted EULA); class loading on a server is covered by the three
   `gameTestServer` runs.
 

@@ -26,12 +26,14 @@ public final class SignalRadar {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public SignalRadar(IEventBus modBus, ModContainer container) {
+        container.registerConfig(ModConfig.Type.STARTUP, SignalRadarStartupConfig.SPEC); // loaded now
         container.registerConfig(ModConfig.Type.SERVER, SignalRadarConfig.SPEC);
         ModComponents.COMPONENTS.register(modBus);
         it.ratlab.signalradar.registry.ModAttachments.ATTACHMENTS.register(modBus);
         ModItems.ITEMS.register(modBus);
         it.ratlab.signalradar.registry.ModSounds.SOUNDS.register(modBus);
         it.ratlab.signalradar.registry.ModRecipes.SERIALIZERS.register(modBus);
+        it.ratlab.signalradar.registry.ModRecipes.CONDITIONS.register(modBus);
         it.ratlab.signalradar.registry.ModMenus.MENUS.register(modBus);
         modBus.addListener(it.ratlab.signalradar.addon.AddonRegistry::onRegister);
         modBus.addListener(SignalRadar::registerCapabilities);

@@ -1,0 +1,29 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "signalradar:default_recipes_enabled"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "NRN",
+    "RXR",
+    "NRN"
+  ],
+  "key": {
+    "N": {
+      "item": "minecraft:iron_nugget"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "X": {
+      "item": "minecraft:map"
+    }
+  },
+  "result": {
+    "id": "signalradar:addon_structure",
+    "count": 1
+  }
+}

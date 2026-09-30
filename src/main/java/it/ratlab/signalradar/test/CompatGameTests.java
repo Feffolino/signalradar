@@ -115,4 +115,29 @@ public final class CompatGameTests {
         }
         h.succeed();
     }
+
+    /** Default recipes follow the startup config; compat addon recipes exist only when their mod is loaded. */
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void defaultRecipesFollowConfigAndMods(GameTestHelper h) {
+        var cond = it.ratlab.signalradar.recipe.DefaultRecipesCondition.INSTANCE;
+        h.assertTrue(net.neoforged.neoforge.registries.NeoForgeRegistries.CONDITION_SERIALIZERS
+                .containsKey(SignalRadar.id("default_recipes_enabled")), "condition codec not registered");
+        boolean enabled = it.ratlab.signalradar.SignalRadarStartupConfig.ENABLE_DEFAULT_RECIPES.getAsBoolean();
+        h.assertTrue(cond.test(null) == enabled, "condition differs from the config value");
+        var rm = h.getLevel().getServer().getRecipeManager();
+        String[] base = {"radar", "radar_module_1", "radar_module_2", "radar_module_3", "radar_module_4",
+                "addon_container", "addon_ore", "addon_biosign", "addon_structure", "addon_motion"};
+        for (String n : base) {
+            h.assertTrue(rm.byKey(SignalRadar.id("default/" + n)).isPresent() == enabled, "default/" + n + " loaded == " + enabled);
+        }
+        String[][] compat = {{"addon_manhole", "manholes"}, {"addon_loot", "lootr"}, {"addon_team", "ftbteams"}};
+        for (String[] c : compat) {
+            h.assertTrue(rm.byKey(SignalRadar.id("default/" + c[0])).isPresent() == (enabled && loaded(c[1])),
+                    "default/" + c[0] + " loaded == enabled && " + c[1] + " loaded");
+        }
+        h.assertTrue(rm.byKey(SignalRadar.id("radar_upgrade")).isPresent(), "radar_upgrade must stay outside default/");
+        SignalRadar.LOGGER.info("default recipes check: enabled={} manholes={} lootr={} ftbteams={}", enabled,
+                loaded("manholes"), loaded("lootr"), loaded("ftbteams"));
+        h.succeed();
+    }
 }

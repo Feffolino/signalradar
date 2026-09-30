@@ -27,8 +27,9 @@ you are looking at. It runs on Forge Energy, so keep it charged, or it shows **N
 - **JEI** info pages for the radar, the modules and every addon.
 
 ## Recipes
-The mod ships the **upgrade recipe** only: radar + a module of the next tier. Modules and addons have no crafting recipes
-by default; the modpack adds them (datapack recipes or KubeJS). Until then use creative mode or `/give`.
+The radar, modules 1-4 and all addons have default crafting recipes made of vanilla items (ids `signalradar:default/*`), plus the
+**upgrade recipe**: radar + a module of the next tier. Packs can turn the defaults off with `recipes.enableDefaultRecipes = false` in
+`config/signalradar-startup.toml`, or remove them with KubeJS (`event.remove({ id: /^signalradar:default\// })`).
 
 ## For modpack makers
 - **Targets are datapack JSON**: `data/<namespace>/signalradar/target/<name>.json`, reloaded with `/reload`. Four locators:

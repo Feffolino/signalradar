@@ -16,5 +16,11 @@ public final class ModRecipes {
     public static final Supplier<RecipeSerializer<RadarUpgradeRecipe>> RADAR_UPGRADE = SERIALIZERS.register("radar_upgrade",
             () -> new SimpleCraftingRecipeSerializer<>(RadarUpgradeRecipe::new));
 
+    public static final DeferredRegister<com.mojang.serialization.MapCodec<? extends net.neoforged.neoforge.common.conditions.ICondition>> CONDITIONS =
+            DeferredRegister.create(net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.CONDITION_CODECS, SignalRadar.MOD_ID);
+
+    public static final Supplier<com.mojang.serialization.MapCodec<it.ratlab.signalradar.recipe.DefaultRecipesCondition>> DEFAULT_RECIPES_CONDITION =
+            CONDITIONS.register("default_recipes_enabled", () -> it.ratlab.signalradar.recipe.DefaultRecipesCondition.CODEC);
+
     private ModRecipes() {}
 }
