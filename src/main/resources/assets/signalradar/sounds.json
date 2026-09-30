@@ -13,6 +13,6 @@
   },
   "motion_beep": {
     "subtitle": "subtitles.signalradar.motion_beep",
-    "sounds": [{ "name": "signalradar:motion_beep", "volume": 0.6 }]
+    "sounds": [{ "name": "signalradar:motion_beep", "volume": 0.15 }]
   }
 }
