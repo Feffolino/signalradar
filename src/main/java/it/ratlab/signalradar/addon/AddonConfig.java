@@ -19,6 +19,7 @@ public final class AddonConfig {
 
     private static final Map<ResourceLocation, Values> VALUES = new HashMap<>();
     private static ModConfigSpec.ConfigValue<List<? extends String>> oreOverrides;
+    private static ModConfigSpec.BooleanValue includeLootr;
 
     private AddonConfig() {}
 
@@ -40,6 +41,11 @@ public final class AddonConfig {
                     .define("color", AddonMath.formatColor(d.color()), o -> o instanceof String s && AddonMath.parseColor(s, -1) >= 0);
             ModConfigSpec.IntValue energy = b.comment("FE added to each base scan charge while this addon is installed.")
                     .defineInRange("energyCost", d.energyCost(), 0, 1_000_000);
+            if (d.id().equals(AddonRegistry.CONTAINER)) {
+                includeLootr = b.comment("Also show Lootr containers (only matters with Lootr installed).",
+                                "Turn off when the Loot addon is used, so the container addon shows only ordinary containers.")
+                        .define("includeLootrContainers", true);
+            }
             if (d.useMapColor()) {
                 oreOverrides = b.comment("Ore blip colours per material, applied over the built-in table: \"material=#RRGGBB\".",
                                 "The material is the name after c:ores/ in the block's tag (iron, gold, osmium, ...); unknown materials get a stable hash colour.")
@@ -53,6 +59,11 @@ public final class AddonConfig {
     /** {@code addons.ore.colorOverrides} strings; empty before the config is loaded. Same instance until the config changes. */
     public static List<? extends String> oreColorOverrides() {
         return oreOverrides == null || !SignalRadarConfig.SPEC.isLoaded() ? List.of() : oreOverrides.get();
+    }
+
+    /** {@code addons.container.includeLootrContainers}; true before the config is loaded. */
+    public static boolean includeLootrContainers() {
+        return includeLootr == null || !SignalRadarConfig.SPEC.isLoaded() || includeLootr.get();
     }
 
     public static AddonSettings settings(AddonDefinition def) {

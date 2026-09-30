@@ -31,6 +31,11 @@ public final class LootrDetector {
 
     private record Found(String key, Component name, double x, double y, double z, String icon) {}
 
+    /** True for Lootr's own block entities (used by the container addon to leave them to the Loot addon). */
+    public static boolean isLootr(net.minecraft.world.level.block.entity.BlockEntity be) {
+        return be instanceof ILootrBlockEntity;
+    }
+
     public static List<Hit> run(ServerPlayer player, ServerLevel level, int radius) {
         Vec3 c = player.position();
         double r2 = (double) radius * radius;

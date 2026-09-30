@@ -113,6 +113,9 @@ public final class Detectors {
         Vec3 c = player.position();
         double r2 = (double) radius * radius;
         Set<BlockPos> found = new HashSet<>();
+        // Lootr classes are only touched behind the mod check (compat isolation).
+        boolean skipLootr = !it.ratlab.signalradar.addon.AddonConfig.includeLootrContainers()
+                && net.neoforged.fml.ModList.get().isLoaded("lootr");
         int minCx = (int) Math.floor((c.x - radius) / 16.0);
         int maxCx = (int) Math.floor((c.x + radius) / 16.0);
         int minCz = (int) Math.floor((c.z - radius) / 16.0);
@@ -125,7 +128,8 @@ public final class Detectors {
                 }
                 for (Map.Entry<BlockPos, BlockEntity> e : chunk.getBlockEntities().entrySet()) {
                     BlockPos p = e.getKey();
-                    if (distSqCentre(p, c) <= r2 && exposesItems(level, p, e.getValue())) {
+                    if (distSqCentre(p, c) <= r2 && exposesItems(level, p, e.getValue())
+                            && !(skipLootr && it.ratlab.signalradar.compat.lootr.LootrDetector.isLootr(e.getValue()))) {
                         found.add(p);
                     }
                 }
