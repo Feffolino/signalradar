@@ -21,6 +21,9 @@ public final class AddonConfig {
     private static ModConfigSpec.ConfigValue<List<? extends String>> oreOverrides;
     private static ModConfigSpec.BooleanValue includeLootr;
     private static ModConfigSpec.IntValue stationaryFrom;
+    private static ModConfigSpec.BooleanValue structureAll;
+    /** Game tests only: forces {@code allWhenTagEmpty} (null = follow the config). */
+    private static volatile Boolean structureAllOverride;
     private static ModConfigSpec.IntValue batteryCapacity;
     /** Default of {@code addons.battery.capacityPerBattery}. */
     public static final int DEFAULT_BATTERY_CAPACITY = 10_000;
@@ -74,6 +77,12 @@ public final class AddonConfig {
                                 "5 = never: only moving hostiles are shown.")
                         .defineInRange("stationaryFromTier", 3, 0, AddonMath.STATIONARY_NEVER);
             }
+            if (d.id().equals(AddonRegistry.STRUCTURE)) {
+                structureAll = b.comment("With an empty (or missing) signalradar:scannable_structures tag, search every structure the current",
+                                "dimension can generate (sorted by id, capped by scan.maxScannableStructures). false = search nothing",
+                                "until the pack fills the tag.")
+                        .define("allWhenTagEmpty", true);
+            }
             if (d.useMapColor()) {
                 oreOverrides = b.comment("Ore blip colours per material, applied over the built-in table: \"material=#RRGGBB\".",
                                 "The material is the name after c:ores/ in the block's tag (iron, gold, osmium, ...); unknown materials get a stable hash colour.")
@@ -103,6 +112,18 @@ public final class AddonConfig {
             return stationaryOverride;
         }
         return stationaryFrom == null || !SignalRadarConfig.SPEC.isLoaded() ? 3 : stationaryFrom.get();
+    }
+
+    /** {@code addons.structure.allWhenTagEmpty}; true before the config is loaded. */
+    public static boolean structureAllWhenTagEmpty() {
+        if (structureAllOverride != null) {
+            return structureAllOverride;
+        }
+        return structureAll == null || !SignalRadarConfig.SPEC.isLoaded() || structureAll.get();
+    }
+
+    public static void overrideStructureAllWhenTagEmpty(Boolean value) {
+        structureAllOverride = value;
     }
 
     public static void overrideStationaryFromTier(int value) {

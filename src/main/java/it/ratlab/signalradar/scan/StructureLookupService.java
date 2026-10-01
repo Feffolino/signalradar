@@ -3,6 +3,7 @@ package it.ratlab.signalradar.scan;
 
 import com.mojang.datafixers.util.Pair;
 import it.ratlab.signalradar.SignalRadar;
+import it.ratlab.signalradar.SignalRadarConfig;
 import it.ratlab.signalradar.data.StructureCacheData;
 import it.ratlab.signalradar.target.Locator;
 import java.util.ArrayDeque;
@@ -24,13 +25,17 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Server queue for structure searches. {@link #get} never searches: it returns the cached hit, or queues the search
- * (a missing entry, or a miss older than {@link #MISS_RETRY_TICKS}) and returns empty ("pending, don't show yet").
- * {@link #tick} runs at most {@code max} searches per call.
+ * Server queue for structure searches, cached per region cell ({@link StructureCells}). {@link #get} never searches:
+ * it queues the search of the origin's cell when needed (no entry yet, or a miss older than {@link #MISS_RETRY_TICKS})
+ * and returns the nearest hit already cached for that cell or one of its 8 neighbours (empty = "pending / nothing,
+ * don't show"). So a player entering a new cell keeps the previous cell's results until the new search replaces
+ * them. {@link #tick} runs at most {@code max} searches per call.
  */
 public final class StructureLookupService {
-    /** A cached miss is retried at most every 5 minutes. */
+    /** A cached miss is retried at most every 5 minutes (per cell). */
     public static final long MISS_RETRY_TICKS = 5L * 60 * 20;
+    /** A single search slower than this logs one warning per structure. */
+    public static final long SLOW_LOOKUP_MS = 200;
 
     /** Searches for a structure; returns null when none was found. */
     public interface Finder {
@@ -45,29 +50,42 @@ public final class StructureLookupService {
     private final Finder finder;
     private final ArrayDeque<Request> queue = new ArrayDeque<>();
     private final Set<String> queued = new HashSet<>();
+    private final Set<String> slowWarned = new HashSet<>();
 
     public StructureLookupService(Finder finder) {
         this.finder = finder;
     }
 
-    /** Cached hit, or empty (and the search is queued when needed). */
+    /** {@link #get(StructureCacheData, ResourceKey, Locator.Structure, BlockPos, long, int)} with {@code scan.structureCellSize}. */
     public Optional<BlockPos> get(StructureCacheData data, ResourceKey<Level> dim, Locator.Structure locator, BlockPos origin, long now) {
-        String key = StructureCacheData.key(dim, locator);
+        return get(data, dim, locator, origin, now, SignalRadarConfig.structureCellSize());
+    }
+
+    /** Nearest cached hit around the origin's cell, or empty; queues the search of the origin's cell when due. */
+    public Optional<BlockPos> get(StructureCacheData data, ResourceKey<Level> dim, Locator.Structure locator, BlockPos origin, long now,
+                                  int cellSize) {
+        String base = StructureCacheData.key(dim, locator);
+        int cx = StructureCells.cell(origin.getX(), cellSize);
+        int cz = StructureCells.cell(origin.getZ(), cellSize);
+        String key = StructureCells.key(base, cx, cz);
         StructureCacheData.Entry e = data.entry(key);
-        if (e != null && e.pos() != null) {
-            return Optional.of(e.pos());
-        }
-        boolean due = e == null || now - e.time() >= MISS_RETRY_TICKS;
+        boolean due = e == null || (e.pos() == null && now - e.time() >= MISS_RETRY_TICKS);
         if (due && queued.add(key)) {
             queue.add(new Request(key, dim, locator, origin.immutable()));
         }
-        return Optional.empty();
+        return Optional.ofNullable(data.nearestHit(base, cx, cz, origin));
     }
 
-    /** The cached hit only: never queues a search. */
+    /** The cached hit nearest to {@code origin} (its cell and the 8 around it) only: never queues a search. */
+    public Optional<BlockPos> peek(StructureCacheData data, ResourceKey<Level> dim, Locator.Structure locator, BlockPos origin) {
+        int cs = SignalRadarConfig.structureCellSize();
+        return Optional.ofNullable(data.nearestHit(StructureCacheData.key(dim, locator), StructureCells.cell(origin.getX(), cs),
+                StructureCells.cell(origin.getZ(), cs), origin));
+    }
+
+    /** Without a position: the most recently used hit of any cell. Never queues a search. */
     public Optional<BlockPos> peek(StructureCacheData data, ResourceKey<Level> dim, Locator.Structure locator) {
-        StructureCacheData.Entry e = data.entry(StructureCacheData.key(dim, locator));
-        return e == null ? Optional.empty() : Optional.ofNullable(e.pos());
+        return Optional.ofNullable(data.latestHit(StructureCacheData.key(dim, locator)));
     }
 
     /** Runs up to {@code max} queued searches; returns how many ran. */
@@ -82,10 +100,17 @@ public final class StructureLookupService {
             }
             done++;
             BlockPos found = null;
+            long start = System.nanoTime();
             try {
                 found = finder.find(level, r.locator(), r.origin());
             } catch (RuntimeException e) {
                 SignalRadar.LOGGER.warn("Structure search {} failed: {}", r.key(), e.toString());
+            }
+            long ms = (System.nanoTime() - start) / 1_000_000L;
+            SignalRadar.LOGGER.debug("Structure search {} took {} ms ({})", r.key(), ms, found == null ? "miss" : "hit " + found.toShortString());
+            if (ms > SLOW_LOOKUP_MS && slowWarned.size() < 1024 && slowWarned.add(r.locator().id().toString())) {
+                SignalRadar.LOGGER.warn("Structure search for {} took {} ms (radius {} chunks); lower scan.structureSearchMaxChunks or "
+                        + "set the signalradar:scannable_structures tag if this repeats", r.locator().id(), ms, r.locator().searchRadiusChunks());
             }
             if (found != null) {
                 data.putFound(r.key(), found, now);

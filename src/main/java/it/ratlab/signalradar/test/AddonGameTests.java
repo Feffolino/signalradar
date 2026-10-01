@@ -787,10 +787,15 @@ public final class AddonGameTests {
     public static void structureDetectorUsesCacheAndQueue(GameTestHelper h) {
         ServerPlayer p = player(h);
         StructureLookupService.INSTANCE.clearQueue();
-        // the shipped tag is empty: nothing to do, nothing queued
-        h.assertTrue(Detectors.run(settings(AddonRegistry.STRUCTURE), p, h.getLevel(), 512, BlockLocatorScan.Budget.unlimited(), 100).isEmpty(),
-                "empty tag produced hits");
-        h.assertTrue(StructureLookupService.INSTANCE.pending() == 0, "empty tag queued searches");
+        // the shipped tag is empty and the "all structures" fallback is off: nothing to do, nothing queued
+        AddonConfig.overrideStructureAllWhenTagEmpty(false);
+        try {
+            h.assertTrue(Detectors.run(settings(AddonRegistry.STRUCTURE), p, h.getLevel(), 512, BlockLocatorScan.Budget.unlimited(), 100).isEmpty(),
+                    "empty tag produced hits");
+            h.assertTrue(StructureLookupService.INSTANCE.pending() == 0, "empty tag queued searches");
+        } finally {
+            AddonConfig.overrideStructureAllWhenTagEmpty(null);
+        }
         // a custom structure_tag addon on #minecraft:village: uncached entries are queued, a cached one is shown
         AddonDefinition def = AddonDefinition.builder(ResourceLocation.parse("pack:villages"), AddonDefinition.Detector.STRUCTURE_TAG)
                 .tag(ResourceLocation.parse("minecraft:village")).radius(0, 0).build();
@@ -798,7 +803,7 @@ public final class AddonGameTests {
         data.clear();
         Locator.Structure plains = new Locator.Structure(ResourceLocation.parse("minecraft:village_plains"), false, 512 / 16);
         BlockPos at = p.blockPosition().offset(40, 0, 20);
-        data.putFound(StructureCacheData.key(h.getLevel().dimension(), plains), at, 0);
+        data.putFound(StructureCacheData.key(h.getLevel().dimension(), plains, p.blockPosition(), SignalRadarConfig.structureCellSize()), at, 0);
         List<Hit> hits = Detectors.run(AddonSettings.defaults(def), p, h.getLevel(), 512, BlockLocatorScan.Budget.unlimited(), 100);
         h.assertTrue(hits.size() == 1, "expected the one cached structure, got " + hits.size());
         Hit hit = hits.get(0);
@@ -810,6 +815,60 @@ public final class AddonGameTests {
                 "structure beyond the radius shown");
         data.clear();
         StructureLookupService.INSTANCE.clearQueue();
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void emptyStructureTagSearchesTheDimensionsStructures(GameTestHelper h) {
+        ServerPlayer p = player(h);
+        AddonDefinition builtin = AddonRegistry.get(AddonRegistry.STRUCTURE).orElseThrow();
+        // the real generator list: sorted, unique, capped, no exception
+        List<ResourceLocation> real = Detectors.scannableStructures(builtin, h.getLevel());
+        h.assertTrue(real.size() <= SignalRadarConfig.maxScannableStructures(), "real list not capped");
+        for (int i = 1; i < real.size(); i++) {
+            h.assertTrue(real.get(i - 1).toString().compareTo(real.get(i).toString()) < 0, "real list not sorted/unique");
+        }
+        List<ResourceLocation> fake = new ArrayList<>();
+        for (int i = 99; i >= 0; i--) {
+            fake.add(ResourceLocation.fromNamespaceAndPath("test", String.format("s%03d", i)));
+        }
+        fake.add(ResourceLocation.fromNamespaceAndPath("test", "s000")); // one structure in two sets counts once
+        Detectors.overrideDimensionStructures(l -> fake);
+        SignalRadarConfig.overrideMaxScannableStructures(10);
+        StructureLookupService.INSTANCE.clearQueue();
+        StructureCacheData data = StructureCacheData.get(h.getLevel().getServer());
+        data.clear();
+        try {
+            List<ResourceLocation> ids = Detectors.scannableStructures(builtin, h.getLevel());
+            h.assertTrue(ids.size() == 10 && ids.get(0).getPath().equals("s000") && ids.get(9).getPath().equals("s009"), "ids " + ids);
+            Detectors.run(settings(AddonRegistry.STRUCTURE), p, h.getLevel(), 512, BlockLocatorScan.Budget.unlimited(), 100);
+            h.assertTrue(StructureLookupService.INSTANCE.pending() == 10, "expected 10 queued lookups, got " + StructureLookupService.INSTANCE.pending());
+            // a cached one in range is shown with its prettified name
+            Locator.Structure s3 = new Locator.Structure(ResourceLocation.parse("test:s003"), false, Detectors.searchChunks(512));
+            BlockPos at = p.blockPosition().offset(-30, 0, 0);
+            data.putFound(StructureCacheData.key(h.getLevel().dimension(), s3, p.blockPosition(), SignalRadarConfig.structureCellSize()), at, 0);
+            List<Hit> hits = Detectors.run(settings(AddonRegistry.STRUCTURE), p, h.getLevel(), 512, BlockLocatorScan.Budget.unlimited(), 100);
+            h.assertTrue(hits.size() == 1 && hits.get(0).key().equals("test:s003") && hits.get(0).name().getString().equals("S003"),
+                    "hits " + hits);
+            h.assertTrue(StructureLookupService.INSTANCE.pending() == 10, "re-scan queued duplicates: " + StructureLookupService.INSTANCE.pending());
+            // the search radius is capped by scan.structureSearchMaxChunks whatever the range
+            h.assertTrue(Detectors.searchChunks(4096) == SignalRadarConfig.structureSearchMaxChunks() && Detectors.searchChunks(8) == 1,
+                    "search chunks " + Detectors.searchChunks(4096));
+            // the fallback can be turned off
+            AddonConfig.overrideStructureAllWhenTagEmpty(false);
+            h.assertTrue(Detectors.scannableStructures(builtin, h.getLevel()).isEmpty(), "allWhenTagEmpty=false still searched");
+            // a custom structure_tag addon with an empty tag never falls back to everything
+            AddonConfig.overrideStructureAllWhenTagEmpty(null);
+            AddonDefinition custom = AddonDefinition.builder(ResourceLocation.parse("pack:nothing"), AddonDefinition.Detector.STRUCTURE_TAG)
+                    .tag(ResourceLocation.parse("pack:no_such_tag")).radius(0, 0).build();
+            h.assertTrue(Detectors.scannableStructures(custom, h.getLevel()).isEmpty(), "custom addon fell back to all structures");
+        } finally {
+            Detectors.overrideDimensionStructures(null);
+            SignalRadarConfig.overrideMaxScannableStructures(-1);
+            AddonConfig.overrideStructureAllWhenTagEmpty(null);
+            StructureLookupService.INSTANCE.clearQueue();
+            data.clear();
+        }
         h.succeed();
     }
 

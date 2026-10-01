@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- Fixed: the Structure addon showed nothing with the shipped (empty) `signalradar:scannable_structures` tag. An empty or missing
+  tag now means every structure the current dimension can generate (sorted by id, capped by `scan.maxScannableStructures`, new
+  default 64, one warning when capped); a filled tag still means only its entries. New server config
+  `addons.structure.allWhenTagEmpty` (default true) turns the fallback off. Custom `structure_tag` addons are unchanged.
+- Fixed: structure results were cached once per dimension from the first requester's position and never searched again, so the
+  radar kept a far instance instead of the nearest. The cache is now per region cell (`scan.structureCellSize`, default 256
+  blocks): entering a new cell queues new searches while the results of the surrounding cells keep showing until replaced;
+  misses retry every 5 minutes per cell (narrative `structure` targets too). The saved cache is bounded (LRU, 4096 entries);
+  old cell-less entries are dropped on load. `/signalradar targets` lists the 20 most recent entries.
+- New: `scan.structureSearchMaxChunks` (default 64) caps the chunk radius of one structure-addon search whatever the tier range.
+  Each search is timed (DEBUG) and a search over 200 ms logs one WARN with the structure id.
 - Zoom choice is saved in the client config (`zoomRange`) and survives restarts; a lower-tier radar shows its own cap without
   forgetting it.
 

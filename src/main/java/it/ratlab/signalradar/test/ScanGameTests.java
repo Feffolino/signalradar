@@ -346,7 +346,7 @@ public final class ScanGameTests {
         long t0 = 1000;
         svc.get(data, dim, VILLAGE, BlockPos.ZERO, t0);
         svc.tick(k -> h.getLevel(), data, t0, 1);
-        String key = StructureCacheData.key(dim, VILLAGE);
+        String key = StructureCacheData.key(dim, VILLAGE, BlockPos.ZERO, SignalRadarConfig.structureCellSize());
         h.assertTrue(calls.get() == 1 && data.entry(key) != null && data.entry(key).pos() == null, "miss not cached");
         // Before 5 minutes: asking again never queues.
         svc.get(data, dim, VILLAGE, BlockPos.ZERO, t0 + StructureLookupService.MISS_RETRY_TICKS - 1);
@@ -363,13 +363,97 @@ public final class ScanGameTests {
     @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
     public static void structureCacheSurvivesSaveAndClear(GameTestHelper h) {
         StructureCacheData data = new StructureCacheData();
-        data.putFound("a", new BlockPos(1, 2, 3), 5);
-        data.putMiss("b", 9);
+        data.putFound("a@0,0", new BlockPos(1, 2, 3), 5);
+        data.putMiss("b@1,-1", 9);
+        data.putFound("legacy", new BlockPos(7, 7, 7), 1); // saves before the region cache had no cell
         StructureCacheData copy = StructureCacheData.load(data.save(new CompoundTag(), h.getLevel().registryAccess()), h.getLevel().registryAccess());
-        h.assertTrue(new BlockPos(1, 2, 3).equals(copy.entry("a").pos()) && copy.entry("a").time() == 5, "hit lost");
-        h.assertTrue(copy.entry("b").pos() == null && copy.entry("b").time() == 9, "miss lost");
+        h.assertTrue(new BlockPos(1, 2, 3).equals(copy.entry("a@0,0").pos()) && copy.entry("a@0,0").time() == 5, "hit lost");
+        h.assertTrue(copy.entry("b@1,-1").pos() == null && copy.entry("b@1,-1").time() == 9, "miss lost");
+        h.assertTrue(copy.entry("legacy") == null, "a cell-less legacy entry was loaded");
         copy.clear();
         h.assertTrue(copy.entries().isEmpty(), "clear failed");
+        h.succeed();
+    }
+
+    // ------------------------------------------------------------------ structure region cells
+
+    private static final int CELL = 256;
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void structureNewCellQueuesAndReplacesResults(GameTestHelper h) {
+        AtomicInteger calls = new AtomicInteger();
+        // the fake finder answers "10 blocks south-east of where you searched from"
+        StructureLookupService svc = new StructureLookupService((lvl, loc, origin) -> {
+            calls.incrementAndGet();
+            return origin.offset(10, 0, 10);
+        });
+        StructureCacheData data = new StructureCacheData();
+        var dim = h.getLevel().dimension();
+        BlockPos a = new BlockPos(5, 64, 5);
+        h.assertTrue(svc.get(data, dim, VILLAGE, a, 0, CELL).isEmpty() && svc.pending() == 1, "first cell not queued");
+        svc.tick(k -> h.getLevel(), data, 1, 1);
+        h.assertTrue(svc.get(data, dim, VILLAGE, a, 2, CELL).equals(Optional.of(new BlockPos(15, 64, 15))), "first cell hit");
+        h.assertTrue(svc.pending() == 0, "a cell with a hit queued again");
+        // the player walks into the next cell: the old result keeps showing, a new search is queued
+        BlockPos b = new BlockPos(300, 64, 5);
+        h.assertTrue(svc.get(data, dim, VILLAGE, b, 3, CELL).equals(Optional.of(new BlockPos(15, 64, 15))), "previous cell result not kept");
+        h.assertTrue(svc.pending() == 1, "entering a new cell did not queue a search, pending " + svc.pending());
+        svc.tick(k -> h.getLevel(), data, 4, 1);
+        h.assertTrue(calls.get() == 2, "calls " + calls);
+        h.assertTrue(svc.get(data, dim, VILLAGE, b, 5, CELL).equals(Optional.of(new BlockPos(310, 64, 15))), "new cell did not replace the result");
+        // back in the first cell its own (nearer) hit wins again, without searching
+        h.assertTrue(svc.get(data, dim, VILLAGE, a, 6, CELL).equals(Optional.of(new BlockPos(15, 64, 15))), "nearest of the neighbourhood");
+        h.assertTrue(svc.pending() == 0 && calls.get() == 2, "cached cells searched again");
+        // far away (not next to any cached cell): nothing shown until the search runs
+        BlockPos far = new BlockPos(5000, 64, -5000);
+        h.assertTrue(svc.get(data, dim, VILLAGE, far, 7, CELL).isEmpty() && svc.pending() == 1, "far cell");
+        h.assertTrue(svc.peek(data, dim, VILLAGE, b).equals(Optional.of(new BlockPos(310, 64, 15))), "peek around b");
+        h.assertTrue(svc.peek(data, dim, VILLAGE, far).isEmpty() && svc.pending() == 1, "peek must not queue");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void structureMissesRetryPerCell(GameTestHelper h) {
+        AtomicInteger calls = new AtomicInteger();
+        StructureLookupService svc = new StructureLookupService((lvl, loc, origin) -> {
+            calls.incrementAndGet();
+            return null;
+        });
+        StructureCacheData data = new StructureCacheData();
+        var dim = h.getLevel().dimension();
+        BlockPos a = BlockPos.ZERO;
+        BlockPos b = new BlockPos(-10, 64, 0); // cell (-1, 0)
+        svc.get(data, dim, VILLAGE, a, 0, CELL);
+        svc.tick(k -> h.getLevel(), data, 0, 1);
+        svc.get(data, dim, VILLAGE, a, 10, CELL);
+        h.assertTrue(svc.pending() == 0, "the missed cell retried too early");
+        svc.get(data, dim, VILLAGE, b, 10, CELL);
+        h.assertTrue(svc.pending() == 1, "a miss in one cell blocked the search of another cell");
+        svc.tick(k -> h.getLevel(), data, 10, 1);
+        h.assertTrue(calls.get() == 2, "calls " + calls);
+        svc.get(data, dim, VILLAGE, a, StructureLookupService.MISS_RETRY_TICKS, CELL);
+        svc.get(data, dim, VILLAGE, b, StructureLookupService.MISS_RETRY_TICKS, CELL);
+        h.assertTrue(svc.pending() == 1, "only cell a is due after 5 minutes, pending " + svc.pending());
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void structureCacheIsBoundedLru(GameTestHelper h) {
+        StructureCacheData data = new StructureCacheData(3);
+        data.putFound("s@0,0", new BlockPos(1, 0, 1), 0);
+        data.putFound("s@1,0", new BlockPos(2, 0, 2), 0);
+        data.putMiss("s@2,0", 0);
+        data.entry("s@0,0"); // used recently: survives
+        data.putFound("s@3,0", new BlockPos(4, 0, 4), 0);
+        h.assertTrue(data.entries().size() == 3, "size " + data.entries().size());
+        h.assertTrue(data.entry("s@1,0") == null && data.entry("s@0,0") != null && data.entry("s@3,0") != null, "wrong entry evicted");
+        h.assertTrue(new StructureCacheData().maxEntries() == StructureCacheData.MAX_ENTRIES, "default bound");
+        // filling the real-size cache never grows past the bound
+        StructureCacheData big = new StructureCacheData();
+        for (int i = 0; i < StructureCacheData.MAX_ENTRIES + 100; i++) {
+            big.putMiss("x@" + i + ",0", i);
+        }
+        h.assertTrue(big.entries().size() == StructureCacheData.MAX_ENTRIES && big.entry("x@0,0") == null, "bound exceeded");
         h.succeed();
     }
 

@@ -25,6 +25,7 @@ import it.ratlab.signalradar.target.TargetDef;
 import it.ratlab.signalradar.target.TargetManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -40,6 +41,8 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 /** {@code /signalradar} (op level 2): settier, charge, addon, unlock, lock, resetfound, targets, clearcache. */
 public final class RadarCommands {
+    /** Structure cache entries listed by {@code /signalradar targets} (most recently used). */
+    private static final int LISTED_CACHE_ENTRIES = 20;
     private static final SimpleCommandExceptionType NO_RADAR = new SimpleCommandExceptionType(Component.translatable("command.signalradar.no_radar"));
 
     private static final SuggestionProvider<CommandSourceStack> ADDON_IDS = (c, b) ->
@@ -210,9 +213,15 @@ public final class RadarCommands {
                     def.minTier(), where, unlocked, stage, yesNo(pd.isFound(def.id()))), false);
         }
         StructureCacheData data = StructureCacheData.get(src.getServer());
-        data.entries().forEach((k, e) -> src.sendSuccess(() -> Component.translatable("command.signalradar.targets.cached", k,
-                e.pos() == null ? Component.translatable("command.signalradar.targets.miss")
-                        : Component.literal(e.pos().getX() + " " + e.pos().getY() + " " + e.pos().getZ())), false));
+        // the most recently used entries only (the cache holds up to StructureCacheData.MAX_ENTRIES)
+        List<Map.Entry<String, StructureCacheData.Entry>> recent = new ArrayList<>(data.entries().entrySet());
+        for (Map.Entry<String, StructureCacheData.Entry> en : recent.subList(Math.max(0, recent.size() - LISTED_CACHE_ENTRIES), recent.size())) {
+            String k = en.getKey();
+            StructureCacheData.Entry e = en.getValue();
+            src.sendSuccess(() -> Component.translatable("command.signalradar.targets.cached", k,
+                    e.pos() == null ? Component.translatable("command.signalradar.targets.miss")
+                            : Component.literal(e.pos().getX() + " " + e.pos().getY() + " " + e.pos().getZ())), false);
+        }
         int pending = StructureLookupService.INSTANCE.pending();
         int finalCount = count;
         src.sendSuccess(() -> Component.translatable("command.signalradar.targets.summary", finalCount, data.entries().size(), pending), false);

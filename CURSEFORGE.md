@@ -48,7 +48,7 @@ The radar, modules 1-4 and all addons have default crafting recipes made of vani
 - **Config**: capacity and charge speed, scan cost and period, range, fuzz and slots per tier, and for each addon: enabled,
   minimum tier, radius, refresh, colour and FE cost. Ore blip colours can be overridden per material.
 - **Tags**: `signalradar:ore_targets` (default `#c:ores`), `container_targets`, `biosign`, `trackable` and the worldgen tag
-  `scannable_structures` (the structures the Structure addon looks for; empty by default).
+  `scannable_structures` (the structures the Structure addon looks for; empty by default = all structures of the dimension).
 - **Mods can hook in**: Forge Energy, NeoForge events (`RadarScanEvent`, `RadarTargetFoundEvent`, `RadarUpgradedEvent`,
   `RadarAddonChangedEvent`) and a small API class.
 - The display rectangle is read from `assets/signalradar/radar_screen.json`, so resource packs can restyle the model.

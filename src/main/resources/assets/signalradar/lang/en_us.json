@@ -57,7 +57,7 @@
   "tooltip.signalradar.addon.addon_container": "Detects chests, barrels and other storage.",
   "tooltip.signalradar.addon.addon_ore": "Detects ore veins, coloured by ore.",
   "tooltip.signalradar.addon.addon_biosign": "Detects animals and villagers.",
-  "tooltip.signalradar.addon.addon_structure": "Detects the nearest known structures.",
+  "tooltip.signalradar.addon.addon_structure": "Detects the nearest structure of each type (all structures unless the pack sets the tag).",
   "tooltip.signalradar.addon.addon_motion": "Detects moving hostile mobs. Tier 3+ radars also show stationary ones (dark red).",
   "tooltip.signalradar.addon.addon_battery": "+%s FE capacity each, stacks to %s",
   "tooltip.signalradar.addon.battery_note": "Put up to 8 in one addon slot. Removing batteries loses the energy above the new capacity.",

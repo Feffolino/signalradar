@@ -98,7 +98,7 @@ stack (slot max = item max stack size for stackable addons, shift-click merges),
 | `container` | always | 0 | 24-48 | 10 | 10 | `#E0A040` | Block entities exposing an item handler or `Container`, plus block tag `signalradar:container_targets` (empty by default). |
 | `ore` | always | 1 | 16-32 | 5 | 15 | `#B0B0B0` (fallback) | Blocks in tag `signalradar:ore_targets` (default `#c:ores`). Colour comes from the ore material (built-in table + `colorOverrides`); same-block neighbours within 2 blocks merge into one blip. |
 | `biosign` | always | 1 | 32-64 | 1 | 10 | `#4CD964` | Passive animals, villagers, plus entity tag `signalradar:biosign` (empty by default). |
-| `structure` | always | 1 | tier range (0-0) | 5 | 10 | `#40C0FF` | Nearest structure per entry of worldgen structure tag `signalradar:scannable_structures` (empty by default), from the structure cache. |
+| `structure` | always | 1 | tier range (0-0) | 5 | 10 | `#40C0FF` | Nearest instance of each structure type, from the region structure cache. Types = worldgen structure tag `signalradar:scannable_structures` when the pack fills it, otherwise (empty tag, `addons.structure.allWhenTagEmpty` = true) every structure the current dimension's generator can place (`possibleStructureSets`), sorted by id and capped by `scan.maxScannableStructures` (64, one warning when capped). Search radius = tier range / 16 chunks, at most `scan.structureSearchMaxChunks` (64); the tier range filters what is shown. Name = prettified id, icon `minecraft:map`. Custom `structure_tag` addons never fall back to all structures. |
 | `motion` | always | 2 | 24-48 | 1 | 20 | `#FF3030` | Hostile mobs (`MobCategory.MONSTER` + entity tag `signalradar:trackable`) **that are moving** (over 0.1 block between samples). Red pulsing blips plus a beep. With a held radar of tier >= `addons.motion.stationaryFromTier` (default 3, 5 = never) still hostiles in range are shown too: category `motion_still`, colour `#8A2020`, steady dim red frame, no pulse, no tick, no beep; moving hits are sorted first when `MAX_HITS` caps the list. |
 | `manhole` | `manholes` loaded | 0 | 96-160 | 5 | 5 | `#C8A050` | Manhole Travel nodes the player's network has not opened yet. |
 | `loot` | `lootr` loaded | 2 | 48-96 | 10 | 10 | `#B060FF` | Lootr containers and carts the player has not opened yet. |
@@ -183,9 +183,15 @@ Custom addons use their definition values and have no config entries. Only the c
   each section that may contain the block costs 4096); when the budget runs out the nearest block found so far is kept.
 - **Structures**: `findNearestMapStructure` is never called from a scan. Lookups go through a queue of at most
   `scan.structureLookupsPerTick` (default 1) per tick; results and misses are cached in world SavedData
-  (`StructureCacheData`); a miss is retried at most every 5 minutes; pending entries just do not show yet. The cache is global
-  per dimension + locator (nearest to the first requester); the search radius is part of the key. The structure tag is capped by
-  `scan.maxScannableStructures` (16); extra entries are ignored with a warning.
+  (`StructureCacheData`); pending entries just do not show yet. Key = dimension + structure id/tag + search radius + **region
+  cell** of the search origin (`StructureCells`, a grid of `scan.structureCellSize` blocks, default 256). A player entering a
+  new cell queues new searches (from the player's position); the result shown is the nearest hit cached for the player's cell or
+  one of the 8 around it, so the previous cell's result stays shown until the new one replaces it (after a teleport far away
+  nothing shows until the new search runs). A miss is cached per cell and retried at most every 5 minutes. The cache is an LRU
+  of at most 4096 entries (`StructureCacheData.MAX_ENTRIES`, least recently used evicted, order kept in the save); entries of
+  older saves (no cell) are dropped on load. Narrative `structure` locators use the same cells with their own
+  `search_radius_chunks` (not capped by `structureSearchMaxChunks`). Each search is timed: DEBUG line per search, one WARN per
+  structure id when a single search takes over 200 ms. `/signalradar clearcache` empties the cache and the queue.
 - The server applies fuzz and name reveal and sends a compact payload; the client never decides visibility and interpolates
   between snapshots.
 - `RadarScanEvent` (NeoForge bus, cancellable) runs before sending; KubeJS `scan` bridges it.
@@ -269,11 +275,14 @@ Examples:
 | `scan.rangeByTier` | `[256, 512, 1024, 2048, 4096]` | |
 | `scan.fuzzByTier` | `[64, 32, 16, 6, 0]` | |
 | `scan.structureLookupsPerTick` | 1 | 1..64. |
-| `scan.maxScannableStructures` | 16 | 1..256. |
+| `scan.maxScannableStructures` | 64 | 1..256. Structure types the structure addon searches (tag entries or all of the dimension), sorted by id; extra ones ignored with one warning. Existing config files keep their old value (16) until edited. |
+| `scan.structureCellSize` | 256 | 16..4096. Region cell size in blocks of the structure cache. |
+| `scan.structureSearchMaxChunks` | 64 | 1..1000. Max chunk radius of one structure-addon search, whatever the tier range. |
 | `scan.maxBlockChecksPerScan` | 200000 | 4096..max. |
 | `addons.slotsByTier` | `[1, 2, 3, 4, 5]` | Each clamped to 1..5. |
 | `addons.battery.capacityPerBattery` | 10000 | FE per installed battery (0..100000000). |
 | `addons.<container/ore/biosign/structure/motion/manhole/lootr/team>.{enabled,minTier,radiusMin,radiusMax,refreshSeconds,color,energyCost}` | see the addon table | `[addons.lootr]` replaces the old `[addons.loot]`; old values are not migrated (copy them by hand) |
+| `addons.structure.allWhenTagEmpty` | `true` | Empty or missing `signalradar:scannable_structures` tag = search every structure of the current dimension; false = search nothing until the pack fills the tag. |
 | `addons.motion.stationaryFromTier` | 3 | Radar tier (0-5) from which the motion tracker also shows stationary hostiles (`motion_still`); 5 = never. Read at scan time. |
 | `addons.container.includeLootrContainers` | `true` | When false the container addon skips Lootr block entities (use it with the Loot addon so chests are not listed twice). |
 | `addons.ore.colorOverrides` | `[]` | `"iron=#D8AF93"` style entries. |
@@ -412,7 +421,11 @@ KubeJS scripts; see its README. `libs/` is gitignored: `manholes-1.7.0.jar`, `lo
 - Not play-tested in a live client yet (display geometry, raise pose, sounds, menu and JEI pages are verified by code and headless
   tests only; the client boot check only proves the mod loads).
 - Blip icons are verified by code, headless tests and a client boot only: size, readability and the look of flattened item models (lighting of block items) still need an eyeball in game.
-- Structure lookups can take a while to appear after the first scan (queue + cache); misses retry every 5 minutes.
+- Structure lookups can take a while to appear after the first scan and after entering a new 256-block cell (queue, 1 search
+  per tick by default, up to 64 types = about 3 s); misses retry every 5 minutes per cell. The first searches in a new area
+  may load chunks up to structure-start status and cost server time: watch the WARN `Structure search for ... took N ms`.
+- With the tag empty and more than 64 structure types in a dimension (big packs), only the first 64 by id are searched: fill
+  `signalradar:scannable_structures` or raise `scan.maxScannableStructures`.
 - `RadarUpgradedEvent` is inferred from the crafted result (no recipe in `ItemCraftedEvent`).
 - The team addon applies normal fuzz (it does not show exact teammate positions).
 - Offhand raise-to-face does not work while the main hand holds an item with its own use action (shield, bow...).

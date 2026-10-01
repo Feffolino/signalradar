@@ -59,7 +59,7 @@ public final class Locators {
 
     /**
      * Where the target is right now as far as caches know, without starting any lookup: {@code pos} directly, a
-     * {@code structure} from the saved cache (never queued), a {@code block} from the player's last block scan, an
+     * {@code structure} from the saved cache around the player's cell (never queued), a {@code block} from the player's last block scan, an
      * {@code entity} within {@code entityRange} blocks of the player. Empty when unknown or in another dimension.
      */
     public static Optional<Vec3> peek(ServerPlayer player, TargetDef def, int entityRange, ServerLevel level) {
@@ -68,7 +68,7 @@ public final class Locators {
             return level.dimension().location().equals(l.dimension()) ? Optional.of(Vec3.atCenterOf(l.pos())) : Optional.empty();
         } else if (locator instanceof Locator.Structure l) {
             StructureCacheData data = StructureCacheData.get(level.getServer());
-            return StructureLookupService.INSTANCE.peek(data, level.dimension(), l).map(Vec3::atCenterOf);
+            return StructureLookupService.INSTANCE.peek(data, level.dimension(), l, player.blockPosition()).map(Vec3::atCenterOf);
         } else if (locator instanceof Locator.Entity l) {
             return nearestEntity(player, l, entityRange, level);
         } else if (locator instanceof Locator.Block l) {

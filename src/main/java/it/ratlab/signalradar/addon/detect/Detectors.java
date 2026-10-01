@@ -47,6 +47,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -67,6 +68,7 @@ public final class Detectors {
     public static final int MOTION_STILL_COLOR = 0x8A2020;
 
     private static boolean structureCapWarned;
+    private static boolean structureAllCapWarned;
 
     private Detectors() {}
 
@@ -302,34 +304,23 @@ public final class Detectors {
 
     // ------------------------------------------------------------------ structures
 
-    /** Nearest of every structure in the tag (capped), through the shared cache + lookup queue; range = {@code radius}. */
+    /**
+     * Nearest instance of every scannable structure type (capped), through the region cache + lookup queue; range =
+     * {@code radius}. One blip per type: the nearest hit cached for the player's cell or the 8 around it.
+     */
     private static List<Hit> structures(AddonSettings a, ServerPlayer player, ServerLevel level, int radius, long now) {
-        Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
-        Optional<HolderSet.Named<Structure>> tag = registry.getTag(TagKey.create(Registries.STRUCTURE, a.def().tag()));
-        if (tag.isEmpty()) {
+        List<ResourceLocation> ids = scannableStructures(a.def(), level);
+        if (ids.isEmpty()) {
             return List.of();
         }
-        List<ResourceLocation> ids = new ArrayList<>();
-        for (Holder<Structure> h : tag.get()) {
-            h.unwrapKey().ifPresent(k -> ids.add(k.location()));
-        }
-        ids.sort(Comparator.comparing(ResourceLocation::toString));
-        int cap = SignalRadarConfig.maxScannableStructures();
-        if (ids.size() > cap) {
-            if (!structureCapWarned) {
-                structureCapWarned = true;
-                SignalRadar.LOGGER.warn("Tag {} has {} structures, only the first {} are scanned (maxScannableStructures)", a.def().tag(),
-                        ids.size(), cap);
-            }
-            ids.subList(cap, ids.size()).clear();
-        }
         StructureCacheData data = StructureCacheData.get(level.getServer());
-        int chunks = Math.max(1, radius / 16);
+        int chunks = searchChunks(radius);
         Vec3 c = player.position();
+        BlockPos origin = player.blockPosition();
         List<Hit> hits = new ArrayList<>();
         for (ResourceLocation id : ids) {
             Optional<BlockPos> pos = StructureLookupService.INSTANCE.get(data, level.dimension(),
-                    new Locator.Structure(id, false, chunks), player.blockPosition(), now);
+                    new Locator.Structure(id, false, chunks), origin, now);
             if (pos.isEmpty()) {
                 continue;
             }
@@ -342,5 +333,70 @@ public final class Detectors {
                     pos.get().getZ() + 0.5, 0, IconSpec.STRUCTURE));
         }
         return hits;
+    }
+
+    /** Search radius in chunks of a structure-addon lookup for a detection radius: 1..{@code scan.structureSearchMaxChunks}. */
+    public static int searchChunks(int radius) {
+        return Math.max(1, Math.min(radius / 16, SignalRadarConfig.structureSearchMaxChunks()));
+    }
+
+    /** Game tests only: replaces the dimension's structure list (null = the chunk generator's). */
+    private static volatile java.util.function.Function<ServerLevel, List<ResourceLocation>> dimensionStructuresOverride;
+
+    public static void overrideDimensionStructures(java.util.function.Function<ServerLevel, List<ResourceLocation>> f) {
+        dimensionStructuresOverride = f;
+    }
+
+    /**
+     * Structure ids a structure_tag addon searches, sorted by id and capped by {@code scan.maxScannableStructures}: the
+     * tag's entries, or, for the built-in structure addon with an empty or missing tag and
+     * {@code addons.structure.allWhenTagEmpty}, every structure the dimension's generator can place.
+     */
+    public static List<ResourceLocation> scannableStructures(AddonDefinition def, ServerLevel level) {
+        Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        Optional<HolderSet.Named<Structure>> tag = registry.getTag(TagKey.create(Registries.STRUCTURE, def.tag()));
+        Set<ResourceLocation> found = new HashSet<>();
+        boolean all = false;
+        if (tag.isPresent() && tag.get().size() > 0) {
+            for (Holder<Structure> h : tag.get()) {
+                h.unwrapKey().ifPresent(k -> found.add(k.location()));
+            }
+        } else if (def.id().equals(AddonRegistry.STRUCTURE) && AddonConfig.structureAllWhenTagEmpty()) {
+            all = true;
+            found.addAll(dimensionStructures(level));
+        }
+        List<ResourceLocation> ids = new ArrayList<>(found);
+        ids.sort(Comparator.comparing(ResourceLocation::toString));
+        int cap = SignalRadarConfig.maxScannableStructures();
+        if (ids.size() > cap) {
+            if (all ? !structureAllCapWarned : !structureCapWarned) {
+                if (all) {
+                    structureAllCapWarned = true;
+                    SignalRadar.LOGGER.warn("Dimension {} can generate {} structures, only the first {} by id are scanned "
+                            + "(scan.maxScannableStructures; fill the tag {} to choose)", level.dimension().location(), ids.size(), cap, def.tag());
+                } else {
+                    structureCapWarned = true;
+                    SignalRadar.LOGGER.warn("Tag {} has {} structures, only the first {} are scanned (maxScannableStructures)", def.tag(),
+                            ids.size(), cap);
+                }
+            }
+            ids.subList(cap, ids.size()).clear();
+        }
+        return ids;
+    }
+
+    /** Every structure of the structure sets the dimension's chunk generator can place. */
+    private static List<ResourceLocation> dimensionStructures(ServerLevel level) {
+        var override = dimensionStructuresOverride;
+        if (override != null) {
+            return override.apply(level);
+        }
+        List<ResourceLocation> out = new ArrayList<>();
+        for (Holder<StructureSet> set : level.getChunkSource().getGeneratorState().possibleStructureSets()) {
+            for (StructureSet.StructureSelectionEntry e : set.value().structures()) {
+                e.structure().unwrapKey().ifPresent(k -> out.add(k.location()));
+            }
+        }
+        return out;
     }
 }

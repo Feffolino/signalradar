@@ -46,7 +46,8 @@ public final class SignalRadarAPI {
 
     /**
      * Known position of a target in this level: {@code pos} targets directly, {@code structure} targets from the cache
-     * (null while unresolved), {@code entity} targets = first loaded matching entity. {@code block} targets need a
+     * (the most recently used hit of any region cell; null while unresolved), {@code entity} targets = first loaded
+     * matching entity. {@code block} targets need a
      * player, see {@link #getTargetPos(ServerPlayer, ResourceLocation)}. Null when unknown.
      */
     @Nullable

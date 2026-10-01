@@ -23,6 +23,8 @@ public final class SignalRadarConfig {
     private static final ModConfigSpec.ConfigValue<List<? extends Number>> ENERGY_MULTIPLIER_BY_TIER;
     private static final ModConfigSpec.IntValue STRUCTURE_LOOKUPS_PER_TICK;
     private static final ModConfigSpec.IntValue MAX_SCANNABLE_STRUCTURES;
+    private static final ModConfigSpec.IntValue STRUCTURE_CELL_SIZE;
+    private static final ModConfigSpec.IntValue STRUCTURE_SEARCH_MAX_CHUNKS;
     private static final ModConfigSpec.IntValue MAX_BLOCK_CHECKS_PER_SCAN;
     private static final ModConfigSpec.ConfigValue<List<? extends Integer>> SLOTS_BY_TIER;
     public static final List<Integer> DEFAULT_SLOTS = List.of(1, 2, 3, 4, 5);
@@ -51,8 +53,16 @@ public final class SignalRadarConfig {
                 .defineList("energyMultiplierByTier", DEFAULT_ENERGY_MULTIPLIER, () -> 1.0, o -> o instanceof Number);
         STRUCTURE_LOOKUPS_PER_TICK = b.comment("Max structure searches (findNearestMapStructure) the server runs per tick.")
                 .defineInRange("structureLookupsPerTick", 1, 1, 64);
-        MAX_SCANNABLE_STRUCTURES = b.comment("Max entries read from the scannable structures tag (used by the structure addon).")
-                .defineInRange("maxScannableStructures", 16, 1, 256);
+        MAX_SCANNABLE_STRUCTURES = b.comment("Max structure types the structure addon searches: the entries of the scannable structures tag,",
+                        "or (empty tag) every structure the dimension can generate, sorted by id. Extra ones are ignored with a warning.")
+                .defineInRange("maxScannableStructures", 64, 1, 256);
+        STRUCTURE_CELL_SIZE = b.comment("Size in blocks of the region cells of the structure cache. Results are cached per cell of the",
+                        "position they were searched from; entering a new cell queues new searches, while the cached results of",
+                        "the surrounding cells keep showing until replaced.")
+                .defineInRange("structureCellSize", 256, 16, 4096);
+        STRUCTURE_SEARCH_MAX_CHUNKS = b.comment("Max search radius in chunks of one structure-addon search, whatever the tier range (the range",
+                        "still filters what is shown). Narrative 'structure' targets use their own search_radius_chunks.")
+                .defineInRange("structureSearchMaxChunks", 64, 1, 1000);
         MAX_BLOCK_CHECKS_PER_SCAN = b.comment("Max block states the 'block' locators may test in one player scan (all block targets together).",
                         "Each 16x16x16 chunk section that may contain the block costs 4096. When the budget runs out the search",
                         "stops and keeps the nearest block found so far.")
@@ -103,8 +113,26 @@ public final class SignalRadarConfig {
         return SPEC.isLoaded() ? STRUCTURE_LOOKUPS_PER_TICK.get() : STRUCTURE_LOOKUPS_PER_TICK.getDefault();
     }
 
+    /** Game tests only: forces {@code scan.maxScannableStructures} (-1 = follow the config). */
+    private static volatile int maxStructuresOverride = -1;
+
+    public static void overrideMaxScannableStructures(int value) {
+        maxStructuresOverride = value;
+    }
+
     public static int maxScannableStructures() {
+        if (maxStructuresOverride > 0) {
+            return maxStructuresOverride;
+        }
         return SPEC.isLoaded() ? MAX_SCANNABLE_STRUCTURES.get() : MAX_SCANNABLE_STRUCTURES.getDefault();
+    }
+
+    public static int structureCellSize() {
+        return SPEC.isLoaded() ? STRUCTURE_CELL_SIZE.get() : STRUCTURE_CELL_SIZE.getDefault();
+    }
+
+    public static int structureSearchMaxChunks() {
+        return SPEC.isLoaded() ? STRUCTURE_SEARCH_MAX_CHUNKS.get() : STRUCTURE_SEARCH_MAX_CHUNKS.getDefault();
     }
 
     public static int maxBlockChecksPerScan() {
