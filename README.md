@@ -16,6 +16,7 @@ A handheld, FE-powered radar for NeoForge 1.21.1 with its display drawn on the i
 Minecraft 1.21.1, NeoForge 21.1.x, Java 21. Nothing else is required.
 
 ## Documentation
+- [Wiki](https://github.com/Feffolino/signalradar/wiki): player and pack-maker guide, split by Minecraft version (1.21.1 NeoForge, 1.20.1 Forge in production)
 - [SUMMARY.md](SUMMARY.md): technical reference (config, JSON schema, KubeJS, API, tests, decisions)
 - [CURSEFORGE.md](CURSEFORGE.md): player and pack-maker page text
 - [CHANGELOG.md](CHANGELOG.md)
