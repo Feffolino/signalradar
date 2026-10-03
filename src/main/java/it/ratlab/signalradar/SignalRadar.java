@@ -41,6 +41,8 @@ public final class SignalRadar {
         modBus.addListener(AddonRegistry::onRegister);
         modBus.addListener(SignalRadar::addToTabs);
 
+        it.ratlab.signalradar.net.RadarNetworking.register();
+
         MinecraftForge.EVENT_BUS.addListener(RadarUpgradeRecipe::onItemCrafted);
     }
 
