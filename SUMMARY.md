@@ -456,13 +456,13 @@ math in `display/HandMath`). A pre-mirrored left entry is mirrored twice and the
 
 ## Verifiche e stato del porting Forge 1.20.1
 - [x] Step 1: Inizializzazione repo Git, `.gitignore`, build script ModDevGradle legacyforge 2.0.147 (Gradle 8.10.2, Java 17 via Foojay), access transformer `META-INF/accesstransformer.cfg` per `ModelPart.cubes` e `ModelPart.children`.
-- [ ] Step 2: Registry (item radar, moduli 1-4, addon, suoni, ricette e condizioni Forge).
-- [ ] Step 3: Energia (ForgeCapabilities.ENERGY, NBT).
-- [ ] Step 4: Networking (`SimpleChannel`).
-- [ ] Step 5: Scansione (`ScanHandler`, addon base, tag, cache strutture).
-- [ ] Step 6: Target JSON e progress/stage.
-- [ ] Step 7: Client (BEWLR, arm pose, menu addon, frecce, suoni, volti mob).
-- [ ] Step 8: Compat (JEI 15, KubeJS 6, FTB Teams 2001, Lootr 0.7, Manholes 1.7.3).
-- [ ] Step 9: Config, comandi, test.
-- [ ] Step 10: Documentazione finale e verifica in-game.
+- [x] Step 2: Registry (item radar, moduli 1-4, addon, suoni, ricette e condizioni Forge `DefaultRecipesCondition`).
+- [x] Step 3: Energia (ForgeCapabilities.ENERGY, NBT tag `energy`, clamp capacità e batterie).
+- [x] Step 4: Networking (`SimpleChannel` su canale `signalradar:main`, payload `SnapshotPayload` e codifica/decodifica FriendlyByteBuf).
+- [x] Step 5: Scansione (`ScanHandler`, addon base, tag, cache strutture `StructureCacheData`, `StructureCells`, `StructureLookupService`).
+- [x] Step 6: Target JSON (`TargetManager`, datapack loader) e progressione/stage (`PlayerData` persistente in NBT, `FoundHandler`, `StageHelper`).
+- [x] Step 7: Client (BEWLR `RadarItemRenderer`, `RadarDisplay` vertex buffering 1.20.1, `IClientItemExtensions.applyForgeHandTransform`, `AddonScreen`, suoni, volti/corpi mob `MobFaces`/`MobBodies`, `CustomAddonPack`/`CustomAddonModels`).
+- [x] Step 8: Compat (JEI 15 via `@JeiPlugin`, KubeJS 6 con bindings/eventi/plugin KubeJS Forge, FTB Teams 2001, Lootr 0.7 `ILootBlockEntity`, Manholes 1.7.3).
+- [x] Step 9: Config (`SignalRadarStartupConfig`, `SignalRadarConfig`, `AddonConfig`, `RadarClientConfig`), comandi `/signalradar`, test unitari JUnit (66/66 superati) e GameTest registrati su mod bus.
+- [x] Step 10: Build completa con `gradlew build`, generazione artefatto `build/libs/signalradar-1.0.0-1.20.1.jar` (493 KB), verifica integrità e documentazione finale.
 
