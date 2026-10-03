@@ -1,0 +1,18 @@
+{
+  "scan_ping": {
+    "subtitle": "subtitles.signalradar.scan_ping",
+    "sounds": [{ "name": "signalradar:scan_ping", "volume": 0.6 }]
+  },
+  "blip": {
+    "subtitle": "subtitles.signalradar.blip",
+    "sounds": [{ "name": "signalradar:blip", "volume": 0.6 }]
+  },
+  "target_found": {
+    "subtitle": "subtitles.signalradar.target_found",
+    "sounds": [{ "name": "signalradar:target_found", "volume": 0.8 }]
+  },
+  "motion_beep": {
+    "subtitle": "subtitles.signalradar.motion_beep",
+    "sounds": [{ "name": "signalradar:motion_beep", "volume": 0.15 }]
+  }
+}

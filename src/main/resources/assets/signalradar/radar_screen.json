@@ -1,0 +1,5 @@
+{
+  "_comment": "Model units (0..16) of the radar item model. screen = the flat screen element (display drawn on its south face, plane z = to.z, facing +z). led = the status LED box (south and top faces painted). Resource packs may override this file.",
+  "screen": { "from": [2.25, 5, 10.25], "to": [13.75, 13.75, 10.25] },
+  "led": { "from": [12.25, 13.85, 10.75], "to": [13.25, 14.4, 11] }
+}

@@ -1,0 +1,13 @@
+{
+  "values": [
+    "signalradar:addon_container",
+    "signalradar:addon_ore",
+    "signalradar:addon_biosign",
+    "signalradar:addon_structure",
+    "signalradar:addon_motion",
+    "signalradar:addon_battery",
+    {"id": "signalradar:addon_manhole", "required": false},
+    {"id": "signalradar:addon_lootr", "required": false},
+    {"id": "signalradar:addon_team", "required": false}
+  ]
+}

@@ -1,0 +1,129 @@
+{
+ "parent": "builtin/entity",
+ "textures": {
+  "particle": "signalradar:item/radar"
+ },
+ "display": {
+  "thirdperson_righthand": {
+   "rotation": [
+    0,
+    -180,
+    0
+   ],
+   "translation": [
+    0,
+    3,
+    1
+   ],
+   "scale": [
+    0.45,
+    0.45,
+    0.45
+   ]
+  },
+  "thirdperson_lefthand": {
+   "rotation": [
+    0,
+    -180,
+    0
+   ],
+   "translation": [
+    0,
+    3,
+    1
+   ],
+   "scale": [
+    0.45,
+    0.45,
+    0.45
+   ]
+  },
+  "firstperson_righthand": {
+   "rotation": [
+    10,
+    -12,
+    0
+   ],
+   "translation": [
+    -2,
+    4,
+    -1
+   ],
+   "scale": [
+    0.55,
+    0.55,
+    0.55
+   ]
+  },
+  "firstperson_lefthand": {
+   "rotation": [
+    10,
+    -12,
+    0
+   ],
+   "translation": [
+    -2,
+    4,
+    -1
+   ],
+   "scale": [
+    0.55,
+    0.55,
+    0.55
+   ]
+  },
+  "ground": {
+   "translation": [
+    0,
+    2,
+    0
+   ],
+   "scale": [
+    0.35,
+    0.35,
+    0.35
+   ]
+  },
+  "gui": {
+   "rotation": [
+    15,
+    -30,
+    0
+   ],
+   "scale": [
+    0.65,
+    0.65,
+    0.65
+   ]
+  },
+  "head": {
+   "rotation": [
+    0,
+    -180,
+    0
+   ],
+   "translation": [
+    0,
+    10,
+    -4
+   ],
+   "scale": [
+    0.7,
+    0.7,
+    0.7
+   ]
+  },
+  "fixed": {
+   "rotation": [
+    0,
+    -180,
+    0
+   ],
+   "scale": [
+    0.6,
+    0.6,
+    0.6
+   ]
+  }
+ }
+}

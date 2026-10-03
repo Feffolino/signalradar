@@ -1,0 +1,30 @@
+﻿{
+  "conditions": [
+    {
+      "type": "signalradar:default_recipes_enabled"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "GQG",
+    "QKQ",
+    "GQG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    },
+    "K": {
+      "item": "minecraft:comparator"
+    }
+  },
+  "result": {
+    "item": "signalradar:radar_module_2",
+    "count": 1
+  }
+}
+
