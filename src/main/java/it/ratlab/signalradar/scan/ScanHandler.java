@@ -1,0 +1,214 @@
+// SPDX-License-Identifier: MIT
+package it.ratlab.signalradar.scan;
+
+import it.ratlab.signalradar.SignalRadarConfig;
+import it.ratlab.signalradar.addon.AddonRules;
+import it.ratlab.signalradar.addon.AddonSettings;
+import it.ratlab.signalradar.addon.detect.AddonCache;
+import it.ratlab.signalradar.addon.detect.Detectors;
+import it.ratlab.signalradar.addon.detect.Hit;
+import it.ratlab.signalradar.addon.detect.MotionTracker;
+import it.ratlab.signalradar.api.RadarScanEvent;
+import it.ratlab.signalradar.data.StructureCacheData;
+import it.ratlab.signalradar.item.RadarItem;
+import it.ratlab.signalradar.item.TwoHanded;
+import it.ratlab.signalradar.net.RadarNetworking;
+import it.ratlab.signalradar.target.TargetManager;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.server.ServerLifecycleHooks;
+
+/** Server-side glue: scans for players holding a radar, runs the structure queue. */
+public final class ScanHandler {
+    /** What the scan is paid for: changing tier, addons or hand forces a new paid scan. */
+    private record Key(int tier, List<ResourceLocation> addons, boolean mainHand) {}
+
+    private static final Map<UUID, ScanSchedule> STATES = new HashMap<>();
+
+    private ScanHandler() {}
+
+    public static void register(IEventBus bus) {
+        bus.addListener(ScanHandler::onPlayerTick);
+        bus.addListener(ScanHandler::onServerTick);
+        bus.addListener(ScanHandler::onLogout);
+        bus.addListener(ScanHandler::onClone);
+    }
+
+    /** Main hand first, then offhand. Empty when the player holds no radar. */
+    public static ItemStack heldRadar(Player player) {
+        ItemStack main = player.getMainHandItem();
+        if (main.getItem() instanceof RadarItem) {
+            return main;
+        }
+        ItemStack off = player.getOffhandItem();
+        return off.getItem() instanceof RadarItem ? off : ItemStack.EMPTY;
+    }
+
+    /**
+     * The radar that is switched on: {@link #heldRadar}, except an offhand radar while the main hand is two-handed
+     * ({@link TwoHanded#blocksOffhand}); empty then.
+     */
+    public static ItemStack activeRadar(Player player) {
+        ItemStack radar = heldRadar(player);
+        return !radar.isEmpty() && radar != player.getMainHandItem() && TwoHanded.blocksOffhand(player) ? ItemStack.EMPTY : radar;
+    }
+
+    private static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase == TickEvent.Phase.END && event.player instanceof ServerPlayer player) {
+            tickPlayer(player);
+        }
+    }
+
+    /** One player tick of the scan schedule (public for game tests). */
+    public static void tickPlayer(ServerPlayer player) {
+        ItemStack radar = activeRadar(player);
+        if (radar.isEmpty()) {
+            return;
+        }
+        long now = player.level().getGameTime();
+        ScanSchedule st = STATES.computeIfAbsent(player.getUUID(), k -> new ScanSchedule());
+        if (!st.due(now, new Key(RadarItem.tier(radar), RadarItem.addons(radar), player.getMainHandItem() == radar))) {
+            return;
+        }
+        ScanSettings base = ScanSettings.fromConfig();
+        List<AddonSettings> addons = AddonRules.active(radar);
+        int sendSeconds = base.refreshSeconds();
+        for (AddonSettings a : addons) {
+            sendSeconds = Math.min(sendSeconds, a.refreshSeconds());
+        }
+        long sendTicks = Math.max(1, sendSeconds) * 20L;
+        if (st.shouldPay(now, base.refreshTicks())) {
+            ScanSnapshot snap = sendScan(player, radar, base.withRefreshSeconds(sendSeconds), now, addons, RadarScanner.Charge.PAY);
+            st.afterPaid(now, base.refreshTicks(), sendTicks, snap.noSignal());
+        } else if (st.paid()) {
+            sendScan(player, radar, base.withRefreshSeconds(sendSeconds), now, addons, RadarScanner.Charge.FREE);
+            st.afterFree(now, sendTicks);
+        } else {
+            RadarNetworking.sendToPlayer(player, RadarScanner.noSignal(radar, base, now, false));
+            st.afterUnpaid(now, base.refreshTicks());
+        }
+    }
+
+    /** Asks for the next snapshot of a player soon (free, inside the current paid period); no-op without a radar schedule. */
+    public static void requestRefresh(ServerPlayer player) {
+        ScanSchedule st = STATES.get(player.getUUID());
+        if (st != null) {
+            st.pullForward(player.level().getGameTime(), 5);
+        }
+    }
+
+    /** Runs one charged scan now (base cost + installed addons) and sends the snapshot. */
+    public static ScanSnapshot sendScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now) {
+        return sendScan(player, radar, settings, now, AddonRules.active(radar), RadarScanner.Charge.PAY);
+    }
+
+    /**
+     * Runs one charged scan now and returns the snapshot (after {@link RadarScanEvent}) without sending it. For tests
+     * and callers with their own delivery.
+     */
+    public static ScanSnapshot computeScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now) {
+        return computeScan(player, radar, settings, now, AddonRules.active(radar), RadarScanner.Charge.PAY);
+    }
+
+    private static ScanSnapshot sendScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now,
+                                         List<AddonSettings> addons, RadarScanner.Charge charge) {
+        ScanSnapshot snapshot = computeScan(player, radar, settings, now, addons, charge);
+        RadarNetworking.sendToPlayer(player, snapshot);
+        return snapshot;
+    }
+
+    private static ScanSnapshot computeScan(ServerPlayer player, ItemStack radar, ScanSettings settings, long now,
+                                            List<AddonSettings> addons, RadarScanner.Charge charge) {
+        ServerLevel level = player.serverLevel();
+        int tier = RadarItem.tier(radar);
+        int range = settings.range(tier);
+        BlockLocatorScan.Budget budget = new BlockLocatorScan.Budget(SignalRadarConfig.maxBlockChecksPerScan());
+        String dimension = level.dimension().location().toString();
+        Function<AddonSettings, List<Hit>> detect = a -> {
+            int radius = a.radius(tier, range);
+            boolean usesBudget = a.def().detector() == it.ratlab.signalradar.addon.AddonDefinition.Detector.CONTAINER
+                    || a.def().detector() == it.ratlab.signalradar.addon.AddonDefinition.Detector.BLOCK_TAG;
+            return AddonCache.INSTANCE.get(player.getUUID(), a.def().id(), now, a.refreshSeconds() * 20L, radius, dimension, player.position(),
+                    () -> Detectors.run(a, player, level, radius, budget, now), () -> usesBudget && budget.exhausted());
+        };
+        ScanSnapshot snapshot = RadarScanner.scan(radar, player.getUUID(), player.position(), now, settings, TargetManager.all(),
+                def -> Locators.locate(player, def, range, level, now, budget), addons, detect, charge, PlayerProgress.of(player));
+        return postScanEvent(player, radar, range, snapshot);
+    }
+
+    /** Posts {@link RadarScanEvent} for a scan with signal: cancelled = NO SIGNAL, edited blips replace the computed ones. */
+    static ScanSnapshot postScanEvent(ServerPlayer player, ItemStack radar, int range, ScanSnapshot s) {
+        if (s.noSignal()) {
+            return s;
+        }
+        RadarScanEvent event = new RadarScanEvent(player, radar, range, s.blips());
+        MinecraftForge.EVENT_BUS.post(event);
+        if (event.isCanceled()) {
+            return new ScanSnapshot(s.tier(), s.energy(), s.capacity(), s.range(), s.refreshSeconds(), true, s.gameTime(), List.of(),
+                    s.charged(), 0);
+        }
+        if (event.targetsChanged(s.blips())) {
+            return new ScanSnapshot(s.tier(), s.energy(), s.capacity(), s.range(), s.refreshSeconds(), false, s.gameTime(),
+                    event.getTargets(), s.charged(), s.motionRadius());
+        }
+        return s;
+    }
+
+    private static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        StructureLookupService svc = StructureLookupService.INSTANCE;
+        if (svc.pending() == 0) {
+            return;
+        }
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) {
+            return;
+        }
+        svc.tick(server::getLevel, StructureCacheData.get(server), server.overworld().getGameTime(),
+                SignalRadarConfig.structureLookupsPerTick());
+    }
+
+    private static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        UUID id = event.getEntity().getUUID();
+        STATES.remove(id);
+        BlockLocatorScan.INSTANCE.forget(id);
+        AddonCache.INSTANCE.forget(id);
+        MotionTracker.INSTANCE.forget(id);
+    }
+
+    private static void onClone(PlayerEvent.Clone event) {
+        if (event.isWasDeath()) {
+            event.getOriginal().reviveCaps();
+            CompoundTag oldNbt = event.getOriginal().getPersistentData();
+            if (oldNbt.contains(Player.PERSISTED_NBT_TAG)) {
+                event.getEntity().getPersistentData().put(Player.PERSISTED_NBT_TAG, oldNbt.getCompound(Player.PERSISTED_NBT_TAG));
+            }
+            event.getOriginal().invalidateCaps();
+        }
+    }
+
+    /** Server stopped / test hook. */
+    public static void reset() {
+        STATES.clear();
+        StructureLookupService.INSTANCE.clearQueue();
+        BlockLocatorScan.INSTANCE.clear();
+        AddonCache.INSTANCE.clear();
+        MotionTracker.INSTANCE.clear();
+    }
+}

@@ -44,6 +44,26 @@ public final class SignalRadar {
         it.ratlab.signalradar.net.RadarNetworking.register();
 
         MinecraftForge.EVENT_BUS.addListener(RadarUpgradeRecipe::onItemCrafted);
+        MinecraftForge.EVENT_BUS.addListener(it.ratlab.signalradar.target.TargetManager::onAddReloadListener);
+        MinecraftForge.EVENT_BUS.addListener(it.ratlab.signalradar.addon.detect.OreColorResolver::onTagsUpdated);
+        MinecraftForge.EVENT_BUS.addListener((net.minecraftforge.event.server.ServerStoppedEvent e) -> it.ratlab.signalradar.scan.ScanHandler.reset());
+        it.ratlab.signalradar.scan.ScanHandler.register(MinecraftForge.EVENT_BUS);
+        it.ratlab.signalradar.progress.FoundHandler.register(MinecraftForge.EVENT_BUS);
+        if (net.minecraftforge.fml.ModList.get().isLoaded("lootr")) {
+            it.ratlab.signalradar.compat.lootr.LootrEvents.register(MinecraftForge.EVENT_BUS);
+        }
+        if (net.minecraftforge.fml.ModList.get().isLoaded("kubejs")) {
+            it.ratlab.signalradar.progress.StageHelper.enableKubeJS();
+            enableKubeJSEvents();
+        }
+    }
+
+    private static void enableKubeJSEvents() {
+        try {
+            it.ratlab.signalradar.compat.kubejs.KubeJSCompat.init();
+        } catch (Throwable t) {
+            LOGGER.error("KubeJS event integration failed to load", t);
+        }
     }
 
     public static ResourceLocation id(String path) {

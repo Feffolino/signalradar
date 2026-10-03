@@ -45,4 +45,8 @@ public final class RadarNetworking {
     public static void sendTo(ServerPlayer player, SnapshotPayload msg) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), msg);
     }
+
+    public static void sendToPlayer(ServerPlayer player, it.ratlab.signalradar.scan.ScanSnapshot snapshot) {
+        sendTo(player, new SnapshotPayload(snapshot));
+    }
 }
