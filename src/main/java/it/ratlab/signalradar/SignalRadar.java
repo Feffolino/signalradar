@@ -56,6 +56,9 @@ public final class SignalRadar {
             it.ratlab.signalradar.progress.StageHelper.enableKubeJS();
             enableKubeJSEvents();
         }
+
+        net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT,
+                () -> () -> it.ratlab.signalradar.client.SignalRadarClient.init(modBus));
     }
 
     private static void enableKubeJSEvents() {

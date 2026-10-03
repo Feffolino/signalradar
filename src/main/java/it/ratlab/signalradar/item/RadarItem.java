@@ -46,6 +46,11 @@ public class RadarItem extends Item {
         return new RadarEnergyCapabilityProvider(stack);
     }
 
+    @Override
+    public void initializeClient(java.util.function.Consumer<net.minecraftforge.client.extensions.common.IClientItemExtensions> consumer) {
+        consumer.accept(new it.ratlab.signalradar.client.RadarClientExtensions());
+    }
+
     public static int tier(ItemStack stack) {
         CompoundTag tag = stack.getTag();
         if (tag == null || !tag.contains(TAG_TIER, Tag.TAG_INT)) {
