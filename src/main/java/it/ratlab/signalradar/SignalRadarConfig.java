@@ -62,7 +62,7 @@ public final class SignalRadarConfig {
                 .defineInRange("structureCellSize", 256, 16, 4096);
         STRUCTURE_SEARCH_MAX_CHUNKS = b.comment("Max search radius in chunks of one structure-addon search, whatever the tier range (the range",
                         "still filters what is shown). Narrative 'structure' targets use their own search_radius_chunks.")
-                .defineInRange("structureSearchMaxChunks", 32, 1, 1000);
+                .defineInRange("structureSearchMaxChunks", 64, 1, 1000);
         MAX_BLOCK_CHECKS_PER_SCAN = b.comment("Max block states the 'block' locators may test in one player scan (all block targets together).",
                         "Each 16x16x16 chunk section that may contain the block costs 4096. When the budget runs out the search",
                         "stops and keeps the nearest block found so far.")
