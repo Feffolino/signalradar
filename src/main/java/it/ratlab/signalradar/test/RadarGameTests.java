@@ -1,0 +1,148 @@
+// SPDX-License-Identifier: MIT
+package it.ratlab.signalradar.test;
+
+import it.ratlab.signalradar.SignalRadar;
+import it.ratlab.signalradar.SignalRadarConfig;
+import it.ratlab.signalradar.item.RadarItem;
+import it.ratlab.signalradar.recipe.RadarUpgradeRecipe;
+import it.ratlab.signalradar.registry.ModItems;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.inventory.TransientCraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.energy.IEnergyStorage;
+import net.minecraftforge.event.RegisterGameTestsEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
+
+/** Headless checks run by {@code ./gradlew runGameTestServer} (registered only with -Dsignalradar.gametests=true). */
+@GameTestHolder(SignalRadar.MOD_ID)
+@PrefixGameTestTemplate(false)
+public final class RadarGameTests {
+    private static final String EMPTY = "gametest_empty";
+
+    private RadarGameTests() {}
+
+    public static void register(IEventBus modBus) {
+        modBus.addListener((RegisterGameTestsEvent e) -> e.register(RadarGameTests.class));
+    }
+
+    private static IEnergyStorage energyOf(GameTestHelper h, ItemStack stack) {
+        IEnergyStorage e = stack.getCapability(ForgeCapabilities.ENERGY).orElse(null);
+        h.assertTrue(e != null, "radar has no FE capability");
+        return e;
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void receiveIsCappedByMaxReceive(GameTestHelper h) {
+        ItemStack radar = new ItemStack(ModItems.RADAR.get());
+        int got = energyOf(h, radar).receiveEnergy(1_000_000, false);
+        int expected = Math.min(1_000_000, Math.min(SignalRadarConfig.maxReceive(), RadarItem.capacity(radar)));
+        h.assertTrue(got == expected, "received " + got + ", expected " + expected);
+        h.assertTrue(RadarItem.energy(radar) == got, "stored " + RadarItem.energy(radar));
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void receiveIsCappedByCapacity(GameTestHelper h) {
+        ItemStack radar = new ItemStack(ModItems.RADAR.get());
+        int cap = SignalRadarConfig.capacity();
+        RadarItem.setEnergy(radar, cap - 30);
+        int got = energyOf(h, radar).receiveEnergy(1_000_000, false);
+        h.assertTrue(got == 30, "received " + got + ", expected 30");
+        h.assertTrue(RadarItem.energy(radar) == cap, "not full: " + RadarItem.energy(radar));
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void simulateDoesNotStore(GameTestHelper h) {
+        ItemStack radar = new ItemStack(ModItems.RADAR.get());
+        energyOf(h, radar).receiveEnergy(50, true);
+        h.assertTrue(RadarItem.energy(radar) == 0, "simulate stored energy");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void extractIsRefused(GameTestHelper h) {
+        ItemStack radar = new ItemStack(ModItems.RADAR.get());
+        RadarItem.setEnergy(radar, 500);
+        IEnergyStorage e = energyOf(h, radar);
+        h.assertTrue(!e.canExtract() && e.extractEnergy(100, false) == 0, "extraction allowed");
+        h.assertTrue(RadarItem.energy(radar) == 500, "energy changed");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void tierIsClamped(GameTestHelper h) {
+        ItemStack radar = new ItemStack(ModItems.RADAR.get());
+        h.assertTrue(RadarItem.tier(radar) == 0, "default tier not 0");
+        RadarItem.setTier(radar, 9);
+        h.assertTrue(RadarItem.tier(radar) == RadarItem.MAX_TIER, "tier not clamped: " + RadarItem.tier(radar));
+        h.succeed();
+    }
+
+    private static CraftingContainer grid(ItemStack... stacks) {
+        TransientCraftingContainer c = new TransientCraftingContainer(new AbstractContainerMenu(null, -1) {
+            @Override
+            public ItemStack quickMoveStack(Player player, int i) { return ItemStack.EMPTY; }
+            @Override
+            public boolean stillValid(Player player) { return false; }
+        }, 3, 3);
+        for (int i = 0; i < stacks.length && i < 9; i++) {
+            c.setItem(i, stacks[i]);
+        }
+        return c;
+    }
+
+    private static final RadarUpgradeRecipe UPGRADE = new RadarUpgradeRecipe(SignalRadar.id("radar_upgrade"), CraftingBookCategory.EQUIPMENT);
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void upgradeRaisesTierAndKeepsEnergy(GameTestHelper h) {
+        ItemStack radar = new ItemStack(ModItems.RADAR.get());
+        RadarItem.setEnergy(radar, 1234);
+        CraftingContainer in = grid(radar, new ItemStack(ModItems.MODULE_1.get()));
+        h.assertTrue(UPGRADE.matches(in, h.getLevel()), "tier 0 + module 1 should match");
+        ItemStack out = UPGRADE.assemble(in, h.getLevel().registryAccess());
+        h.assertTrue(RadarItem.tier(out) == 1, "tier " + RadarItem.tier(out));
+        h.assertTrue(RadarItem.energy(out) == 1234, "energy " + RadarItem.energy(out));
+        h.assertTrue(out.getCount() == 1, "count " + out.getCount());
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void upgradeRefusesSkippedTier(GameTestHelper h) {
+        CraftingContainer in = grid(new ItemStack(ModItems.RADAR.get()), new ItemStack(ModItems.MODULE_2.get()));
+        h.assertTrue(!UPGRADE.matches(in, h.getLevel()), "tier 0 + module 2 must not match");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void upgradeRefusesSameTier(GameTestHelper h) {
+        ItemStack radar = new ItemStack(ModItems.RADAR.get());
+        RadarItem.setTier(radar, 1);
+        CraftingContainer in = grid(radar, new ItemStack(ModItems.MODULE_1.get()));
+        h.assertTrue(!UPGRADE.matches(in, h.getLevel()), "tier 1 + module 1 must not match");
+        h.succeed();
+    }
+
+    @GameTest(templateNamespace = SignalRadar.MOD_ID, template = EMPTY)
+    public static void upgradeRefusesExtraItems(GameTestHelper h) {
+        CraftingContainer twoModules = grid(new ItemStack(ModItems.RADAR.get()),
+                new ItemStack(ModItems.MODULE_1.get()), new ItemStack(ModItems.MODULE_1.get()));
+        CraftingContainer twoRadars = grid(new ItemStack(ModItems.RADAR.get()), new ItemStack(ModItems.RADAR.get()),
+                new ItemStack(ModItems.MODULE_1.get()));
+        CraftingContainer alone = grid(new ItemStack(ModItems.RADAR.get()));
+        h.assertTrue(!UPGRADE.matches(twoModules, h.getLevel()), "two modules matched");
+        h.assertTrue(!UPGRADE.matches(twoRadars, h.getLevel()), "two radars matched");
+        h.assertTrue(!UPGRADE.matches(alone, h.getLevel()), "radar alone matched");
+        h.succeed();
+    }
+}

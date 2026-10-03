@@ -46,6 +46,7 @@ public final class SignalRadar {
         MinecraftForge.EVENT_BUS.addListener(RadarUpgradeRecipe::onItemCrafted);
         MinecraftForge.EVENT_BUS.addListener(it.ratlab.signalradar.target.TargetManager::onAddReloadListener);
         MinecraftForge.EVENT_BUS.addListener(it.ratlab.signalradar.addon.detect.OreColorResolver::onTagsUpdated);
+        MinecraftForge.EVENT_BUS.addListener(it.ratlab.signalradar.command.RadarCommands::register);
         MinecraftForge.EVENT_BUS.addListener((net.minecraftforge.event.server.ServerStoppedEvent e) -> it.ratlab.signalradar.scan.ScanHandler.reset());
         it.ratlab.signalradar.scan.ScanHandler.register(MinecraftForge.EVENT_BUS);
         it.ratlab.signalradar.progress.FoundHandler.register(MinecraftForge.EVENT_BUS);
@@ -55,6 +56,16 @@ public final class SignalRadar {
         if (net.minecraftforge.fml.ModList.get().isLoaded("kubejs")) {
             it.ratlab.signalradar.progress.StageHelper.enableKubeJS();
             enableKubeJSEvents();
+        }
+        if (Boolean.getBoolean("signalradar.gametests")) {
+            it.ratlab.signalradar.test.RadarGameTests.register(modBus);
+            it.ratlab.signalradar.test.ScanGameTests.register(modBus);
+            it.ratlab.signalradar.test.AddonGameTests.register(modBus);
+            it.ratlab.signalradar.test.BatteryGameTests.register(modBus);
+            it.ratlab.signalradar.test.ProgressGameTests.register(modBus);
+            it.ratlab.signalradar.test.CompatGameTests.register(modBus);
+            it.ratlab.signalradar.test.EventGameTests.register(modBus);
+            it.ratlab.signalradar.test.KubeJSGameTests.register(modBus);
         }
 
         net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT,
