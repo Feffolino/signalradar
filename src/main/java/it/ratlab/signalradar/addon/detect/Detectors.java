@@ -115,7 +115,20 @@ public final class Detectors {
         return TagKey.create(registry, def.tag());
     }
 
+    private static final TagKey<Block> FORGE_ORES = TagKey.create(Registries.BLOCK, new ResourceLocation("forge", "ores"));
+    private static final TagKey<Block> C_ORES = TagKey.create(Registries.BLOCK, new ResourceLocation("c", "ores"));
+
     private static boolean tagNotEmpty(ServerLevel level, TagKey<Block> tag) {
+        if (hasTagElements(level, tag)) {
+            return true;
+        }
+        if (tag.location().getPath().equals("ore_targets")) {
+            return hasTagElements(level, FORGE_ORES) || hasTagElements(level, C_ORES);
+        }
+        return false;
+    }
+
+    private static boolean hasTagElements(ServerLevel level, TagKey<Block> tag) {
         return level.registryAccess().registry(Registries.BLOCK)
                 .flatMap(r -> r.getTag(tag))
                 .map(t -> t.size() > 0)
@@ -214,7 +227,11 @@ public final class Detectors {
             return List.of();
         }
         Vec3 c = player.position();
-        Predicate<BlockState> match = s -> s.is(tag);
+        boolean isOre = a.def().id().equals(AddonRegistry.ORE)
+                || (a.def().tag() != null && a.def().tag().getPath().equals("ore_targets"));
+        Predicate<BlockState> match = isOre
+                ? s -> s.is(tag) || s.is(FORGE_ORES) || s.is(C_ORES)
+                : s -> s.is(tag);
         List<BlockPos> all = BlockLocatorScan.findAll(level, c, radius, match, budget, MAX_RAW_BLOCKS);
         List<int[]> points = new ArrayList<>(all.size());
         for (BlockPos p : all) {
