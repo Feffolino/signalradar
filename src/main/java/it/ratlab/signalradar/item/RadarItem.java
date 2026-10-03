@@ -41,6 +41,11 @@ public class RadarItem extends Item {
         super(properties);
     }
 
+    @Override
+    public net.minecraftforge.common.capabilities.ICapabilityProvider initCapabilities(ItemStack stack, @Nullable CompoundTag nbt) {
+        return new RadarEnergyCapabilityProvider(stack);
+    }
+
     public static int tier(ItemStack stack) {
         CompoundTag tag = stack.getTag();
         if (tag == null || !tag.contains(TAG_TIER, Tag.TAG_INT)) {
