@@ -19,20 +19,25 @@ public final class NodeFilter {
     private NodeFilter() {}
 
     /**
-     * @param isOpen true for keys the player already has in his network (those are dropped)
+     * @param isOpen true for keys the player already has in his network (those are dropped; null = keep all)
      * @param max    maximum number of results
      */
     public static <T> List<Node<T>> select(Collection<Node<T>> nodes, String dimension, double px, double pz, int radius,
                                            Predicate<String> isOpen, int max) {
+        return select(nodes, dimension, px, pz, radius, isOpen, false, max);
+    }
+
+    public static <T> List<Node<T>> select(Collection<Node<T>> nodes, String dimension, double px, double pz, int radius,
+                                           Predicate<String> isOpen, boolean includeHome, int max) {
         double r2 = (double) radius * radius;
         List<Node<T>> out = new ArrayList<>();
         for (Node<T> n : nodes) {
-            if (n.home() || !n.dimension().equals(dimension)) {
+            if ((!includeHome && n.home()) || !n.dimension().equals(dimension)) {
                 continue;
             }
             double dx = n.x() - px;
             double dz = n.z() - pz;
-            if (dx * dx + dz * dz > r2 || isOpen.test(n.key())) {
+            if (dx * dx + dz * dz > r2 || (isOpen != null && isOpen.test(n.key()))) {
                 continue;
             }
             out.add(n);

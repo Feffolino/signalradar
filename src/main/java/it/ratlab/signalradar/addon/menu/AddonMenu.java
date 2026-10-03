@@ -262,8 +262,43 @@ public class AddonMenu extends AbstractContainerMenu {
             if (!moveItemStackTo(stack, MAX_SLOTS, slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
-        } else if (!moveItemStackTo(stack, 0, MAX_SLOTS, false)) {
-            return ItemStack.EMPTY;
+        } else {
+            boolean moved = false;
+            int max = maxInSlot(stack);
+            if (max > 1) {
+                for (int i = 0; i < slotCount; i++) {
+                    Slot targetSlot = slots.get(i);
+                    ItemStack targetStack = targetSlot.getItem();
+                    if (!targetStack.isEmpty() && ItemStack.isSameItemSameTags(stack, targetStack)) {
+                        int space = max - targetStack.getCount();
+                        if (space > 0) {
+                            int toAdd = Math.min(stack.getCount(), space);
+                            targetStack.grow(toAdd);
+                            stack.shrink(toAdd);
+                            targetSlot.setChanged();
+                            moved = true;
+                            if (stack.isEmpty()) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!stack.isEmpty()) {
+                for (int i = 0; i < slotCount; i++) {
+                    Slot targetSlot = slots.get(i);
+                    if (!targetSlot.hasItem() && refusal(stack, i).isEmpty()) {
+                        int toAdd = Math.min(stack.getCount(), max);
+                        ItemStack placed = stack.split(toAdd);
+                        targetSlot.setByPlayer(placed);
+                        moved = true;
+                        break;
+                    }
+                }
+            }
+            if (!moved) {
+                return ItemStack.EMPTY;
+            }
         }
         if (stack.isEmpty()) {
             slot.setByPlayer(ItemStack.EMPTY);
@@ -302,7 +337,7 @@ public class AddonMenu extends AbstractContainerMenu {
 
         @Override
         public int getMaxStackSize() {
-            return 1;
+            return AddonRegistry.BATTERY_STACK;
         }
 
         @Override

@@ -11,6 +11,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -45,15 +49,30 @@ public final class StructureLookupService {
 
     private record Request(String key, ResourceKey<Level> dim, Locator.Structure locator, BlockPos origin) {}
 
-    public static final StructureLookupService INSTANCE = new StructureLookupService(StructureLookupService::vanillaFind);
+    public static final StructureLookupService INSTANCE = new StructureLookupService(StructureLookupService::vanillaFind, true);
 
     private final Finder finder;
+    private final boolean async;
+    private final ExecutorService executor;
+    private Request inProgress;
+    private Future<BlockPos> inProgressFuture;
+    private long inProgressStart;
     private final ArrayDeque<Request> queue = new ArrayDeque<>();
     private final Set<String> queued = new HashSet<>();
     private final Set<String> slowWarned = new HashSet<>();
 
     public StructureLookupService(Finder finder) {
+        this(finder, false);
+    }
+
+    public StructureLookupService(Finder finder, boolean async) {
         this.finder = finder;
+        this.async = async;
+        this.executor = async ? Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "SignalRadar-Structure-Worker");
+            t.setDaemon(true);
+            return t;
+        }) : null;
     }
 
     /** {@link #get(StructureCacheData, ResourceKey, Locator.Structure, BlockPos, long, int)} with {@code scan.structureCellSize}. */
@@ -88,8 +107,54 @@ public final class StructureLookupService {
         return Optional.ofNullable(data.latestHit(StructureCacheData.key(dim, locator)));
     }
 
-    /** Runs up to {@code max} queued searches; returns how many ran. */
+    /** Runs queued searches; in async mode offloads findNearestMapStructure to background worker so server thread never blocks. */
     public int tick(Function<ResourceKey<Level>, ServerLevel> levels, StructureCacheData data, long now, int max) {
+        if (async) {
+            if (inProgressFuture != null) {
+                if (!inProgressFuture.isDone()) {
+                    return 0;
+                }
+                BlockPos found = null;
+                try {
+                    found = inProgressFuture.get();
+                } catch (CancellationException e) {
+                    inProgress = null;
+                    inProgressFuture = null;
+                    return 0;
+                } catch (Exception e) {
+                    SignalRadar.LOGGER.warn("Structure search {} failed: {}", inProgress.key(), e.toString());
+                }
+                long ms = (System.nanoTime() - inProgressStart) / 1_000_000L;
+                SignalRadar.LOGGER.debug("Structure search {} took {} ms ({})", inProgress.key(), ms,
+                        found == null ? "miss" : "hit " + found.toShortString());
+                if (ms > SLOW_LOOKUP_MS && slowWarned.size() < 1024 && slowWarned.add(inProgress.locator().id().toString())) {
+                    SignalRadar.LOGGER.warn("Structure search for {} took {} ms (radius {} chunks); lower scan.structureSearchMaxChunks or "
+                            + "set the signalradar:scannable_structures tag if this repeats", inProgress.locator().id(), ms, inProgress.locator().searchRadiusChunks());
+                }
+                if (found != null) {
+                    data.putFound(inProgress.key(), found, now);
+                } else {
+                    data.putMiss(inProgress.key(), now);
+                }
+                inProgress = null;
+                inProgressFuture = null;
+            }
+
+            while (!queue.isEmpty()) {
+                Request r = queue.poll();
+                queued.remove(r.key());
+                ServerLevel level = levels.apply(r.dim());
+                if (level == null) {
+                    continue;
+                }
+                inProgress = r;
+                inProgressStart = System.nanoTime();
+                inProgressFuture = executor.submit(() -> finder.find(level, r.locator(), r.origin()));
+                return 1;
+            }
+            return 0;
+        }
+
         int done = 0;
         while (done < max && !queue.isEmpty()) {
             Request r = queue.poll();
@@ -122,10 +187,15 @@ public final class StructureLookupService {
     }
 
     public int pending() {
-        return queue.size();
+        return queue.size() + (inProgress != null ? 1 : 0);
     }
 
     public void clearQueue() {
+        if (inProgressFuture != null) {
+            inProgressFuture.cancel(true);
+            inProgressFuture = null;
+            inProgress = null;
+        }
         queue.clear();
         queued.clear();
     }

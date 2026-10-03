@@ -29,7 +29,7 @@ public final class ManholeDetector {
                     r.pos.getZ() + 0.5, r.home));
         }
         List<NodeFilter.Node<NodeRecord>> nodes = NodeFilter.select(all, dim, player.getX(), player.getZ(), radius,
-            key -> ManholesAPI.isOpen(player, UUID.fromString(key)), Detectors.MAX_HITS);
+                null, true, Detectors.MAX_HITS);
         List<Hit> hits = new ArrayList<>(nodes.size());
         for (NodeFilter.Node<NodeRecord> n : nodes) {
             hits.add(new Hit(n.key(), n.ref().displayName(), n.x(), n.y(), n.z(), 0,

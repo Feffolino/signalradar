@@ -115,8 +115,11 @@ public final class Detectors {
         return TagKey.create(registry, def.tag());
     }
 
-    private static boolean tagNotEmpty(TagKey<Block> tag) {
-        return BuiltInRegistries.BLOCK.getTag(tag).map(t -> t.size() > 0).orElse(false);
+    private static boolean tagNotEmpty(ServerLevel level, TagKey<Block> tag) {
+        return level.registryAccess().registry(Registries.BLOCK)
+                .flatMap(r -> r.getTag(tag))
+                .map(t -> t.size() > 0)
+                .orElseGet(() -> BuiltInRegistries.BLOCK.getTag(tag).map(t -> t.size() > 0).orElse(false));
     }
 
     // ------------------------------------------------------------------ blocks
@@ -149,7 +152,7 @@ public final class Detectors {
         }
         if (a.def().tag() != null) {
             TagKey<Block> tag = TagKey.create(Registries.BLOCK, a.def().tag());
-            if (tagNotEmpty(tag)) {
+            if (tagNotEmpty(level, tag)) {
                 found.addAll(BlockLocatorScan.findAll(level, c, radius, s -> s.is(tag), budget, MAX_RAW_BLOCKS));
             }
         }
@@ -207,7 +210,7 @@ public final class Detectors {
     /** Tag blocks (ore and custom {@code block_tag} addons): one blip per vein, coloured by ore material when asked. */
     private static List<Hit> blocks(AddonSettings a, ServerPlayer player, ServerLevel level, int radius, BlockLocatorScan.Budget budget) {
         TagKey<Block> tag = TagKey.create(Registries.BLOCK, a.def().tag());
-        if (!tagNotEmpty(tag)) {
+        if (!tagNotEmpty(level, tag)) {
             return List.of();
         }
         Vec3 c = player.position();
