@@ -52,3 +52,7 @@ __pycache__/
 
 # Private publishing checklist (kept local)
 PUBLISH_CURSEFORGE.md
+
+# AI prompt files
+PROMPT.md
+prompt.md
