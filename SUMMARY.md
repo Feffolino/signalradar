@@ -396,8 +396,7 @@ menu (`signalradar:addons`).
   `ModelEvent.RegisterAdditional`. Keep the element names `antenna`, `antenna_tip`, `screen`, `led` when re-exporting.
   Details: `art/README.md`.
 - `assets/signalradar/radar_screen.json`: `screen` and `led` boxes in model units; the display plane is `z = screen.to.z` facing +z.
-- Textures: modules 1-4, the addon icons and `addon_custom` / `addon_custom_light` are hand drawn (old placeholders in
-  `art/old_addon_textures/`); `textures/item/radar.png` and `gui/addon_slots.png` are still placeholders. Besides those the mod
+- Textures: modules 1-4, the addon icons and `addon_custom` / `addon_custom_light` are hand drawn; `textures/item/radar.png` and `gui/addon_slots.png` are still placeholders. Besides those the mod
   draws only `textures/misc/white.png`. `tools/make_placeholders.py` never overwrites an existing PNG; don't use it for addons.
 - English only (`lang/en_us.json`).
 

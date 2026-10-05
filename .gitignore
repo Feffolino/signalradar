@@ -41,7 +41,7 @@ repo/
 run-kubejs/
 run-compat/
 
-### Manhole Travel ###
+### Signal Radar ###
 # third-party jars are resolved from Maven (see build.gradle); never commit them
 libs/
 *.jar
@@ -53,3 +53,8 @@ __pycache__/
 
 # Private publishing checklist (kept local)
 PUBLISH_CURSEFORGE.md
+
+# AI prompt files
+PROMPT.md
+prompt.md
+*.psd
