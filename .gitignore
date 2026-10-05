@@ -1,5 +1,5 @@
 ### Gradle ###
-.gradle
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/**/build/
@@ -32,6 +32,11 @@ bin/
 ### Mac OS ###
 .DS_Store
 
+### Windows ###
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
 ### Minecraft Modding ###
 run/
 !**/src/**/run/
@@ -39,22 +44,23 @@ run/
 repo/
 !**/src/**/repo/
 run-kubejs/
-run-compat/
 
 ### Signal Radar ###
-# third-party jars are resolved from Maven (see build.gradle); never commit them
+# third-party jars are resolved from Maven / libs (never commit them)
 libs/
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
-# dev run folders (worlds, logs, copied mods)
-run-kubejs/
+run-compat/
 __pycache__/
 *.pyc
-
-# Private publishing checklist (kept local)
-PUBLISH_CURSEFORGE.md
 
 # AI prompt files
 PROMPT.md
 prompt.md
+
+# Large raw graphics source files
 *.psd
+
+# Private publishing checklist (kept local)
+PUBLISH_CURSEFORGE.md
+**/curseforge/icon/
